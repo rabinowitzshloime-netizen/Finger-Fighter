@@ -107,6 +107,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .tray .it button{border:0;border-radius:50%;width:22px;height:22px;background:var(--hit);color:#fff;font-weight:900;line-height:22px;padding:0;cursor:pointer}
 .tray .row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.tray .tot{font-weight:800;font-size:13px}
 .qty{display:inline-flex;align-items:center;gap:6px}.qty b{min-width:14px;text-align:center}.qty .pill{padding:6px 11px}
+.boostic{display:grid;place-items:center;font-size:28px;background:#2a2340!important}.have{display:inline-block;background:var(--tape);color:var(--tape-ink);border-radius:999px;padding:0 7px;font-size:12px;vertical-align:middle}
 .menu-warn{color:var(--hit);font-weight:900}
 .menu-good{color:var(--ok);font-weight:900}
 .meter:nth-child(2) .bar i{background:var(--spd)}
@@ -188,6 +189,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .hp>div:last-child .bar i{background:var(--hit)}
 .superrow{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center;font-weight:900;font-size:13px}
 .superrow .bar i{background:linear-gradient(90deg,var(--tape),#ff7a1a)}
+.enrow .bar i{background:linear-gradient(90deg,#5fd49c,#4fb0ff)}.enrow .bar.low i{background:#ff5d5d}.enrow{margin-top:-6px}
 .superrow .bar.full{box-shadow:0 0 14px var(--tape);animation:pulse .6s infinite alternate}
 @keyframes pulse{to{border-color:var(--tape)}}
 #fightCv{height:260px}
@@ -214,6 +216,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .side button{width:68px;height:68px;border-radius:18px;border:0;background:rgba(37,45,64,.94);color:var(--chalk);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;font-weight:900;font-size:11px;box-shadow:0 4px 0 #11151f;letter-spacing:.03em}
 .side button:active{transform:translateY(3px);box-shadow:0 1px 0 #11151f}
 .side svg{width:28px;height:28px}
+.side .med{position:relative;background:#fff;color:#c0392b;box-shadow:0 4px 0 #b9c2cf;font-size:12px}.side .med .medic{font-size:24px;line-height:1}.side .med i{position:absolute;top:-6px;right:-6px;background:#e63946;color:#fff;border-radius:999px;padding:1px 6px;font-style:normal;font-size:11px;box-shadow:0 0 0 2px #fff}
+.side .med:disabled{opacity:.55}
+.medpop{position:absolute;left:90px;top:50%;z-index:3;background:#fff;color:#c0392b;font-weight:900;border-radius:12px;padding:6px 10px;pointer-events:none;animation:medpop 1.6s forwards}.lefty .medpop{left:auto;right:90px}
+@keyframes medpop{0%{opacity:0;transform:translateY(10px)}15%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
+.mini{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:104px;height:104px;border-radius:14px;border:2px solid rgba(255,255,255,.75);box-shadow:0 4px 12px rgba(0,0,0,.35);z-index:2;pointer-events:none;background:#6f9455}.lefty .mini{right:auto;left:12px}
 .side .tr{background:var(--tape);color:var(--tape-ink);box-shadow:0 4px 0 #b37700}
 .act{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:2;min-width:230px;max-width:calc(100% - 120px)}
 .act:active{transform:translateX(-50%) translateY(3px)}
@@ -253,7 +260,9 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
       <button data-go="shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>SHOP</button>
       <button data-go="skin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M8 4 3 7l2 4 3-1v10h8V10l3 1 2-4-5-3a4 4 0 0 1-8 0z"/></svg>SKIN</button>
       <button data-go="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>SETTINGS</button>
+      <button id="medBtn" class="med" hidden aria-label="Use First-Aid Kit"><span class="medic">🩹</span>USE<i id="medN">×1</i></button>
     </nav>
+    <canvas id="miniCv" class="mini" aria-hidden="true"></canvas>
     <div class="maphint" id="mapHint"><span class="touchonly">Tap or hold anywhere to walk. Find someone to fight!</span><span class="pconly">Click to walk, or use the arrow keys / WASD. Press Enter to fight or go in.</span></div>
     <button class="big go act" id="actBtn" hidden>Fight!</button>
   </section>
@@ -327,18 +336,19 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
       <div><span id="fName">Foe</span><span class="bar"><i id="fHp"></i></span><small class="pow" id="fPow"></small></div>
     </div>
     <div class="superrow"><span>SUPER</span><span class="bar" id="supBar"><i id="supFill" style="width:0"></i></span><span id="comboTxt">0 combo</span></div>
+    <div class="superrow enrow"><span>ENERGY</span><span class="bar" id="enBar"><i id="enFill" style="width:100%"></i></span><span id="enTxt" style="min-width:58px;text-align:right">ready</span></div>
     <div class="stage"><canvas id="fightCv"></canvas></div>
     <div class="fbtns">
       <button id="blockBtn">BLOCK<br><small style="font-size:12px;font-family:var(--body);font-weight:800">hold</small></button>
       <button id="punchBtn">PUNCH!</button>
     </div>
-    <p class="muted" style="text-align:center;font-size:14px"><span class="touchonly">Hold BLOCK when you see the red ! · Fill SUPER, then spread two fingers on the ring</span><span class="pconly">Computer: SPACE to punch · hold SHIFT to block · when SUPER is full press SPACE</span></p>
+    <p class="muted" style="text-align:center;font-size:14px"><span class="touchonly">Hold BLOCK when you see the red ! · Don't mash: punches use ENERGY · Punch right after a block for a COUNTER · Fill SUPER, then spread two fingers on the ring</span><span class="pconly">Computer: SPACE to punch · hold SHIFT to block · when SUPER is full press SPACE · don't mash, punches use ENERGY · punch right after a block for a COUNTER</span></p>
   </section>
 
   <section id="hospital" hidden>
     <button class="back" data-go="map">&larr; Back to map</button>
     <h2>Hospital</h2>
-    <p class="muted">Fights hurt! The doctor will heal your fighter back to full health for 50 coins. If you get knocked out, the ambulance brings you here for free.</p>
+    <p class="muted">Fights hurt! The doctor will heal your fighter back to full health for 50 coins (25 with a Hospital Card). If you get knocked out, the ambulance brings you here for free.</p>
     <div class="stage" style="background:none"><canvas id="hospCv" style="height:280px" aria-label="Hospital room with a bed and a doctor"></canvas></div>
     <button class="big go" id="healBtn">Get healed</button>
   </section>
@@ -377,7 +387,7 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
     <button class="back" data-go="map">&larr; Back to map</button>
     <h2>Gear Shop</h2>
     <p class="muted">Buy gear with coins. Your fighter wears it right away.</p>
-    <div style="display:flex;justify-content:center"><span class="seg" id="shopTabs" style="width:100%"><button data-tab="power" style="flex:1">Power gear</button><button data-tab="style" style="flex:1">Style</button></span></div>
+    <div style="display:flex;justify-content:center"><span class="seg" id="shopTabs" style="width:100%"><button data-tab="power" style="flex:1">Power gear</button><button data-tab="style" style="flex:1">Style</button><button data-tab="boost" style="flex:1">Boosts</button></span></div>
     <div id="shopList" class="list"></div>
   </section>
 </div>
@@ -460,7 +470,7 @@ const WORK=[
 ];
 
 // ---------- save ----------
-const DEF={name:'Buddy',str:{lv:1,xp:0},spd:{lv:1,xp:0},sta:{lv:1,xp:0},coins:0,owned:[],equip:{},food:100,drink:100,fat:0,health:1,gender:'boy',best:0,day:'',moves:0,secs:0,bestStars:{},streak:0,lastActive:'',sound:true,beaten:[],skin:'#e0a878',hairStyle:'short',hairCol:'#2b1d14'};
+const DEF={name:'Buddy',str:{lv:1,xp:0},spd:{lv:1,xp:0},sta:{lv:1,xp:0},coins:0,owned:[],equip:{},food:100,drink:100,fat:0,health:1,gender:'boy',best:0,day:'',moves:0,secs:0,bestStars:{},streak:0,lastActive:'',sound:true,beaten:[],skin:'#e0a878',hairStyle:'short',hairCol:'#2b1d14',up:{},pu:{}};
 let S=null;
 try{S=JSON.parse(localStorage.getItem('ff-save'))}catch(e){}
 S=Object.assign(JSON.parse(JSON.stringify(DEF)),S||{});
@@ -472,8 +482,30 @@ function move(n=1){checkDay();S.moves+=n}
 function addSecs(n){checkDay();S.secs+=n;const t=dayStr(new Date());
   if(S.lastActive!==t){const y=new Date();y.setDate(y.getDate()-1);S.streak=S.lastActive===dayStr(y)?S.streak+1:1;S.lastActive=t}}
 function updCoins(){$('#coinN').textContent=S.coins;const m=$('#mCoins');if(m)m.textContent=S.coins}
-function addCoins(n){S.coins+=n;updCoins();const b=$('#coinBox');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}
+function addCoins(n){S.coins=Math.max(0,S.coins+n);updCoins();const b=$('#coinBox');b.classList.remove('pop');void b.offsetWidth;b.classList.add('pop')}
 
+// ---------- boosts: upgrades you keep, and power-ups that get used up ----------
+const UPGRADES=[
+ {id:'bike',name:'Bike',price:500,ic:'🚲',txt:'Get around the map 50% faster'},
+ {id:'lunch',name:'Lunch Box',price:400,days:5,ic:'🍱',txt:'Food and drink go down 40% slower'},
+ {id:'hcard',name:'Hospital Card',price:600,days:3,ic:'💳',txt:'Healing at the Hospital costs 25 instead of 50'},
+ {id:'magnet',name:'Coin Magnet',price:900,days:3,ic:'🧲',txt:'Get 25% more coins from every fight'},
+ {id:'coach',name:'Personal Coach',price:1000,ic:'📋',txt:'Get 25% more XP from every workout'}];
+const POWERUPS=[
+ {id:'energy',name:'Energy Drink',price:80,ic:'⚡',txt:'Next fight: your punches are 30% stronger'},
+ {id:'iron',name:'Iron Skin',price:80,ic:'🛡️',txt:'Next fight: you take 30% less damage'},
+ {id:'super',name:'Super Starter',price:100,ic:'💥',txt:'Next fight: start with SUPER already full'},
+ {id:'lucky',name:'Lucky Coin',price:100,ic:'🍀',txt:'Next win pays double coins'},
+ {id:'xp2',name:'Double XP Ticket',price:120,ic:'🎟️',txt:'Next workout gives double XP'},
+ {id:'medkit',name:'First-Aid Kit',price:60,ic:'🩹',txt:'Heal 50% health without going to the Hospital. Press Use when you are hurt'}];
+const DAY=86400000;
+// upgrades with "days" run out: S.up[id] holds the time they expire. The others keep the value 1 (forever)
+(function(){for(const u of UPGRADES){if(!S.up)return;const v=S.up[u.id];if(u.days&&v===1)S.up[u.id]=Date.now()+u.days*DAY;if(!u.days&&typeof v==='number'&&v>1)S.up[u.id]=1}})();
+const hasUp=id=>{const v=S.up&&S.up[id];return v===1||(typeof v==='number'&&v>Date.now())};
+function timeLeft(ms){const d=Math.floor(ms/DAY),h=Math.floor(ms%DAY/3600000),m=Math.max(1,Math.floor(ms%3600000/60000));return d?d+' day'+(d>1?'s':'')+' '+h+' h':h?h+' h '+m+' min':m+' min'}
+function puHave(id){return (S.pu&&S.pu[id])||0}
+function puUse(id){if(puHave(id)>0){S.pu[id]--;return true}return false}
+const HCOST=()=>hasUp('hcard')?25:50;
 function gear(k){let t=0;for(const s in S.equip){const g=GEAR.find(x=>x.id===S.equip[s]);if(g&&g.bonus[k])t+=g.bonus[k]}return t}
 function me(){return{dmg:(1+0.6*(S.str.lv-1)+0.4*gear('pow'))*(hungry()?0.6:1),hp:30+10*(S.sta.lv-1)+gear('hp'),
   crit:Math.min(60,5+3*(S.spd.lv-1)+gear('crit')),block:Math.min(95,60+gear('block'))}}
@@ -542,6 +574,7 @@ function smiley(c,x,y,r){c.beginPath();c.arc(x,y,r,0,7);ink(c,'#ffe14d',1.4);c.f
   c.strokeStyle=INK;c.lineWidth=1.3;c.beginPath();c.arc(x,y+r*0.05,r*0.55,0.3,Math.PI-0.3);c.stroke()}
 function bolt(c,x,y,k){c.beginPath();c.moveTo(x+2*k,y-12*k);c.lineTo(x-6*k,y+2*k);c.lineTo(x,y+2*k);c.lineTo(x-3*k,y+13*k);c.lineTo(x+7*k,y-3*k);c.lineTo(x+1*k,y-3*k);c.closePath();c.fillStyle='#ffe14d';c.fill()}
 function paintTop(c,id,x0,y0,x1,y1,mode,cx){const W=x1-x0,H=y1-y0,cy=y0+H*0.38;
+  if(id==='kitR'||id==='kitB'){c.fillStyle=id==='kitR'?'#e63946':'#2f6fd6';c.fillRect(x0,y0,W,H);c.fillStyle='rgba(255,255,255,.85)';c.fillRect(x0,y0+H*0.1,W,H*0.09)}
   if(id==='tp1'){['#ff4d4d','#ff9f1c','#ffe14d','#5fd49c','#4fb0ff','#9b5de5'].forEach((col,i)=>{c.fillStyle=col;c.fillRect(x0,y0+i*H/6,W,H/6+1)});if(mode!=='back')smiley(c,cx,cy,mode==='front'?9:6)}
   if(id==='tp2'){c.fillStyle='#ff9f1c';c.fillRect(x0,y0,W,H);c.fillStyle='#1b1b1b';for(let i=-2;i<8;i++){const yy=y0+i*H/6;c.beginPath();c.moveTo(x0,yy);c.lineTo(x0+W*0.35,yy+5);c.lineTo(x0,yy+9);c.fill();c.beginPath();c.moveTo(x1,yy+6);c.lineTo(x1-W*0.35,yy+11);c.lineTo(x1,yy+15);c.fill()}}
   if(id==='tp3'){c.fillStyle='#1b2a6b';c.fillRect(x0,y0,W,H);for(let i=0;i<22;i++){c.fillStyle=i%3?'#fff':'#ffe14d';c.beginPath();c.arc(x0+((i*37)%100)/100*W,y0+((i*53)%100)/100*H,i%4?0.9:1.6,0,7);c.fill()}
@@ -692,6 +725,8 @@ let screen='map';
 function show(id){if(screen==='cafe'&&id!=='cafe'&&typeof EATQ!=='undefined'&&EATQ.length){let back=0;for(const q of EATQ)back+=MENU.find(m=>m.id===q).price;S.coins+=back;EATQ=[];save()}screen=id;parts=[];document.querySelectorAll('#app>section').forEach(s=>s.hidden=s.id!==id);
   if(id==='skin')renderHome();if(id==='train')renderTrain();if(id==='shop')renderShop();if(id==='settings')renderSettings();if(id==='stadium')renderStadium();if(id==='mirror'){renderMirror();$('#mirSay').textContent='Swipe the mirror or tap Turn to see every side.'}if(id==='map')renderMapHud();if(id==='cafe'){enterCafe();renderCafe()}if(id==='hospital')renderHospital();updMeters();
   $('.top').hidden=id==='map';updCoins();window.scrollTo(0,0)}
+$('#medBtn').addEventListener('click',()=>{if((S.health??1)>=0.999||!puUse('medkit'))return;S.health=Math.min(1,S.health+0.5);save();sfx('good');updMeters();
+  const pop=document.createElement('div');pop.className='medpop';pop.textContent='+50% health!';$('#medBtn').parentElement.parentElement.appendChild(pop);setTimeout(()=>pop.remove(),1700)});
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){sfx('tick');show(g.dataset.go)}});
 
 const SKINS=['#f6d2b4','#e0a878','#c68642','#8d5a3b','#5c3a24'];
@@ -705,7 +740,7 @@ $('#genderSeg').addEventListener('click',e=>{const b=e.target.closest('[data-g]'
   GPICK=b.dataset.g;$('#genderTxt').textContent=`Changing to a ${GPICK} starts a brand new fighter. Your coins, levels and gear will all be gone!`;sfx('bad');renderGender()});
 $('#gNo').onclick=()=>{GPICK=null;sfx('tick');renderGender()};
 $('#gYes').onclick=()=>{if(!GPICK)return;const keep={sound:S.sound,hand:S.hand,cafeView:S.cafeView,shopTab:S.shopTab};
-  S=Object.assign(JSON.parse(JSON.stringify(DEF)),keep,{gender:GPICK,name:GPICK==='girl'?'Bella':'Buddy'});GPICK=null;PL.x=750;PL.y=1440;PL.tx=null;WILDS=Array.from({length:6},makeWild);save();sfx('level');updCoins();updMeters();show('skin')};
+  S=Object.assign(JSON.parse(JSON.stringify(DEF)),keep,{gender:GPICK,name:GPICK==='girl'?'Bella':'Buddy'});GPICK=null;PL.x=750;PL.y=1440;PL.tx=null;WILDS=Array.from({length:NWILD},makeWild);save();sfx('level');updCoins();updMeters();show('skin')};
 function renderHome(){renderGender();renderStyle();
   checkDay();$('#nameIn').value=S.name;$('#powerLv').textContent='Power '+powerLv();
   $('#stats').innerHTML=Object.keys(STATS).map(k=>{const s=S[k];return`<div class="stat"><span>${STATS[k].name}</span><span class="bar"><i style="width:${Math.round(s.xp/XP(s.lv)*100)}%;background:${STATS[k].col}"></i></span><span class="lv">Lv ${s.lv}</span></div>`}).join('');
@@ -734,7 +769,7 @@ function renderSettings(){fillSaveCode();$('#saveMsg').textContent='';checkDay()
   $('#today').textContent=min>=5?`Goal done! ${S.moves} finger moves · ${min} min today`+(min>=20?' · time to rest your fingers':''):`Today: ${S.moves} finger moves · ${min} of 5 min`;
   $('#streak').textContent=S.streak>1&&S.lastActive===S.day?`${S.streak} days in a row`:'';
   const rb=$('#resetBtn');rb.textContent='Reset progress';rb.dataset.arm=''}
-$('#resetBtn').onclick=e=>{const b=e.currentTarget;if(b.dataset.arm){try{localStorage.removeItem('ff-save')}catch(_){}S=JSON.parse(JSON.stringify(DEF));save();WILDS=Array.from({length:6},makeWild);PL.x=750;PL.y=1440;show('map');return}
+$('#resetBtn').onclick=e=>{const b=e.currentTarget;if(b.dataset.arm){try{localStorage.removeItem('ff-save')}catch(_){}S=JSON.parse(JSON.stringify(DEF));save();WILDS=Array.from({length:NWILD},makeWild);PL.x=750;PL.y=1440;show('map');return}
   b.dataset.arm='1';b.textContent='Tap again to erase everything';setTimeout(()=>{b.dataset.arm='';b.textContent='Reset progress'},3000)};
 function renderMapHud(){checkDay();const min=Math.floor(S.secs/60);$('#mGoal').style.width=Math.min(100,S.secs/300*100)+'%';
   $('#mGoalTxt').textContent=min>=5?`Workout goal done! ${min} min`:`Finger workout: ${min} of 5 min`}
@@ -785,7 +820,15 @@ function renderStadium(){
 $('#bossList').addEventListener('click',e=>{const b=e.target.closest('[data-b]');if(b){sfx('tick');const i=+b.dataset.b;preFight(bossFoe(i),{type:'boss',i})}});
 $('#shopTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){S.shopTab=b.dataset.tab;save();sfx('tick');renderShop()}});
 function renderShop(){
-  const tab=S.shopTab==='style'?'style':'power';document.querySelectorAll('#shopTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  const tab=['style','boost'].includes(S.shopTab)?S.shopTab:'power';document.querySelectorAll('#shopTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
+  if(tab==='boost'){let h='<p class="muted">Spend your coins on things that help you in the game.</p><div class="slot">Upgrades</div>';
+    for(const u of UPGRADES){const own=hasUp(u.id),v=S.up[u.id],expired=u.days&&typeof v==='number'&&v>1&&v<=Date.now();
+      const life=u.days?`<p class="${own?'menu-good':expired?'menu-warn':''}" style="${own||expired?'':'color:var(--muted);font-weight:800'}">${own?'Active · '+timeLeft(v-Date.now())+' left':expired?'Expired! Buy again to keep using it':'Lasts '+u.days+' days'}</p>`:'<p style="color:var(--muted);font-weight:800">Keep forever</p>';
+      const btn=own&&!u.days?'<button class="pill on" disabled>Owned</button>':`<button class="pill" data-up="${u.id}" ${S.coins<u.price?'disabled':''}>${own?'+'+u.days+'d ':''}<i class="coin"></i>${u.price}</button>`;
+      h+=`<div class="card"><span class="ic boostic">${u.ic}</span><span><h3>${u.name}</h3><p>${u.txt}</p>${life}</span>${btn}</div>`}
+    h+='<div class="slot">Power-ups · used up when you use them</div>';
+    for(const u of POWERUPS){const n=puHave(u.id),med=u.id==='medkit';h+=`<div class="card"><span class="ic boostic">${u.ic}</span><span><h3>${u.name}${n?` <span class="have">×${n}</span>`:''}</h3><p>${u.txt}${med?'':'. Used up automatically.'}</p></span><span style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="pill" data-pu="${u.id}" ${S.coins<u.price?'disabled':''}><i class="coin"></i>${u.price}</button>${med&&n?`<button class="pill ghost" data-usemed ${S.health>=0.999?'disabled':''}>Use</button>`:''}</span></div>`}
+    $('#shopList').innerHTML=h;return}
   let h=tab==='power'?'<p class="muted">Makes your fighter stronger in fights.</p>':'<p class="muted">Just for looks. Check them out in the Mirror Room!</p>';
   for(const slot of Object.keys(SLOTNAME)){
     if((tab==='style')!==STYLESLOTS.includes(slot))continue;
@@ -800,6 +843,10 @@ function renderShop(){
   $('#shopList').innerHTML=h;
 }
 $('#shopList').addEventListener('click',e=>{
+  const bu=e.target.closest('[data-up]'),bp=e.target.closest('[data-pu]'),um=e.target.closest('[data-usemed]');
+  if(bu){const u=UPGRADES.find(x=>x.id===bu.dataset.up);if(S.coins>=u.price&&(u.days||!hasUp(u.id))){S.coins-=u.price;S.up[u.id]=u.days?Math.max(Date.now(),hasUp(u.id)?S.up[u.id]:0)+u.days*DAY:1;updCoins();save();sfx('level');renderShop()}return}
+  if(bp){const u=POWERUPS.find(x=>x.id===bp.dataset.pu);if(S.coins>=u.price){S.coins-=u.price;S.pu[u.id]=puHave(u.id)+1;updCoins();save();sfx('coin');updMed();renderShop()}return}
+  if(um){if(S.health<0.999&&puUse('medkit')){S.health=Math.min(1,S.health+0.5);updMeters();save();sfx('good');renderShop()}return}
   const b=e.target.closest('[data-buy]'),q=e.target.closest('[data-eq]');
   if(b){const g=GEAR.find(x=>x.id===b.dataset.buy);if(S.coins>=g.price){S.coins-=g.price;S.owned.push(g.id);S.equip[g.slot]=g.id;save();sfx('coin');show('shop')}}
   if(q){const g=GEAR.find(x=>x.id===q.dataset.eq);if(S.equip[g.slot]===g.id)delete S.equip[g.slot];else S.equip[g.slot]=g.id;save();sfx('tick');renderShop()}
@@ -822,11 +869,12 @@ function setScore(){const s=W.w.key==='stretch'?W.score.toFixed(1):Math.floor(W.
 function wScore(n){W.score+=n;setScore()}
 function floatTxt(x,y,t,col){const A=$('#wArea');const f=document.createElement('div');f.className='float';f.textContent=t;f.style.left=x+'px';f.style.top=y+'px';if(col)f.style.color=col;A.appendChild(f);setTimeout(()=>f.remove(),700)}
 function relXY(e){const r=$('#wArea').getBoundingClientRect();return[e.clientX-r.left,e.clientY-r.top]}
+function hint2(t){let h=$('#wArea .hint');if(!h){$('#wArea').insertAdjacentHTML('beforeend','<div class="hint"></div>');h=$('#wArea .hint')}h.textContent=t}
 function hint(t,warn){const h=$('#wArea .hint:not(.toph)');if(h){h.textContent=t;h.classList.toggle('warn',!!warn)}}
 
 // ---------- computer (mouse + keyboard) support ----------
 const IS_PC=matchMedia('(hover:hover) and (pointer:fine)').matches;if(IS_PC)document.body.classList.add('pc');
-const PCKEYS={bag:'Press F and J (or ← →) one after the other',curl:'Hold SPACE to spread, let go to pinch',lift:'Press A S D F for the glowing pad',stretch:'Hold F and J together',swim:'Press A S D F for the glowing lane',beat:'Press D F J K when the notes hit the line'};
+const PCKEYS={bag:'Press F or J for whichever side glows - it changes randomly, wrong key loses a point',curl:'Hold SPACE and let go when the ring is in the green zone',lift:'Hold A S D F down together, lift ONLY the glowing key and press it again',stretch:'Hold SPACE with your thumb and the key shown with your pinky, same hand. The keys get further apart',swim:'Press A S D F for the glowing lane, quickly - it jumps around',beat:'Press D F J K when the notes hit the line'};
 function padPos(el){const r=$('#wArea').getBoundingClientRect(),q=el.getBoundingClientRect();return[q.left-r.left+q.width/2,q.top-r.top+q.height/3]}
 function keyTag(k){return '<br><span class="kk">'+k+'</span>'}
 const WKEYS={};
@@ -839,7 +887,12 @@ const SETUP={
   bag(A){
     A.innerHTML='<div class="pads" style="grid-template-columns:1fr 1fr"><div class="pad">L'+keyTag('F')+'</div><div class="pad">R'+keyTag('J')+'</div></div>';
     const ps=[...A.querySelectorAll('.pad')];let last=-1;ps[0].classList.add('lit');
-    W.onKey=(k,down)=>{if(!down)return;const i={f:0,arrowleft:0,j:1,arrowright:1}[k];if(i==null)return;const[x,y]=padPos(ps[i]);hit(i,x,y)};
+    W.onKey=(k,down)=>{if(!down)return;const i={f:0,arrowleft:0,j:1,arrowright:1}[k];if(i==null)return;const[x,y]=padPos(ps[i]);
+      if(!W.kb){W.kb=true;W.want=0;hint2('Keyboard: hit the side that glows. It changes randomly!')}
+      const p=ps[i];p.classList.add('down');setTimeout(()=>p.classList.remove('down'),90);
+      if(i===W.want){W.combo++;wScore(1);sfx('hit');if(i)W.pose.punch=1;else W.pose.backPunch=1;W.pose.bagV=(W.pose.bagV||0)+(i?9:7);floatTxt(x,y-20,W.combo%10===0?W.combo+'!':'+1');
+        ps[W.want].classList.remove('lit');W.want=Math.random()<0.5?0:1;setTimeout(()=>{if(W&&W.run)ps[W.want].classList.add('lit')},70)}
+      else{W.combo=0;W.score=Math.max(0,W.score-1);setScore();sfx('bad');p.classList.add('bad');setTimeout(()=>p.classList.remove('bad'),150);floatTxt(x,y-20,'-1')}};
     ps.forEach((p,i)=>p.onpointerdown=e=>{if(!W.run)return;e.preventDefault();move();const[x,y]=relXY(e);hit(i,x,y)});
     function hit(i,x,y){const p=ps[i];
       p.classList.add('down');setTimeout(()=>p.classList.remove('down'),90);
@@ -851,10 +904,19 @@ const SETUP={
     A.innerHTML='<canvas></canvas><div class="hint">Put thumb and pointer finger on the screen</div>';
     W.ptr=new Map();W.phase='open';W.spread=0;W.cv=A.querySelector('canvas');W.pose.curl=0;
     const set=e=>{if(W.ptr.has(e.pointerId)||e.type==='pointerdown')W.ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,t:e.pointerType,sy:(W.ptr.get(e.pointerId)||{}).sy??e.clientY})};
-    A.onpointerdown=e=>{e.preventDefault();set(e);move()};A.onpointermove=set;
-    A.onpointerup=A.onpointercancel=e=>W.ptr.delete(e.pointerId);
-    W.kd=null;W.onKey=(k,down)=>{if(k!==' ')return;if(W.kd==null)W.kd=60;W.kHold=down;if(down)hint('Keep holding SPACE to spread wide...');else hint('Let go to pinch!')};
-    if(IS_PC)A.insertAdjacentHTML('beforeend','<div class="pckeys">Computer: hold SPACE to spread, let go to pinch (or drag the mouse up and down)</div>');
+    // computer version: hold to stretch, let go exactly inside the green zone
+    W.km={k:0,hold:false,z:0.6,reps:0,cool:0,msg:'',msgT:0};
+    const newZone=()=>{W.km.z=0.5+Math.random()*0.32;W.km.zw=Math.max(0.07,0.15-W.km.reps*0.006)};newZone();
+    const press=()=>{if(W.km.cool>0)return;W.km.hold=true};
+    const release=()=>{const K=W.km;if(!K.hold)return;K.hold=false;
+      if(K.k>=K.z&&K.k<=K.z+K.zw){K.reps++;W.combo++;wScore(1);sfx('great');W.pose.happy=0.6;K.msg='CURL!';K.pinch=1}
+      else{W.combo=0;setScore();sfx('bad');K.msg=K.k<K.z?'Too early!':'Too far!'}
+      K.msgT=performance.now();K.cool=0.35;newZone()};
+    W.km.release=release;
+    A.onpointerdown=e=>{e.preventDefault();if(IS_PC&&e.pointerType==='mouse'){press();move();return}set(e);move()};A.onpointermove=e=>{if(!(IS_PC&&e.pointerType==='mouse'))set(e)};
+    A.onpointerup=A.onpointercancel=e=>{if(IS_PC&&e.pointerType==='mouse'){release();return}W.ptr.delete(e.pointerId)};
+    W.onKey=(k,down)=>{if(k!==' ')return;if(down)press();else release()};
+    if(IS_PC){W.kmode=true;A.querySelector('.hint').textContent='Hold SPACE or the mouse, let go in the GREEN. The zone moves and shrinks!'}
   },
   lift(A){
     A.innerHTML='<div class="pads" style="grid-template-columns:repeat(4,1fr);inset:10px 10px 40px"><div class="pad">L<br>JAB'+keyTag('A')+'</div><div class="pad">R<br>JAB'+keyTag('S')+'</div><div class="pad">L<br>KICK'+keyTag('D')+'</div><div class="pad">R<br>KICK'+keyTag('F')+'</div></div><div class="hint">Hold all four pads down</div>';
@@ -862,12 +924,17 @@ const SETUP={
     const newLit=()=>{if(W.lit>=0)ps[W.lit].classList.remove('lit');let n;do{n=Math.floor(Math.random()*4)}while(n===W.lit);W.lit=n;W.lifted=false;ps[n].classList.add('lit')};
     const others=()=>W.held.filter((h,i)=>i!==W.lit&&h!==null).length;
     W.mouse=false;
-    W.onKey=(k,down)=>{const i='asdf'.indexOf(k);if(i<0||k.length!==1)return;const p=ps[i];if(!down){p.classList.remove('down');return}
-      W.mouse=true;p.classList.add('down');if(W.lit<0)newLit();const[x,y]=padPos(p);if(i===W.lit)good(p,{clientX:x+$('#wArea').getBoundingClientRect().left,clientY:y+$('#wArea').getBoundingClientRect().top});else bad(p)};
-    if(IS_PC){hint('Press A S D F (or click) the glowing pad');setTimeout(()=>{if(W&&W.lit<0&&W.run)newLit()},300)}
+    W.kh=[false,false,false,false];W.klift=false;
+    const kOthers=()=>W.kh.filter((h,j)=>j!==W.lit&&h).length;
+    W.onKey=(k,down)=>{const i='asdf'.indexOf(k);if(i<0||k.length!==1)return;const p=ps[i];W.kh[i]=down;p.classList.toggle('down',down);
+      if(down){if(W.lit<0){if(W.kh.every(Boolean)){newLit();W.klift=false;hint('Lift ONLY the glowing key, then press it again')}else hint('Hold down A S D F all together');return}
+        if(i===W.lit&&W.klift){if(kOthers()===3){const r=$('#wArea').getBoundingClientRect(),[x,y]=padPos(p);good(p,{clientX:x+r.left,clientY:y+r.top});W.klift=false}else{bad(p);hint('Keep the other three keys held down!',true)}}}
+      else{if(i===W.lit)W.klift=true;else if(W.lit>=0){bad(p);hint('Keep the other three keys held down!',true)}}};
+    if(IS_PC)hint('Hold down A S D F all together');
+    W.mouseDeadline=0;
     ps.forEach((p,i)=>{
       p.onpointerdown=e=>{if(!W.run)return;e.preventDefault();move();W.held[i]=e.pointerId;p.classList.add('down');
-        if(e.pointerType==='mouse'){W.mouse=true;if(W.lit<0)newLit();if(i===W.lit){good(p,e)}else bad(p);return}
+        if(e.pointerType==='mouse'){W.mouse=true;if(W.lit<0)newLit();if(i===W.lit){good(p,e);W.mouseDeadline=performance.now()+Math.max(650,1200-W.combo*25)}else bad(p);return}
         if(W.lit<0){if(W.held.every(h=>h!==null)){newLit();hint('Lift the glowing finger and tap it back down')}return}
         if(i===W.lit&&W.lifted){if(others()===3)good(p,e);else hint('Keep the other three fingers down!',true)}};
       const up=e=>{if(W.held[i]!==e.pointerId)return;W.held[i]=null;p.classList.remove('down');
@@ -890,7 +957,8 @@ const SETUP={
       const dx=c*half,dy=sn*half;T[0].style.left=(W.cx-dx)+'px';T[0].style.top=(W.cy-dy)+'px';T[1].style.left=(W.cx+dx)+'px';T[1].style.top=(W.cy+dy)+'px';
       W.P.forEach((p,k)=>{const d=k?1:-1,px=W.cx+d*(half+58)*c,py=W.cy+d*(half+58)*sn;p.style.left=px+'px';p.style.top=py+'px';p.style.transform=`translate(-50%,-50%) rotate(${W.ang+(k?0:Math.PI)}rad)`})};
     W.place();$('#slv').textContent='Stretch level 1';W.onKey=()=>{};
-    if(IS_PC)A.insertAdjacentHTML('beforeend','<div class="pckeys" style="bottom:28px">Computer: hold F and J together (or hold the mouse on a circle)</div>');
+    W.KPAIRS=[[' ','f'],[' ','j'],[' ','d'],[' ','k'],[' ','s'],[' ','l'],[' ','a'],[' ',';'],[' ','q'],[' ','p'],[' ','1'],[' ','0']];
+    if(IS_PC){W.kpair=W.KPAIRS[0];A.insertAdjacentHTML('beforeend','<div class="pckeys" id="kpair" style="bottom:28px;font-size:14px;color:#f4efe4"></div>')}
     const up=e=>W.ptr.delete(e.pointerId);
     A.onpointerdown=e=>{e.preventDefault();W.ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,t:e.pointerType});move()};
     A.onpointermove=e=>{if(W.ptr.has(e.pointerId))W.ptr.set(e.pointerId,{x:e.clientX,y:e.clientY,t:e.pointerType})};
@@ -901,8 +969,10 @@ const SETUP={
     const ps=[...A.querySelectorAll('.pad')];W.sw=new Map();W.next=0;W.pose.swimA=0;W.pose.swimT=0;W.splash=[];ps[0].classList.add('lit');
     const laneOf=e=>{const r=A.getBoundingClientRect();return Math.max(0,Math.min(3,Math.floor((e.clientX-r.left)/r.width*4)))};
     A.onpointerdown=e=>{if(!W.run)return;e.preventDefault();W.sw.set(e.pointerId,{y:e.clientY,lane:laneOf(e),done:false});move();ps[laneOf(e)].classList.add('down')};
+    W.newLane=()=>{ps[W.next].classList.remove('lit');let n;do{n=Math.floor(Math.random()*4)}while(n===W.next);W.next=n;ps[n].classList.add('lit');W.deadline=performance.now()+Math.max(700,1500-W.combo*20)};
+    if(IS_PC){W.deadline=performance.now()+2500;A.insertAdjacentHTML('beforeend','<div class="pckeys" style="bottom:28px">Computer: the glowing lane jumps around - be quick!</div>')}
     const stroke=(lane,x,y)=>{
-      if(lane===W.next){W.combo++;wScore(1);sfx('good');W.pose.swimT+=Math.PI;W.splash.push({t:performance.now()});ps[W.next].classList.remove('lit');W.next=(W.next+1)%4;ps[W.next].classList.add('lit');
+      if(lane===W.next){W.combo++;wScore(1);sfx('good');W.pose.swimT+=Math.PI;W.splash.push({t:performance.now()});if(IS_PC)W.newLane();else{ps[W.next].classList.remove('lit');W.next=(W.next+1)%4;ps[W.next].classList.add('lit')}
         floatTxt(x,y-20,W.combo%10===0?W.combo+'!':'+1');hint('Next: finger '+(W.next+1))}
       else{W.combo=0;setScore();sfx('bad');ps[lane].classList.add('bad');setTimeout(()=>ps[lane].classList.remove('bad'),150);hint('Use finger '+(W.next+1)+' - the glowing lane')}};
     A.onpointermove=e=>{const q=W.sw.get(e.pointerId);if(!q||q.done||!W.run)return;if(e.clientY-q.y>40){q.done=true;const r=A.getBoundingClientRect();stroke(q.lane,e.clientX-r.left,e.clientY-r.top)}};
@@ -924,7 +994,21 @@ const SETUP={
 const A_W=()=>$('#wArea').getBoundingClientRect().width;
 function tickWorkout(now,dt){
   if(!W||!W.run)return;const w=W.w,left=w.dur-(now-W.t0)/1000;$('#wTimer').style.width=Math.max(0,left/w.dur*100)+'%';
-  if(w.key==='curl'){
+  if(w.key==='lift'&&W.mouse&&W.mouseDeadline&&now>W.mouseDeadline&&W.lit>=0){W.mouseDeadline=now+1100;W.combo=0;setScore();sfx('bad');hint('Too slow! Click faster',true);const o=W.lit;W.ps[o].classList.remove('lit');let n;do{n=Math.floor(Math.random()*4)}while(n===o);W.lit=n;W.ps[n].classList.add('lit')}
+  if(w.key==='swim'&&IS_PC&&W.deadline&&now>W.deadline){W.combo=0;setScore();sfx('bad');hint('Too slow! Quick, the glowing lane',true);W.newLane()}
+  if(w.key==='stretch'&&W.kpair){$('#kpair').innerHTML='Hold <span class="kk">SPACE</span> + <span class="kk">'+W.kpair[1].toUpperCase()+'</span> with ONE hand (thumb + pinky)'}
+  if(w.key==='curl'&&W.kmode){const K=W.km,{c,w:cw,h:ch}=fit(W.cv);c.clearRect(0,0,cw,ch);
+    K.cool=Math.max(0,K.cool-dt);
+    if(K.hold){K.k+=dt*(0.55+Math.min(0.6,K.reps*0.04));if(K.k>1.02){K.hold=false;W.combo=0;setScore();sfx('bad');K.msg='SNAP! Too far!';K.msgT=now;K.cool=0.6;K.k=1}}
+    else K.k=Math.max(0,K.k-dt*2.2);
+    K.pinch=Math.max(0,(K.pinch||0)-dt*2);W.pose.curl=K.hold?K.k:Math.min(K.k,1-K.pinch);
+    const cx=cw/2,cy=ch/2-6,R0=Math.min(78,ch*0.33),A0=-Math.PI/2,arc=(a,b,col,wd)=>{c.strokeStyle=col;c.lineWidth=wd;c.beginPath();c.arc(cx,cy,R0,A0+a*Math.PI*2,A0+b*Math.PI*2);c.stroke()};
+    arc(0,1,'#3a4560',14);arc(K.z,K.z+K.zw,'#5fd49c',18);arc(0,Math.min(1,K.k),K.k>=K.z&&K.k<=K.z+K.zw?'#5fd49c':'#ff7a59',8);
+    const ma=A0+Math.min(1,K.k)*Math.PI*2;c.fillStyle='#fff';c.beginPath();c.arc(cx+Math.cos(ma)*R0,cy+Math.sin(ma)*R0,7,0,7);c.fill();c.strokeStyle=INK;c.lineWidth=2;c.stroke();
+    c.textAlign='center';c.fillStyle='#f4efe4';c.font='400 16px Bungee, Impact, sans-serif';c.fillText(K.hold?'LET GO IN GREEN':'HOLD',cx,cy+6);
+    if(K.msg&&now-K.msgT<900){c.font='400 22px Bungee, Impact, sans-serif';c.fillStyle=K.msg==='CURL!'?'#5fd49c':'#ff5d5d';c.fillText(K.msg,cx,cy-R0-14)}
+  }
+  else if(w.key==='curl'){
     const pts=[...W.ptr.values()],r=$('#wArea').getBoundingClientRect(),OPEN=Math.min(170,r.width*0.42),SHUT=60;
     let d=null;if(pts.length>=2)d=Math.hypot(pts[0].x-pts[1].x,pts[0].y-pts[1].y);else if(pts.length===1&&pts[0].t==='mouse')d=SHUT+Math.abs(pts[0].y-pts[0].sy)*1.6;
     else if(W.kd!=null){const tg=W.kHold?OPEN+20:SHUT-15;W.kd+=(tg-W.kd)*Math.min(1,dt*(W.kHold?3:6));d=W.kd}
@@ -943,12 +1027,13 @@ function tickWorkout(now,dt){
     let held=0;const pts=[...W.ptr.values()];const mouse=pts.some(p=>p.t==='mouse');
     W.T.forEach(t=>{const r=t.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;
       const on=pts.some(p=>Math.hypot(p.x-cx,p.y-cy)<r.width*0.7);t.classList.toggle('held',on);if(on)held++});
-    const kb=WKEYS.f&&WKEYS.j;if(kb){W.T.forEach(t=>t.classList.add('held'));held=2}
-    const ok=held>=(mouse?1:2);W.pose.flex=ok;W.pose.shake=ok?Math.min(3,W.lvl):0;
+    let kWrong=false;if(W.kpair){const kp=W.kpair,extra=Object.keys(WKEYS).filter(k=>WKEYS[k]&&!kp.includes(k)).length;
+      held=0;if(WKEYS[kp[0]]&&WKEYS[kp[1]]){if(extra)kWrong=true;else held=2}W.T.forEach(t=>t.classList.toggle('held',held===2))}
+    const ok=held>=(mouse&&!W.kpair?1:2);W.pose.flex=ok;W.pose.shake=ok?Math.min(3,W.lvl):0;
     if(ok){W.rest=0;wScore(dt);W.holdRun+=dt;W.gap+=dt*(14+W.lvl*3);W.ang+=dt*W.rotDir*(0.22+W.lvl*0.04);if(Math.abs(W.ang)>0.95){W.ang=Math.sign(W.ang)*0.95;W.rotDir*=-1}
       W.P.forEach(p=>p.classList.add('on'));hint(W.atMax?'Maximum stretch! Now twist with them':'Keep holding! They are pulling apart');
-      if(W.holdRun>3){W.holdRun=0;W.lvl=Math.min(8,W.lvl+1);sfx('great');$('#slv').textContent='Stretch level '+(W.lvl+1);W.rotDir*=-1}}
-    else{W.P.forEach(p=>p.classList.remove('on'));W.rest+=dt;if(W.rest>1.2)W.gap=Math.max(A_W()*0.3,W.gap-dt*35);if(held>0)hint('Both circles at the same time!');else hint('Put your thumb and pinky on the circles')}
+      if(W.holdRun>3){W.holdRun=0;W.lvl=Math.min(8,W.lvl+1);sfx('great');$('#slv').textContent='Stretch level '+(W.lvl+1);W.rotDir*=-1;if(W.kpair)W.kpair=W.KPAIRS[Math.min(W.KPAIRS.length-1,W.lvl)]}}
+    else{W.P.forEach(p=>p.classList.remove('on'));W.rest+=dt;if(W.rest>1.2)W.gap=Math.max(A_W()*0.3,W.gap-dt*35);if(W.kpair)hint(kWrong?'Only those two keys - nothing else!':'Hold the two keys below',kWrong);else if(held>0)hint('Both circles at the same time!');else hint('Put your thumb and pinky on the circles')}
     W.place();
   }
   if(w.key==='beat'){
@@ -1017,10 +1102,10 @@ function endWorkout(){
   const sc=w.key==='stretch'?Math.round(W.score*10)/10:Math.floor(W.score);
   const stars=w.stars.filter(t=>sc>=t).length,prev=S.bestStars[w.key]||0,newBest=stars>prev;
   if(newBest)S.bestStars[w.key]=stars;
-  const weak=hungry(),lookBefore=playerLook(),gBefore=growAll(),xp=Math.round(w.xp(sc)*(weak?0.5:1)),before=S[w.stat].lv,up=addXp(w.stat,xp),coins=stars*4+(newBest?(stars-prev)*10:0);
+  const weak=hungry(),lookBefore=playerLook(),gBefore=growAll(),xpBoost=(hasUp('coach')?1.25:1)*(puUse('xp2')?2:1),xp=Math.round(w.xp(sc)*(weak?0.5:1)*xpBoost),before=S[w.stat].lv,up=addXp(w.stat,xp),coins=stars*4+(newBest?(stars-prev)*10:0);
   S.fat=Math.max(0,(S.fat||0)-0.04);drain(10,14);addSecs(w.dur);if(coins)addCoins(coins);save();setTimeout(()=>sfx(up?'level':stars?'coin':'good'),100);
   const nextGoal=w.stars.find(t=>sc<t);
-  modal(`<div class="bigstars">${starsHtml(stars)}</div><h2>${up?'Level up!':stars===3?'Perfect workout!':'Nice workout!'}</h2><ul><li>${sc} ${w.unit}</li><li style="color:${STATS[w.stat].col}">+${xp} ${STATS[w.stat].name} XP${weak?' (half, too hungry!)':''}</li>${S.food<30||S.drink<30?'<li style="color:var(--hit)">Your fighter needs food and drink. Visit the Café!</li>':''}${coins?`<li style="color:var(--tape)">+${coins} coins${newBest?' (new best!)':''}</li>`:''}${up?`<li>${STATS[w.stat].name} Lv ${before} → ${S[w.stat].lv}</li>`:''}</ul>${up?'<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:6px"><div><canvas id="gB" style="height:130px"></canvas><small class="muted">Before</small></div><b style="font-size:28px;color:var(--tape);padding-bottom:40px">→</b><div><canvas id="gA" style="height:130px"></canvas><small style="color:var(--tape);font-weight:900">Now!</small></div></div><p style="font-weight:900;color:var(--tape)">'+{str:'Bigger arms!',spd:'Stronger legs!',sta:'Bigger chest!'}[w.stat]+'</p>':''}<div><p class="muted">${nextGoal?`Get ${nextGoal} ${w.unit} for the next star.`:S.name+' is getting huge!'}</p>`,
+  modal(`<div class="bigstars">${starsHtml(stars)}</div><h2>${up?'Level up!':stars===3?'Perfect workout!':'Nice workout!'}</h2><ul><li>${sc} ${w.unit}</li><li style="color:${STATS[w.stat].col}">+${xp} ${STATS[w.stat].name} XP${weak?' (half, too hungry!)':''}${xpBoost>1?' (boosted!)':''}</li>${S.food<30||S.drink<30?'<li style="color:var(--hit)">Your fighter needs food and drink. Visit the Café!</li>':''}${coins?`<li style="color:var(--tape)">+${coins} coins${newBest?' (new best!)':''}</li>`:''}${up?`<li>${STATS[w.stat].name} Lv ${before} → ${S[w.stat].lv}</li>`:''}</ul>${up?'<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:6px"><div><canvas id="gB" style="height:130px"></canvas><small class="muted">Before</small></div><b style="font-size:28px;color:var(--tape);padding-bottom:40px">→</b><div><canvas id="gA" style="height:130px"></canvas><small style="color:var(--tape);font-weight:900">Now!</small></div></div><p style="font-weight:900;color:var(--tape)">'+{str:'Bigger arms!',spd:'Stronger legs!',sta:'Bigger chest!'}[w.stat]+'</p>':''}<div><p class="muted">${nextGoal?`Get ${nextGoal} ${w.unit} for the next star.`:S.name+' is getting huge!'}</p>`,
     'Back to gym',()=>{W=null;show('train')});
   if(up){const d=(cv,L,g)=>{const {c,w:cw,h:ch}=fit(cv);drawFighter(c,cw/2,ch-4,(ch/190)*(0.8+0.4*g),L,{flex:true,happy:true})};d($('#gB'),lookBefore,gBefore);d($('#gA'),playerLook(),growAll())}
 }
@@ -1090,15 +1175,16 @@ function drawFood(c,id,x,y,r,lvl=1,tilt=0){c.save();c.translate(x,y);const k=r/2
       if(id!=='water'){c.strokeStyle='#ff5d5d';c.lineWidth=2.5;line(c,3,-4,8,-20)}if(id==='smoothie'){c.beginPath();c.arc(0,-12,11,Math.PI,0);ink(c,'rgba(255,255,255,.6)',1.6)}}}
   c.restore()}
 function hungry(){return S.food<15||S.drink<15}
-function drain(f,d){S.food=Math.max(0,S.food-f);S.drink=Math.max(0,S.drink-d);updMeters()}
+function drain(f,d){if(hasUp('lunch')){f*=0.6;d*=0.6}S.food=Math.max(0,S.food-f);S.drink=Math.max(0,S.drink-d);updMeters()}
 function needTxt(v){const n=Math.ceil(100-v);return n<=0?'full':'need '+n}
-function updMeters(){const tf=$('#mFoodT'),td=$('#mDrinkT');if(tf)tf.textContent=needTxt(S.food);if(td)td.textContent=needTxt(S.drink);
+function updMed(){const b=$('#medBtn');if(!b||typeof puHave!=='function')return;const n=puHave('medkit');b.hidden=n<1;$('#medN').textContent='×'+n;const full=(S.health??1)>=0.999;b.disabled=full;b.title=full?'You are already at full health':'Heal 50% health'}
+function updMeters(){updMed();const tf=$('#mFoodT'),td=$('#mDrinkT');if(tf)tf.textContent=needTxt(S.food);if(td)td.textContent=needTxt(S.drink);
   document.querySelectorAll('.meter').forEach((m,i)=>{m.title=(i%2?'Drink':'Food')+': '+Math.round(i%2?S.drink:S.food)+' of 100'});
   const nt=$('#needTxt');if(nt){const nf=Math.ceil(100-S.food),nd=Math.ceil(100-S.drink);nt.innerHTML=nf<=0&&nd<=0?'Your food and drink bars are full!':`To fill up you need <b style="color:var(--ok)">${Math.max(0,nf)} more food</b> and <b style="color:var(--spd)">${Math.max(0,nd)} more drink</b>.`}
 const set=(id,v)=>{const e=document.getElementById(id);if(e){e.style.width=v+'%';e.parentElement.parentElement.classList.toggle('low',v<30)}};
   set('mFood',S.food);set('mDrink',S.drink);set('hFood',S.food);set('hDrink',S.drink);
   if(S.health==null)S.health=1;set('mHp',S.health*100);set('hHp',S.health*100);const th=$('#mHpT');if(th)th.textContent=S.health>=0.999?'full':Math.round(S.health*100)+'%';
-  const w=$('#hungryMsg');if(w){const low=S.food<30||S.drink<30,hurt=S.health<0.35;w.hidden=!low&&!hurt;if(hurt)w.textContent='Your fighter is hurt! Go to the Hospital to heal.'+(low?' And eat at the Café!':'');else if(low)w.textContent=(S.food<30&&S.drink<30?'Hungry and thirsty!':S.food<30?'Your fighter is hungry!':'Your fighter is thirsty!')+(hungry()?' Too weak to be strong.':'')+' Go to the Café.'}}
+  const w=$('#hungryMsg');if(w){const low=S.food<30||S.drink<30,hurt=S.health<0.35;w.hidden=!low&&!hurt;if(hurt)w.textContent=(typeof puHave==='function'&&puHave('medkit')?'Your fighter is hurt! Press USE for your First-Aid Kit, or go to the Hospital.':'Your fighter is hurt! Go to the Hospital to heal.')+(low?' And eat at the Café!':'');else if(low)w.textContent=(S.food<30&&S.drink<30?'Hungry and thirsty!':S.food<30?'Your fighter is hungry!':'Your fighter is thirsty!')+(hungry()?' Too weak to be strong.':'')+' Go to the Café.'}}
 function renderCafe(){updMeters();
   if(CF.dist<1){$('#menuList').innerHTML='<p class="muted" style="text-align:center;font-weight:800">'+(CF.queue.length?'Wait for your turn in line, then walk up to the till.':'Walk up to the till to see what you can order.')+'</p>';return}
   const cnt=id=>CART.filter(x=>x===id).length,tot=cartTotals(),busy=(EAT&&!EAT.done&&!EAT.full)||EATQ.length>0;
@@ -1287,13 +1373,13 @@ const CASHIER_SW=()=>(26+CASHIER.chest*26)*1.25;
 const HOSP={healing:false,t:0,from:1,say:'',sayT:0,hearts:[]};
 const MEDICS=[{arm:0.3,chest:0.3,legs:0.3,skin:'#f1c9a0',hair:'#5a3a24',hairStyle:'short',shorts:'#1f5e3a',pants:'#1f5e3a',shirt:'#2f9e5f',sleeves:'#2f9e5f',shoes:'#222'},{arm:0.3,chest:0.3,legs:0.3,skin:'#8d5a3b',hair:'#1d1d1d',hairStyle:'bun',girl:true,shorts:'#1f5e3a',pants:'#1f5e3a',shirt:'#2f9e5f',sleeves:'#2f9e5f',shoes:'#222'}];
 const DOC={arm:0.15,chest:0.25,legs:0.2,skin:'#c68642',hair:'#1d1d1d',hairStyle:'short',shorts:'#2b2f3a',pants:'#2b2f3a',shirt:'#9ad0ff',sleeves:'#ffffff',coat:true,face:'fc1'};
-function renderHospital(){updMeters();const b=$('#healBtn');const full=S.health>=0.999;b.disabled=HOSP.healing||!!HOSP.arr;b.innerHTML=HOSP.arr?'Arriving on a stretcher...<small>The paramedics are bringing you in</small>':HOSP.healing?(HOSP.free?'Healing... free<small>The ambulance trip is on us</small>':'Healing...<small>Lie still and rest</small>'):full?'All healthy!<small>Come back after a fight</small>':S.coins<50?'Get healed · 50 coins<small>You need '+(50-S.coins)+' more coins. Train in the gym to earn some!</small>':'Get healed · 50 coins<small>Lie down and rest</small>';
+function renderHospital(){updMeters();const b=$('#healBtn');const full=S.health>=0.999;b.disabled=HOSP.healing||!!HOSP.arr;b.innerHTML=HOSP.arr?'Arriving on a stretcher...<small>The paramedics are bringing you in</small>':HOSP.healing?(HOSP.free?'Healing... free<small>The ambulance trip is on us</small>':'Healing...<small>Lie still and rest</small>'):full?'All healthy!<small>Come back after a fight</small>':S.coins<HCOST()?'Get healed · '+HCOST()+' coins<small>You need '+(HCOST()-S.coins)+' more coins. Train in the gym to earn some!</small>':'Get healed · '+HCOST()+' coins<small>'+(hasUp('hcard')?'Hospital Card discount!':'Lie down and rest')+'</small>';
   if(HOSP.arr){HOSP.say='Quick, bring the patient in here!';HOSP.sayT=performance.now();return}
   if(HOSP.healing)return;
   HOSP.say=full?"You're in great shape! Come back if you get hurt.":"Ouch, you look hurt! Lie down on the bed and I'll fix you up.";HOSP.sayT=performance.now()}
 function startHeal(free){if(HOSP.healing)return;if(S.health>=0.999){HOSP.say="You're already at full health!";HOSP.sayT=performance.now();return}
-  if(!free&&S.coins<50){HOSP.say='Healing costs 50 coins. Do some workouts in the Finger Gym to earn coins, then come back!';HOSP.sayT=performance.now();sfx('bad');return}
-  HOSP.free=!!free;if(!free){S.coins-=50;updCoins();save();sfx('coin')}
+  if(!free&&S.coins<HCOST()){HOSP.say='Healing costs '+HCOST()+' coins. Do some workouts in the Finger Gym to earn coins, then come back!';HOSP.sayT=performance.now();sfx('bad');return}
+  HOSP.free=!!free;if(!free){S.coins-=HCOST();updCoins();save();sfx('coin')}
   HOSP.healing=true;HOSP.t=performance.now();HOSP.from=S.health;HOSP.dur=3+(1-S.health)*10;HOSP.done={};HOSP.cur=-1;
   const all=[{t:'check',say:'Let me listen to your heart...'},{t:'head',say:'That bump needs a bandage.'},{t:'arm',say:'Wrapping up that sore arm.'},{t:'ice',say:'An ice pack for this bruise.'},{t:'medicine',say:'Now take this medicine. Open wide!'}];
   HOSP.steps=S.health<0.3?all:S.health<0.6?[all[0],all[2],all[4]]:[all[0],all[4]];
@@ -1407,15 +1493,26 @@ function drawHospital(now,dt){const cv=$('#hospCv'),{c,w,h}=fit(cv);
     const tw=Math.max(...lines.map(l=>c.measureText(l).width))+18,bx2=Math.max(6,Math.min(w-tw-6,dx-tw+30)),by2=Math.max(4,dgy-175*dsc-lines.length*16);c.fillStyle='#fff';c.beginPath();c.roundRect(bx2,by2,tw,lines.length*16+10,10);c.fill();c.strokeStyle=INK;c.lineWidth=1.3;c.stroke();c.fillStyle='#1b2130';c.textAlign='left';lines.forEach((l,i)=>c.fillText(l,bx2+9,by2+18+i*16))}
 }
 // ---------- map ----------
-const WORLD={w:1500,h:1500};
+const WORLD={w:3000,h:3000};const NWILD=14;
 const BUILD=[
  {x:560,y:230,w:380,h:230,name:'Stadium',sign:'STADIUM',roof:'#2f5d8a',kind:'stadium',go:'stadium'},
  {x:330,y:1297,w:125,h:88,name:'Mirror Room',sign:'MIRROR',roof:'#c86bff',kind:'big',go:'mirror'},{x:990,y:1300,w:120,h:85,sign:'CAFE',roof:'#8338ec',kind:'shopfront',name:'Café',go:'cafe'},
  {x:230,y:960,w:90,h:70,sign:'ICE CREAM',roof:'#ff7a9c',kind:'shopfront'},{x:820,y:985,w:125,h:85,sign:'LIBRARY',roof:'#2a9d8f',kind:'big'},
  {x:1250,y:640,w:135,h:95,name:'Hospital',sign:'HOSPITAL',roof:'#4fb0ff',kind:'hospital',go:'hospital'},{x:170,y:140,w:160,h:105,sign:'SCHOOL',roof:'#f4a261',kind:'big'},
  {x:1000,y:110,w:100,h:75,sign:'',roof:'#457b9d',kind:'house'},{x:1250,y:330,w:100,h:75,sign:'',roof:'#6a994e',kind:'house'},
- {x:560,y:500,w:100,h:75,sign:'',roof:'#bc4749',kind:'house'},{x:110,y:1040,w:100,h:75,sign:'',roof:'#ffb627',kind:'house'},{x:555,y:1290,w:140,h:95,name:'Finger Gym',sign:'GYM',roof:'#c0463f',go:'train'},{x:805,y:1290,w:140,h:95,name:'Gear Shop',sign:'SHOP',roof:'#3a6df0',go:'shop'}];
-const ROADS=[[[750,1560],[750,470]],[[-60,900],[1560,900]],[[-60,1428],[1560,1428]],[[430,-60],[430,900]],[[1180,-60],[1180,1560]]];
+ {x:560,y:500,w:100,h:75,sign:'',roof:'#bc4749',kind:'house'},{x:110,y:1040,w:100,h:75,sign:'',roof:'#ffb627',kind:'house'},{x:555,y:1290,w:140,h:95,name:'Finger Gym',sign:'GYM',roof:'#c0463f',go:'train'},{x:805,y:1290,w:140,h:95,name:'Gear Shop',sign:'SHOP',roof:'#3a6df0',go:'shop'},
+ // ---- new east side and south side of town ----
+ {x:1260,y:757,w:120,h:95,sign:'BAKERY',roof:'#e76f51',kind:'shopfront'},{x:1420,y:757,w:130,h:95,sign:'TOY SHOP',roof:'#ff7a9c',kind:'shopfront'},
+ {x:1600,y:757,w:140,h:95,sign:'BANK',roof:'#2a9d8f',kind:'big'},{x:1790,y:757,w:120,h:95,sign:'POST',roof:'#e63946',kind:'big'},{x:1960,y:767,w:105,h:85,sign:'',roof:'#6a994e',kind:'house'},
+ {x:2220,y:767,w:100,h:85,sign:'',roof:'#457b9d',kind:'house'},{x:2360,y:767,w:100,h:85,sign:'',roof:'#bc4749',kind:'house'},{x:2500,y:767,w:110,h:85,sign:'',roof:'#ffb627',kind:'house'},
+ {x:2780,y:757,w:150,h:95,sign:'PIZZA',roof:'#d62828',kind:'shopfront'},{x:2790,y:1295,w:110,h:85,sign:'',roof:'#8338ec',kind:'house'},
+ {x:100,y:2007,w:130,h:95,sign:'CINEMA',roof:'#8338ec',kind:'big'},{x:575,y:2017,w:110,h:85,sign:'',roof:'#2a9d8f',kind:'house'},
+ {x:820,y:1997,w:160,h:105,sign:'MUSEUM',roof:'#bc6c25',kind:'big'},{x:1010,y:2017,w:105,h:85,sign:'',roof:'#457b9d',kind:'house'},
+ {x:2230,y:2017,w:110,h:85,sign:'',roof:'#e76f51',kind:'house'},{x:2380,y:2017,w:110,h:85,sign:'',roof:'#6a994e',kind:'house'},{x:2520,y:2017,w:110,h:85,sign:'',roof:'#bc4749',kind:'house'},
+ {x:2780,y:2007,w:150,h:95,sign:'ARCADE',roof:'#c86bff',kind:'shopfront'},
+ {x:80,y:2610,w:110,h:85,sign:'',roof:'#ffb627',kind:'house'},{x:230,y:2610,w:110,h:85,sign:'',roof:'#457b9d',kind:'house'},{x:380,y:2610,w:110,h:85,sign:'',roof:'#e63946',kind:'house'},{x:540,y:2610,w:110,h:85,sign:'',roof:'#2a9d8f',kind:'house'},
+ {x:820,y:2595,w:160,h:110,sign:'FIRE DEPT',roof:'#d62828',kind:'fire'},{x:2790,y:2610,w:110,h:85,sign:'',roof:'#6a994e',kind:'house'}];
+const ROADS=[[[750,3060],[750,470]],[[-60,900],[3060,900]],[[-60,1428],[3060,1428]],[[430,-60],[430,900]],[[1180,-60],[1180,3060]],[[2150,-60],[2150,3060]],[[2700,-60],[2700,3060]],[[-60,2150],[3060,2150]],[[-60,2750],[3060,2750]]];
 const PATH=[[750,1440],[750,1100],[750,900],[400,900],[150,900],[400,900],[750,900],[1100,900],[1350,900],[1100,900],[750,900],[750,560],[750,900],[750,1300]];
 const PL={x:750,y:1440,dir:1,walk:0,moving:false,tx:null,ty:null,hold:false};
 const cam={x:0,y:0};let mapHint=true;const KEYS={};
@@ -1423,7 +1520,7 @@ function rnd(seed){let s=seed;return()=>(s=(s*16807)%2147483647)/2147483647}
 function distSeg(px,py,ax,ay,bx,by){const dx=bx-ax,dy=by-ay,t=clamp(((px-ax)*dx+(py-ay)*dy)/(dx*dx+dy*dy||1),0,1);return Math.hypot(px-ax-t*dx,py-ay-t*dy)}
 function nearPath(x,y){let m=1e9;for(const R of ROADS)for(let i=1;i<R.length;i++)m=Math.min(m,distSeg(x,y,...R[i-1],...R[i]));return m}
 const inBuild=(x,y,pad=0)=>BUILD.some(b=>x>b.x-pad&&x<b.x+b.w+pad&&y>b.y-pad&&y<b.y+b.h+pad);
-const PONDS=[{x:220,y:1250,rx:95,ry:62},{x:1345,y:1160,rx:100,ry:68},{x:1335,y:230,rx:78,ry:56},{x:200,y:620,rx:80,ry:55}];
+const PONDS=[{x:220,y:1250,rx:95,ry:62},{x:1345,y:1160,rx:100,ry:68},{x:1335,y:230,rx:78,ry:56},{x:200,y:620,rx:80,ry:55},{x:1700,y:420,rx:200,ry:120},{x:1650,y:1800,rx:170,ry:100},{x:420,y:1800,rx:130,ry:80},{x:2440,y:2450,rx:150,ry:90}];
 const inPond=(x,y,pad=0)=>PONDS.some(p=>((x-p.x)/(p.rx+pad))**2+((y-p.y)/(p.ry+pad))**2<1);
 const PK=1.3;
 function playBlocked(X,Y){const x=(X-PLAY.x)/PK,y=(Y-PLAY.y)/PK,w=PLAY.w/PK,h=PLAY.h/PK,t=5;
@@ -1435,15 +1532,78 @@ function playBlocked(X,Y){const x=(X-PLAY.x)/PK,y=(Y-PLAY.y)/PK,w=PLAY.w/PK,h=PL
   return box(12,38,122,78)||box(tx-16,36,tx+42,72)||box(tx+40,56,tx+90,82)||box(w-70,h-52,w-12,h-10)
     ||((x-w*0.47)/25)**2+((y-(h-34))/12)**2<1||box(2,h-34,80,h-14)||box(88,112,168,132)||Math.hypot(x-38,y-114)<14}
 const blocked=(x,y)=>inBuild(x,y)||inPond(x,y,-6)||Math.hypot(x-750,y-900)<40||playBlocked(x,y);
-const BUTTERFLIES=Array.from({length:4},(_,i)=>({x:Math.random()*1500,y:Math.random()*1500,a:Math.random()*7,c:['#ff7a9c','#ffe14d','#9ad0ff','#fff','#c86bff'][i%5]}));
+const BUTTERFLIES=Array.from({length:14},(_,i)=>({x:Math.random()*3000,y:Math.random()*3000,a:Math.random()*7,c:['#ff7a9c','#ffe14d','#9ad0ff','#fff','#c86bff'][i%5]}));
 // ---------- map decorations ----------
 const FOUNTAIN={x:750,y:900,r:46};
 const PLAY={x:345,y:975,w:320,h:255};
 const BEDS=[[690,600],[810,600],[690,700],[810,700],[690,800],[810,800],[690,990],[690,1090],[690,1190],[810,1130],[810,1215]].map(([x,y])=>({x:x-18,y:y-10,w:36,h:20,c:['#ff7a9c','#ffe14d','#c86bff','#ff9f1c'][Math.floor((x+y)/7)%4]}));
-const BENCHES=[[220,1340],[1270,1258],[200,700],[560,960],[960,840]];
+const BENCHES=[[220,1340],[1270,1258],[200,700],[560,960],[960,840],[1430,1700],[1900,1960],[1650,1950],[1880,560],[420,1930],[2440,2580]];
 const LAMPS=[];for(let y=560;y<=1380;y+=205){LAMPS.push([702,y],[798,y])}for(let x=220;x<=1300;x+=215){if(Math.abs(x-750)>120&&Math.abs(x-430)>60&&Math.abs(x-1180)>60){LAMPS.push([x,856],[x,946])}}
+for(const R0 of ROADS){const [a,b]=R0,vert=a[0]===b[0];const lo=Math.max(0,Math.min(vert?a[1]:a[0],vert?b[1]:b[0])),hi=Math.min(3000,Math.max(vert?a[1]:a[0],vert?b[1]:b[0]));
+  for(let t=lo+100;t<hi-60;t+=230){for(const sd of[-48,48]){const x=vert?a[0]+sd:t,y=vert?t:a[1]+sd;if(x<1520&&y<1520)continue;
+    if(ROADS.some(Q=>Q!==R0&&distSeg(x,y,...Q[0],...Q[1])<70))continue;LAMPS.push([x,y])}}}
 const DUCKS=PONDS.flatMap((p,i)=>[0,1].map(k=>({p,ph:i*1.7+k*3.1,sp:0.25+k*0.12,col:k?'#fff':'#ffd23f'})));
-function nearDecor(x,y,pad){return Math.hypot(x-FOUNTAIN.x,y-FOUNTAIN.y)<FOUNTAIN.r+pad||(x>PLAY.x-pad&&x<PLAY.x+PLAY.w+pad&&y>PLAY.y-pad&&y<PLAY.y+PLAY.h+pad)||BEDS.some(b=>x>b.x-pad&&x<b.x+b.w+pad&&y>b.y-pad&&y<b.y+b.h+pad)||BENCHES.some(([bx,by])=>Math.hypot(x-bx,y-by)<30+pad)}
+const ZONES=[{k:'track',x:1490,y:995,w:600,h:330},{k:'skate',x:2215,y:995,w:420,h:330},{k:'pitch',x:1280,y:2235,w:780,h:400}];
+function drawZones(c,now,vis){for(const z of ZONES){if(!vis(z.x+z.w/2,z.y+z.h/2,Math.max(z.w,z.h)))continue;const {x,y,w,h}=z;
+  if(z.k==='track'){c.fillStyle='#b5503a';c.beginPath();c.roundRect(x,y,w,h,h/2);c.fill();c.strokeStyle='#fff';c.lineWidth=2;c.stroke();
+    c.fillStyle='#6f9455';c.beginPath();c.roundRect(x+46,y+46,w-92,h-92,(h-92)/2);c.fill();c.stroke();
+    c.setLineDash([12,10]);c.strokeStyle='rgba(255,255,255,.6)';c.beginPath();c.roundRect(x+23,y+23,w-46,h-46,(h-46)/2);c.stroke();c.setLineDash([]);
+    for(let i=0;i<8;i++){c.fillStyle=i%2?'#fff':'#111';c.fillRect(x+w/2-2+(i%2)*0,y+i*5.75,4,5.75)}
+    c.fillStyle='#fff';c.font='400 30px Bungee, Impact, sans-serif';c.textAlign='center';c.fillText('BIKE TRACK',x+w/2,y+h/2+10);
+    c.font='800 13px Nunito, sans-serif';c.fillText('Got a bike? Race around!',x+w/2,y+h/2+32)}
+  if(z.k==='skate'){c.fillStyle='#b9bec7';c.beginPath();c.roundRect(x,y,w,h,18);c.fill();c.strokeStyle='#8a93a8';c.lineWidth=3;c.stroke();
+    c.strokeStyle='rgba(0,0,0,.08)';c.lineWidth=1;for(let i=40;i<w;i+=40)line(c,x+i,y,x+i,y+h);for(let i=40;i<h;i+=40)line(c,x,y+i,x+w,y+i);
+    const ramp=(rx,ry,rw,rh,flip)=>{const g=c.createLinearGradient(rx,0,rx+rw,0);g.addColorStop(flip?1:0,'#7d8597');g.addColorStop(flip?0:1,'#d6dae2');c.fillStyle=g;c.beginPath();c.roundRect(rx,ry,rw,rh,6);c.fill();c.strokeStyle=INK;c.lineWidth=1.5;c.stroke()};
+    ramp(x+14,y+40,70,h-80,false);ramp(x+w-84,y+40,70,h-80,true);
+    c.fillStyle='#9aa3b8';c.beginPath();c.ellipse(x+w/2,y+h/2,70,45,0,0,7);c.fill();c.strokeStyle=INK;c.stroke();c.fillStyle='#7d8597';c.beginPath();c.ellipse(x+w/2,y+h/2+6,52,30,0,0,7);c.fill();
+    c.strokeStyle='#ffb627';c.lineWidth=3;line(c,x+120,y+50,x+w-120,y+50);c.fillStyle='#ff5d5d';c.font='400 22px Bungee, Impact, sans-serif';c.textAlign='center';c.fillText('SKATE PARK',x+w/2,y+h-22)}
+  if(z.k==='pitch'){c.fillStyle='#4f9a4a';c.fillRect(x,y,w,h);for(let i=0;i<w;i+=60){c.fillStyle='rgba(255,255,255,.06)';c.fillRect(x+i,y,30,h)}
+    c.strokeStyle='#fff';c.lineWidth=3;c.strokeRect(x+10,y+10,w-20,h-20);line(c,x+w/2,y+10,x+w/2,y+h-10);c.beginPath();c.arc(x+w/2,y+h/2,55,0,7);c.stroke();
+    c.strokeRect(x+10,y+h/2-90,90,180);c.strokeRect(x+w-100,y+h/2-90,90,180);
+    c.fillStyle='#fff';c.fillRect(x+2,y+h/2-35,8,70);c.fillRect(x+w-10,y+h/2-35,8,70);
+    drawFootball(c,now,z)}}}
+// ---------- a real football match on the pitch ----------
+const FB={players:[],ball:{x:0,y:0,vx:0,vy:0},score:[0,0],goalT:0,last:0,init:false};
+function fbInit(z){const cx=z.x+z.w/2,cy=z.y+z.h/2;FB.players=[];
+  const form=[[0.06,0.5,'keeper'],[0.22,0.3],[0.22,0.7],[0.38,0.5],[0.45,0.22],[0.45,0.78]];
+  for(const team of[0,1])form.forEach(([fx,fy,role],i)=>{const hx=team?z.x+z.w*(1-fx):z.x+z.w*fx,hy=z.y+z.h*fy,lk=randPerson();
+    FB.players.push({team,role:role||'field',hx,hy,x:hx,y:hy,dir:team?-1:1,walk:0,moving:false,cool:0,look:Object.assign(lk,{top:team?'kitB':'kitR',shorts:'#fff',hat:null,fat:0,girl:i===4})})});
+  Object.assign(FB.ball,{x:cx,y:cy,vx:0,vy:0});FB.init=true}
+function fbTick(z,dt){const B=FB.ball,cx=z.x+z.w/2,cy=z.y+z.h/2,L=z.x+12,Rr=z.x+z.w-12,T=z.y+12,Bo=z.y+z.h-12;
+  if(FB.goalT>0){FB.goalT-=dt;if(FB.goalT<=0){Object.assign(B,{x:cx,y:cy,vx:0,vy:0});for(const p of FB.players){p.x=p.hx;p.y=p.hy}}return}
+  // ball moves and slows down
+  B.x+=B.vx*dt;B.y+=B.vy*dt;const fr=Math.exp(-0.75*dt);B.vx*=fr;B.vy*=fr;
+  if(B.y<T){B.y=T;B.vy=Math.abs(B.vy)*0.7}if(B.y>Bo){B.y=Bo;B.vy=-Math.abs(B.vy)*0.7}
+  const inMouth=Math.abs(B.y-cy)<34;
+  if(B.x<L){if(inMouth){FB.score[1]++;FB.goalT=2.2;FB.goalBy=1;return}B.x=L;B.vx=Math.abs(B.vx)*0.7}
+  if(B.x>Rr){if(inMouth){FB.score[0]++;FB.goalT=2.2;FB.goalBy=0;return}B.x=Rr;B.vx=-Math.abs(B.vx)*0.7}
+  for(const team of[0,1]){const mine=FB.players.filter(p=>p.team===team),att=team?-1:1,goalX=team?z.x:z.x+z.w;
+    let ch=null,cd=1e9;for(const p of mine){if(p.role==='keeper')continue;const d=Math.hypot(p.x-B.x,p.y-B.y);if(d<cd){cd=d;ch=p}}
+    for(const p of mine){p.cool=Math.max(0,p.cool-dt);let tx,ty,sp=48;
+      if(p.role==='keeper'){tx=p.hx+att*Math.max(0,Math.min(40,(z.w/2-Math.abs(B.x-p.hx))*0.08));ty=clamp(B.y,cy-30,cy+30);sp=40;if(Math.hypot(p.x-B.x,p.y-B.y)<55&&Math.abs(B.x-p.hx)<70){tx=B.x;ty=B.y;sp=60}}
+      else if(p===ch){tx=B.x-att*9;ty=B.y;sp=72}
+      else{tx=p.hx+(B.x-cx)*0.45;ty=p.hy+(B.y-cy)*0.3}
+      const dx=tx-p.x,dy=ty-p.y,d=Math.hypot(dx,dy);p.moving=d>3;if(p.moving){const st=Math.min(d,sp*dt);p.x+=dx/d*st;p.y+=dy/d*st;p.walk+=dt*(sp/5);if(Math.abs(dx)>1)p.dir=dx>0?1:-1}
+      // kick: shoot at goal when close, otherwise pass or dribble forward
+      if(p.cool<=0&&Math.hypot(p.x-B.x,p.y-B.y)<13){p.cool=0.6;let ax,ay,pw;const toGoal=Math.abs(goalX-B.x);
+        const mates=mine.filter(m=>m!==p&&m.role!=='keeper'&&(m.x-p.x)*att>20);
+        if(p.role==='keeper'||toGoal<300){ax=goalX;ay=cy+(Math.random()-0.5)*80;pw=p.role==='keeper'?260:330+Math.random()*90}
+        else if(mates.length&&Math.random()<0.55){const m=pick(mates);ax=m.x+att*15;ay=m.y;pw=190+Math.random()*60}
+        else{ax=B.x+att*90;ay=B.y+(Math.random()-0.5)*80;pw=150}
+        const kd=Math.hypot(ax-B.x,ay-B.y)||1;B.vx=(ax-B.x)/kd*pw;B.vy=(ay-B.y)/kd*pw;p.kick=0.25}
+      p.kick=Math.max(0,(p.kick||0)-dt)}}}
+function drawFootball(c,now,z){if(!FB.init)fbInit(z);const dt=Math.min(0.05,(now-(FB.last||now))/1000);FB.last=now;fbTick(z,dt);
+  const ps=[...FB.players].sort((a,b)=>a.y-b.y),B=FB.ball;
+  c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(B.x+2,B.y+3,6,2.5,0,0,7);c.fill();
+  for(const p of ps){if(p.y>B.y)continue;drawMapFighter(c,p.x,p.y,p.look,p.dir,p.moving?p.walk:0,now,false,0.28,p.kick>0?{kickF:0.9}:null)}
+  c.beginPath();c.arc(B.x,B.y-3,5.5,0,7);ink(c,'#fff',1.4);c.fillStyle='#1b2130';c.beginPath();c.arc(B.x+1,B.y-4,1.8,0,7);c.fill();
+  for(const p of ps){if(p.y<=B.y)continue;drawMapFighter(c,p.x,p.y,p.look,p.dir,p.moving?p.walk:0,now,false,0.28,p.kick>0?{kickF:0.9}:null)}
+  // goals (nets) and scoreboard
+  for(const gx of[z.x+2,z.x+z.w-10]){c.strokeStyle='#fff';c.lineWidth=3;c.strokeRect(gx,z.y+z.h/2-34,8,68);c.strokeStyle='rgba(255,255,255,.4)';c.lineWidth=1;for(let i=1;i<6;i++)line(c,gx,z.y+z.h/2-34+i*11,gx+8,z.y+z.h/2-34+i*11)}
+  const sx=z.x+z.w/2,sy=z.y-16;c.fillStyle='#1b2130';c.beginPath();c.roundRect(sx-70,sy-16,140,26,6);c.fill();c.font='400 14px Bungee, Impact, sans-serif';c.textAlign='center';
+  c.fillStyle='#ff6b6b';c.fillText('RED '+FB.score[0],sx-30,sy+3);c.fillStyle='#fff';c.fillText('-',sx,sy+3);c.fillStyle='#6ea8ff';c.fillText(FB.score[1]+' BLUE',sx+32,sy+3);
+  if(FB.goalT>0){c.font='400 40px Bungee, Impact, sans-serif';c.fillStyle=FB.goalBy?'#6ea8ff':'#ff6b6b';c.strokeStyle='#fff';c.lineWidth=4;c.strokeText('GOAL!',sx,z.y+z.h/2+14);c.fillText('GOAL!',sx,z.y+z.h/2+14)}}
+function nearDecor(x,y,pad){if(ZONES.some(z=>x>z.x-pad&&x<z.x+z.w+pad&&y>z.y-pad&&y<z.y+z.h+pad))return true;return Math.hypot(x-FOUNTAIN.x,y-FOUNTAIN.y)<FOUNTAIN.r+pad||(x>PLAY.x-pad&&x<PLAY.x+PLAY.w+pad&&y>PLAY.y-pad&&y<PLAY.y+PLAY.h+pad)||BEDS.some(b=>x>b.x-pad&&x<b.x+b.w+pad&&y>b.y-pad&&y<b.y+b.h+pad)||BENCHES.some(([bx,by])=>Math.hypot(x-bx,y-by)<30+pad)}
 function drawFountain(c,now){const {x,y,r}=FOUNTAIN;
   c.fillStyle='rgba(0,0,0,.15)';c.beginPath();c.ellipse(x+5,y+8,r+4,r*0.7,0,0,7);c.fill();
   c.beginPath();c.ellipse(x,y,r,r*0.72,0,0,7);ink(c,'#c9c2b6',2.5);c.beginPath();c.ellipse(x,y,r-7,r*0.72-6,0,0,7);ink(c,'#4fb8ee',2);
@@ -1510,14 +1670,18 @@ function drawSky(c,now,vis){
   const fx=((now/28)%2400)-400,fy=180+Math.sin(now/2500)*80;
   for(let i=0;i<5;i++){const x=fx-Math.abs(i-2)*22,y=fy+(i-2)*14,f=Math.sin(now/120+i)*4;if(!vis(x,y,20))continue;c.strokeStyle='#2b2f3a';c.lineWidth=2;c.beginPath();c.moveTo(x-7,y-f);c.quadraticCurveTo(x-3,y-3,x,y);c.quadraticCurveTo(x+3,y-3,x+7,y-f);c.stroke()}}
 const TREES=[],TUFTS=[],FLOWERS=[];
-(()=>{const r=rnd(7);let tries=0;while(TREES.length<120&&tries++<6000){const x=30+r()*(WORLD.w-60),y=30+r()*(WORLD.h-60);
+(()=>{const r=rnd(7);let tries=0;while(TREES.length<470&&tries++<30000){const x=30+r()*(WORLD.w-60),y=30+r()*(WORLD.h-60);
   if(nearPath(x,y)<85)continue;if(inBuild(x,y,60)||inPond(x,y,30)||nearDecor(x,y,30))continue;
   if(TREES.some(t=>Math.hypot(t.x-x,t.y-y)<48))continue;TREES.push({x,y,r:20+r()*12})}
-  for(let i=0;i<450;i++)TUFTS.push({x:r()*WORLD.w,y:r()*WORLD.h});
-  for(let i=0;i<120;i++)FLOWERS.push({x:r()*WORLD.w,y:r()*WORLD.h,c:['#ff7a9c','#ffe14d','#fff','#9ad0ff'][Math.floor(r()*4)]})})();
+  for(let i=0;i<1800;i++)TUFTS.push({x:r()*WORLD.w,y:r()*WORLD.h});
+  for(let i=0;i<300;i++)FLOWERS.push({x:r()*WORLD.w,y:r()*WORLD.h,c:['#ff7a9c','#ffe14d','#fff','#9ad0ff'][Math.floor(r()*4)]})})();
 function bossFoe(i){const f=FOES[i],l=Math.min(1,i/8);return{name:f.name,hp:Math.round(f.hp*1.5),dmg:Math.round(f.dmg*1.3),every:f.every,lvl:l,warn:Math.max(430,900-i*45),guard:i>=2?Math.min(0.45,0.08+i*0.04):0,double:i>=4,
   look:{arm:l,chest:l,legs:l,skin:f.skin,hair:f.hc,hairStyle:f.hs,beard:f.beard,shorts:f.shorts,gloves:f.gl,top:f.top,pat:f.pat,hat:f.hat,face:f.face,cape:f.cape,headband:f.hb,belt:f.belt}}}
-const WNAMES=['Park Pete','Jogger Jo','Rookie Rita','Street Steve','Chip the Champ','Lazy Larry','Quick Kim','Dizzy Dan','Bouncy Bea'];
+const WNAMES=['Park Pete','Jogger Jo','Rookie Rita','Street Steve','Chip the Champ','Lazy Larry','Quick Kim','Dizzy Dan','Bouncy Bea',
+ 'Tiny Tim','Big Bertha','Sneaky Sam','Grumpy Greg','Speedy Sid','Hungry Hank','Sleepy Sue','Rocky Rob','Fizzy Fran','Noodle Ned',
+ 'Captain Kev','Wobbly Will','Mighty Molly','Silly Sally','Pancake Paul','Turbo Tess','Loud Lou','Crusher Carl','Ninja Nina','Zippy Zack',
+ 'Brave Bella','Cool Cody','Jumpy Jen','Muscle Max','Cheeky Charlie','Rapid Ray','Gloves Gary','Banana Ben','Thunder Tom','Bubbles Becky',
+ 'Iron Ivy','Hammer Hugo','Lucky Leo','Tornado Tara','Snack Attack Sam','Kickin Kate','Frosty Fred','Popcorn Polly','Rowdy Rex','Dash Dina'];
 const WSHORTS=['#e63946','#2a9d8f','#f4a261','#8338ec','#06d6a0','#ef476f','#118ab2'];
 const pick=a=>a[Math.floor(Math.random()*a.length)];
 function freeSpot(){for(let k=0;k<300;k++){const x=100+Math.random()*(WORLD.w-200),y=100+Math.random()*(WORLD.h-330);
@@ -1550,7 +1714,7 @@ function wildFoe(w){const T=TIERS[w.tier],m=me();if(w.rel!=null){const L2=wLvl(w
   if(w.quirk==='double')f.double=true;
   if(w.quirk==='rage')f.rage=true;
   return f}
-let WILDS=Array.from({length:6},makeWild);let swapT=0;
+let WILDS=Array.from({length:NWILD},makeWild);let swapT=0;
 let curAct=null;
 function setAct(a){const k=a?a.txt+a.sub:'';if(k===(curAct?curAct.k:'')){if(a)curAct.fn=a.fn;return}
   curAct=a?{...a,k}:null;const b=$('#actBtn');b.hidden=!a;if(a&&mapHint){mapHint=false;$('#mapHint').hidden=true}if(a){b.innerHTML=`${a.txt}${a.sub?`<small>${a.sub}</small>`:''}`;b.disabled=!!a.locked;if(!a.locked)sfx('tick')}}
@@ -1568,13 +1732,13 @@ addEventListener('keyup',e=>{KEYS[e.key.toLowerCase()]=false});
 function tickMap(now,dt){
   if(!$('#modal').hidden)return;
   const kx=(KEYS.arrowright||KEYS.d?1:0)-(KEYS.arrowleft||KEYS.a?1:0),ky=(KEYS.arrowdown||KEYS.s?1:0)-(KEYS.arrowup||KEYS.w?1:0);
-  let vx=0,vy=0;const SPD=190;
+  let vx=0,vy=0;const SPD=hasUp('bike')?285:190;
   if(kx||ky){const m=Math.hypot(kx,ky);vx=kx/m;vy=ky/m;PL.tx=null;if(mapHint){mapHint=false;$('#mapHint').hidden=true}}
   else if(PL.tx!=null){const dx=PL.tx-PL.x,dy=PL.ty-PL.y,d=Math.hypot(dx,dy);if(d<6){if(!PL.hold)PL.tx=null}else{vx=dx/d;vy=dy/d}}
   PL.moving=!!(vx||vy);
   if(PL.moving){const nx=clamp(PL.x+vx*SPD*dt,16,WORLD.w-16),ny=clamp(PL.y+vy*SPD*dt,40,WORLD.h-8);
     if(blocked(PL.x,PL.y)||!blocked(nx,ny))[PL.x,PL.y]=[nx,ny];else if(!blocked(nx,PL.y))PL.x=nx;else if(!blocked(PL.x,ny))PL.y=ny;
-    if(Math.abs(vx)>0.1)PL.dir=vx>0?1:-1;PL.walk+=dt*11;S.food=Math.max(0,S.food-dt*0.12);S.drink=Math.max(0,S.drink-dt*0.18);if(Math.random()<dt)updMeters()}
+    if(Math.abs(vx)>0.1)PL.dir=vx>0?1:-1;PL.walk+=dt*(hasUp('bike')?15:11);{const lk=hasUp('lunch')?0.6:1;S.food=Math.max(0,S.food-dt*0.12*lk);S.drink=Math.max(0,S.drink-dt*0.18*lk)}if(Math.random()<dt)updMeters()}
   for(const t of TREES){const d=Math.hypot(PL.x-t.x,PL.y-t.y),m=t.r*0.6;if(d<m&&d>0){PL.x=t.x+(PL.x-t.x)/d*m;PL.y=t.y+(PL.y-t.y)/d*m}}
   swapT+=dt;if(swapT>25){swapT=0;const far=WILDS.findIndex(w=>Math.hypot(PL.x-w.x,PL.y-w.y)>600);if(far>=0)WILDS[far]=makeWild()}
   let chasing=WILDS.some(w=>w.chase>0);
@@ -1665,19 +1829,21 @@ function buildRoute(spec){const pts=[];const C=FOUNTAIN,Rr=62,o=14,Lh=Math.sqrt(
     else pts.push(st)}
   const L=[0];for(let k=1;k<pts.length;k++)L.push(L[k-1]+Math.hypot(pts[k][0]-pts[k-1][0],pts[k][1]-pts[k-1][1]));return{pts,L,len:L[L.length-1]}}
 const ROUTES=[
-  [[-60,914],{rb:[[1,0],[1,0]]},[1560,914]],
-  [[1560,886],{rb:[[-1,0],[-1,0]]},[-60,886]],
-  [[764,1560],{rb:[[0,-1],[1,0]]},[1560,914]],
+  [[-60,914],{rb:[[1,0],[1,0]]},[3060,914]],
+  [[3060,886],{rb:[[-1,0],[-1,0]]},[-60,886]],
+  [[764,3060],{rb:[[0,-1],[1,0]]},[3060,914]],
   [[-60,914],{rb:[[1,0],[0,-1]]},[764,520],[760,500],[750,494],[740,500],[736,520],{rb:[[0,1],[-1,0]]},[-60,886]],
-  [[1560,886],{rb:[[-1,0],[0,1]]},[736,1560]],
-  [[-60,1442],[1560,1442]],[[1560,1414],[-60,1414]],
-  [[1166,-60],[1166,1560]],[[1194,1560],[1194,-60]],
+  [[3060,886],{rb:[[-1,0],[0,1]]},[736,3060]],
+  [[-60,1442],[3060,1442]],[[3060,1414],[-60,1414]],
+  [[1166,-60],[1166,3060]],[[1194,3060],[1194,-60]],
+  [[2136,-60],[2136,3060]],[[2164,3060],[2164,-60]],[[2686,-60],[2686,3060]],[[2714,3060],[2714,-60]],
+  [[-60,2164],[3060,2164]],[[3060,2136],[-60,2136]],[[-60,2764],[3060,2764]],[[3060,2736],[-60,2736]],
   [[416,-60],[416,870],[410,882],[400,886],[-60,886]],
   [[-60,914],[420,914],[436,908],[444,896],[444,-60]]
 ].map(buildRoute);
 const CARS=[[0,0,'#c0392b',100],[1,0.4,'#2c6fb7',95],[2,0.2,'#e8e4da',100],[3,0.6,'#3b3b3b',85],[4,0.1,'#f1c40f',100],[5,0.3,'#27ae60',92],[6,0.7,'#8e44ad',105],
-  [7,0.5,'#d35400',95],[8,0.15,'#ecf0f1',110],[9,0.8,'#2980b9',85],[10,0.35,'#c0392b',90],[0,0.55,'#7f8c8d',100],[5,0.85,'#e74c3c',92]].map(([r,f,col,sp])=>({r,d:f*ROUTES[r].len,col,sp}));
-const PARKED=[[300,945,0,'#7f8c8d'],[1300,855,0,'#8e44ad'],[1300,945,0,'#d35400'],[796,1250,1,'#16a085'],[704,700,1,'#2c3e50']];
+  [7,0.5,'#d35400',95],[8,0.15,'#ecf0f1',110],[9,0.8,'#2980b9',85],[10,0.35,'#c0392b',90],[0,0.55,'#7f8c8d',100],[5,0.85,'#e74c3c',92],[11,0.2,'#f39c12',100],[12,0.6,'#16a085',95],[13,0.4,'#2c3e50',105],[14,0.1,'#e74c3c',90],[15,0.5,'#9b59b6',100],[16,0.25,'#ecf0f1',95],[17,0.7,'#27ae60',100],[18,0.45,'#f1c40f',92],[7,0.9,'#34495e',95],[1,0.85,'#d35400',95],[5,0.6,'#3498db',90]].map(([r,f,col,sp])=>({r,d:f*ROUTES[r].len,col,sp}));
+const PARKED=[[300,945,0,'#7f8c8d'],[1300,855,0,'#8e44ad'],[1300,945,0,'#d35400'],[796,1250,1,'#16a085'],[704,700,1,'#2c3e50'],[1650,945,0,'#c0392b'],[2400,855,0,'#2980b9'],[2196,1700,1,'#7f8c8d'],[900,2195,0,'#16a085'],[2600,2705,0,'#e67e22'],[2654,500,1,'#8e44ad'],[400,2795,0,'#2c3e50']];
 function drawCar(c,x,y,vert,dir,col,rot){c.save();c.translate(x,y);if(rot!=null)c.rotate(rot);else{if(vert)c.rotate(Math.PI/2);if(dir<0)c.rotate(Math.PI)}
   c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.roundRect(-20,-9,44,22,6);c.fill();
   c.beginPath();c.roundRect(-22,-11,44,22,6);c.fillStyle=col;c.fill();c.strokeStyle='rgba(0,0,0,.45)';c.lineWidth=1.2;c.stroke();
@@ -1693,25 +1859,41 @@ function drawMapFighter(c,x,y,L,dir,walk,now,dim,s,extra){
   drawFighter(c,x,y,s,L,{flip:dir<0,bob:walk?-Math.abs(Math.cos(walk))*3:Math.sin(now/400),kickF:walk?Math.max(0,k)*0.3:0,kickB:walk?Math.max(0,-k)*0.3:0,relax:!!walk,swing:k,...(extra||{})});
   c.restore();
   if(dim){c.save();c.translate(x,y-40);c.strokeStyle='#f4efe4';c.lineWidth=3;c.beginPath();c.arc(0,-8,7,Math.PI,0);c.stroke();c.beginPath();c.roundRect(-10,-8,20,16,3);ink(c,'#ffb627',2);c.restore()}}
+// small map in the corner so you don't get lost on the big map
+let MINI=null;
+function drawMini(now){const cv=$('#miniCv');if(!cv)return;const {c,w,h}=fit(cv),k=w/WORLD.w;
+  if(!MINI||MINI.w!==cv.width){const o=document.createElement('canvas');o.width=cv.width;o.height=cv.height;const x=o.getContext('2d'),dpr=cv.width/w;x.scale(dpr,dpr);
+    x.fillStyle='#6f9455';x.fillRect(0,0,w,h);x.fillStyle='#4f8aa6';for(const p of PONDS){x.beginPath();x.ellipse(p.x*k,p.y*k,p.rx*k,p.ry*k,0,0,7);x.fill()}
+    x.fillStyle='#3d7034';for(const t of TREES){x.fillRect(t.x*k-1,t.y*k-1,2,2)}
+    x.fillStyle='rgba(181,80,58,.9)';x.fillRect(ZONES[0].x*k,ZONES[0].y*k,ZONES[0].w*k,ZONES[0].h*k);x.fillStyle='#b9bec7';x.fillRect(ZONES[1].x*k,ZONES[1].y*k,ZONES[1].w*k,ZONES[1].h*k);x.fillStyle='#4f9a4a';x.fillRect(ZONES[2].x*k,ZONES[2].y*k,ZONES[2].w*k,ZONES[2].h*k);
+    x.strokeStyle='#5b5e64';x.lineWidth=Math.max(2,60*k);for(const R0 of ROADS){x.beginPath();x.moveTo(R0[0][0]*k,R0[0][1]*k);x.lineTo(R0[1][0]*k,R0[1][1]*k);x.stroke()}
+    x.fillStyle='#a8774c';x.fillRect(PLAY.x*k,PLAY.y*k,PLAY.w*k,PLAY.h*k);
+    for(const b of BUILD){x.fillStyle=b.go?b.roof:'rgba(244,234,213,.85)';x.fillRect(b.x*k,b.y*k,Math.max(2,b.w*k),Math.max(2,b.h*k))}
+    MINI={w:cv.width,img:o}}
+  c.drawImage(MINI.img,0,0,w,h);
+  c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=1;const ms=mapSize();c.strokeRect(cam.x*k,cam.y*k,ms.w*k,ms.h*k);
+  for(const wd of WILDS){c.fillStyle=TIERS[wd.tier].col;c.beginPath();c.arc(wd.x*k,wd.y*k,1.8,0,7);c.fill()}
+  const pulse=2.8+Math.sin(now/200)*0.8;c.fillStyle='#fff';c.beginPath();c.arc(PL.x*k,PL.y*k,pulse+1.2,0,7);c.fill();c.fillStyle='#5fd49c';c.beginPath();c.arc(PL.x*k,PL.y*k,pulse,0,7);c.fill()}
 function drawMap(now){
   const {c,w,h}=fit(mc);c.fillStyle='#6f9455';c.fillRect(0,0,w,h);
   c.save();c.translate(-Math.round(cam.x),-Math.round(cam.y));
   const vis=(x,y,m=80)=>x>cam.x-m&&x<cam.x+w+m&&y>cam.y-m&&y<cam.y+h+m;
   c.fillStyle=grassPattern(c);c.fillRect(cam.x-2,cam.y-2,w+4,h+4);
   c.strokeStyle='rgba(40,75,30,.35)';c.lineWidth=1.6;c.lineCap='round';
-  for(let i=0;i<9;i++){const gx=(i*397)%1500,gy2=(i*613)%1500;if(vis(gx,gy2,200)){c.fillStyle=i%2?'rgba(120,100,60,.12)':'rgba(40,70,30,.12)';c.beginPath();c.ellipse(gx,gy2,160,90,0.4,0,7);c.fill()}}
+  for(let i=0;i<36;i++){const gx=(i*397)%3000,gy2=(i*613)%3000;if(vis(gx,gy2,200)){c.fillStyle=i%2?'rgba(120,100,60,.12)':'rgba(40,70,30,.12)';c.beginPath();c.ellipse(gx,gy2,160,90,0.4,0,7);c.fill()}}
   for(const t of TUFTS)if(vis(t.x,t.y,10)){line(c,t.x,t.y,t.x-3,t.y-7);line(c,t.x+4,t.y,t.x+5,t.y-8)}
-  for(const f of FLOWERS.slice(0,45))if(vis(f.x,f.y,10)){c.fillStyle=f.c;for(let a=0;a<5;a++){c.beginPath();c.arc(f.x+Math.cos(a*1.26)*3,f.y+Math.sin(a*1.26)*3,2.3,0,7);c.fill()}c.fillStyle='#ffb627';c.beginPath();c.arc(f.x,f.y,1.6,0,7);c.fill()}
+  for(const f of FLOWERS)if(vis(f.x,f.y,10)){c.fillStyle=f.c;for(let a=0;a<5;a++){c.beginPath();c.arc(f.x+Math.cos(a*1.26)*3,f.y+Math.sin(a*1.26)*3,2.3,0,7);c.fill()}c.fillStyle='#ffb627';c.beginPath();c.arc(f.x,f.y,1.6,0,7);c.fill()}
   PONDS.forEach(p=>{if(vis(p.x,p.y,140))drawPond(c,p,now)});
   c.lineJoin='round';
   drawRoads(c,now,vis);c.lineCap='round';c.lineJoin='round';
+  drawZones(c,now,vis);
   if(vis(PLAY.x+PLAY.w/2,PLAY.y+PLAY.h/2,200))drawPlayground(c,now);
   for(const b of BEDS)if(vis(b.x,b.y,40)){c.beginPath();c.roundRect(b.x,b.y,b.w,b.h,6);ink(c,'#8a5a2b',1.6);for(let i=0;i<5;i++){c.fillStyle=i%2?b.c:'#3fa55a';c.beginPath();c.arc(b.x+6+i*6,b.y+8+(i%2)*3,3.4,0,7);c.fill()}}
   drawDucks(c,now);
   BUILD.forEach(b=>drawBuilding(c,b));
   drawTraffic(c,Math.min(0.05,(now-(drawMap.last||now))/1000),vis);drawMap.last=now;
   if(PL.tx!=null){c.strokeStyle='rgba(255,182,39,.85)';c.lineWidth=2.5;c.beginPath();c.ellipse(PL.tx,PL.ty,14,6,0,0,7);c.stroke()}
-  for(let i=0;i<5;i++){const cx=((now/40+i*330)%1900)-200,cy=(i*290+100)%1500;if(vis(cx,cy,200)){c.fillStyle='rgba(0,40,0,.07)';c.beginPath();c.ellipse(cx,cy,120,55,0,0,7);c.ellipse(cx+70,cy+15,80,40,0,0,7);c.fill()}}
+  for(let i=0;i<16;i++){const cx=((now/40+i*330)%3400)-200,cy=(i*290+100)%3000;if(vis(cx,cy,200)){c.fillStyle='rgba(0,40,0,.07)';c.beginPath();c.ellipse(cx,cy,120,55,0,0,7);c.ellipse(cx+70,cy+15,80,40,0,0,7);c.fill()}}
   const ents=[],ps=0.3+0.16*growAll();
   for(const t of TREES)if(vis(t.x,t.y,70))ents.push([t.y,()=>drawTree(c,t)]);
   if(vis(750,900,120))ents.push([900,()=>drawFountain(c,now)]);
@@ -1720,7 +1902,7 @@ function drawMap(now){
   for(const wd of WILDS)if(vis(wd.x,wd.y,100)){const sb=wd.mood==='shadowbox'&&!wd.moving,ph=wd.box*5;ents.push([wd.y,()=>drawMapFighter(c,wd.x,wd.y,wd.foe.look,wd.dir,wd.moving?wd.walk:0,now,false,0.33+0.08*wd.foe.lvl,sb?{punch:Math.max(0,Math.sin(ph))**3,backPunch:Math.max(0,-Math.sin(ph))**3}:null)])}
   ents.push([PL.y,()=>drawMapFighter(c,PL.x,PL.y,playerLook(),PL.dir,PL.moving?PL.walk:0,now,false,ps)]);
   ents.sort((a,b)=>a[0]-b[0]).forEach(e=>e[1]());
-  for(const b of BUTTERFLIES){b.a+=0.02;b.x=(b.x+Math.cos(b.a)*0.9+1500)%1500;b.y=(b.y+Math.sin(b.a*1.3)*0.7+1500)%1500;if(!vis(b.x,b.y,20))continue;
+  for(const b of BUTTERFLIES){b.a+=0.02;b.x=(b.x+Math.cos(b.a)*0.9+WORLD.w)%WORLD.w;b.y=(b.y+Math.sin(b.a*1.3)*0.7+WORLD.h)%WORLD.h;if(!vis(b.x,b.y,20))continue;
     const f=Math.abs(Math.sin(now/70+b.a*9));c.fillStyle=b.c;c.beginPath();c.ellipse(b.x-3*f,b.y,4*f+0.5,3,0,0,7);c.ellipse(b.x+3*f,b.y,4*f+0.5,3,0,0,7);c.fill();c.fillStyle='#333';c.fillRect(b.x-0.7,b.y-3,1.4,6)}
   for(const wd of WILDS)if(vis(wd.x,wd.y,100)){const hh=166*(0.33+0.08*wd.foe.lvl);tag(c,wd.x,wd.y-hh-12,wd.name,TIERS[wd.tier].col);
     if(wd.alert>0.5){c.fillStyle='#ff5d5d';c.font='400 24px Bungee, Impact, sans-serif';c.textAlign='center';c.fillText('!',wd.x,wd.y-hh-30+Math.sin(now/90)*2)}}
@@ -1732,6 +1914,7 @@ function drawMap(now){
       const ex=clamp(w/2+Math.cos(ang)*w,120,w-70),ey=clamp(h/2+Math.sin(ang)*h,90,h-110);
       c.save();c.translate(ex,ey);c.rotate(ang);c.beginPath();c.moveTo(20,0);c.lineTo(-10,-13);c.lineTo(-4,0);c.lineTo(-10,13);c.closePath();ink(c,'#ff5d5d',2);c.restore();
       c.font='900 12px Nunito, sans-serif';c.textAlign='center';c.fillStyle='#1b2130';c.fillText('Stadium',ex,ey+30)}}
+  drawMini(now);
 }
 
 // ---------- mirror room ----------
@@ -1906,23 +2089,30 @@ function drawMirror(now,dt){
 // ---------- fight ----------
 let F=null;
 function startFight(foe,meta){
-  foe=Object.assign({},foe,{dmg:Math.round(foe.dmg*6)/10,every:Math.max(1100,foe.every),warn:Math.max(foe.quirk==='sneaky'?600:750,foe.warn||850)});
-  const m=me();show('fight');$('#pName').textContent=S.name;$('#fName').textContent=foe.name;
+  // a little harder: foes hit a bit harder, have a bit more health, attack slightly faster and guard a bit more
+  foe=Object.assign({},foe,{hp:Math.round(foe.hp*1.15),dmg:Math.round(foe.dmg*7)/10,every:Math.max(1050,foe.every*0.95),warn:Math.max(foe.quirk==='sneaky'?560:700,(foe.warn||850)*0.93),guard:Math.min(0.55,(foe.guard||0)+0.04)});
+  const m=me(),used=[];if(puUse('energy')){m.dmg*=1.3;used.push('Energy Drink')}const ironOn=puUse('iron');if(ironOn)used.push('Iron Skin');const supOn=puUse('super');if(supOn)used.push('Super Starter');
+  const luckyOn=puHave('lucky')>0;if(luckyOn)used.push('Lucky Coin');save();
+  show('fight');$('#pName').textContent=S.name;$('#fName').textContent=foe.name;
   const r1=v=>Math.round(v*10)/10;$('#pPow').textContent=`Punch ${r1(m.dmg)} · every tap`+(hungry()?' (hungry!)':'');$('#fPow').textContent=`Punch ${r1(foe.dmg)} · every ${r1((foe.every+(foe.warn||850))/1000)}s`;
   if(S.health==null)S.health=1;
   F={meta,foe,m,lvl:foe.lvl,php:Math.max(1,m.hp*S.health),fhp:foe.hp,next:performance.now()+1500,wind:0,block:false,pP:0,fP:0,hP:0,hF:0,txt:[],over:false,
-    sup:0,combo:0,superMode:false,up:0,shake:0,ptr:new Map(),startSpread:0,
+    sup:supOn?100:0,iron:ironOn,lucky:luckyOn,combo:0,superMode:false,up:0,shake:0,ptr:new Map(),startSpread:0,
     fl:Object.assign({shoes:null,headband:null,belt:null,hair:'#222'},foe.look),t0:performance.now()};
-  hpBars();
+  hpBars();if(used.length)$('#pPow').textContent+=' · '+used.map(n=>POWERUPS.find(u=>u.name===n).ic).join('');
 }
 function hpBars(){$('#pHp').style.width=Math.max(0,F.php/F.m.hp*100)+'%';$('#fHp').style.width=Math.max(0,F.fhp/F.foe.hp*100)+'%';
   $('#supFill').style.width=F.sup+'%';$('#supBar').classList.toggle('full',F.sup>=100);$('#comboTxt').textContent=F.combo+' combo'}
 function dealDamage(d,label,col){F.fhp-=d;F.hF=1;F.txt.push({s:label,side:1,t:performance.now(),c:col});hpBars();if(F.fhp<=0)endFight(true)}
-function punch(){if(!F||F.over||F.block||F.superMode)return;move();let d=F.m.dmg;
+function punch(){if(!F||F.over||F.block||F.superMode)return;move();let d=F.m.dmg;const now0=performance.now();
+  // punches use energy: mashing makes you tired and your punches go weak
+  if(F.en==null)F.en=100;const tired=F.en<9;F.en=Math.max(0,F.en-9);
+  if(tired){F.pP=0.5;F.combo=0;sfx('bad');dealDamage(d*0.3,'Tired! '+Math.round(d*3)/10,'#9aa3b8');hpBars();return}
+  const counter=F.counterT&&now0<F.counterT;F.counterT=0;if(counter)d*=1.8;
   if(F.guard>performance.now()){F.pP=1;F.combo=0;sfx('block');F.txt.push({s:'Blocked!',side:1,t:performance.now(),c:'#4fb0ff'});dealDamage(d*0.1,'','#4fb0ff');hpBars();return}const crit=Math.random()*100<F.m.crit;if(crit)d*=2;
   F.cheer=Math.min(1,(F.cheer||0)+(crit?0.5:0.12));F.combo++;d*=1+Math.min(0.5,Math.floor(F.combo/10)*0.1);F.sup=Math.min(100,F.sup+4);F.pP=1;
   sfx(crit?'great':'hit');const {w,h}=cvSize();burst(F.hitX||w*0.58,F.hitY||h*0.45,crit?'#ffb627':'#f4efe4',crit?14:6);
-  dealDamage(d,(crit?'POW! ':'')+Math.round(d*10)/10,crit?'#ffb627':'#f4efe4');
+  dealDamage(d,(counter?'COUNTER! ':crit?'POW! ':'')+Math.round(d*10)/10,counter?'#5fd49c':crit?'#ffb627':'#f4efe4');if(counter){F.sup=Math.min(100,F.sup+8);sfx('great')}
   if(F.sup>=100&&!F.superMode){F.superMode=true;F.ptr.clear();sfx('coin')}}
 function cvSize(){const r=$('#fightCv').getBoundingClientRect();return{w:r.width,h:r.height}}
 const pb=$('#punchBtn'),bb=$('#blockBtn'),fc=$('#fightCv');
@@ -1941,7 +2131,7 @@ function doSuper(){if(!F.superMode)return;F.guard=0;F.cheer=1;F.superMode=false;
   dealDamage(F.m.dmg*8+6,'SUPER UPPERCUT!','#ffb627')}
 addEventListener('keydown',e=>{if(screen!=='fight')return;if(e.code==='Space'&&!e.repeat){e.preventDefault();F&&F.superMode?doSuper():punch()}if(e.key==='Shift')setBlock(true)});
 addEventListener('keyup',e=>{if(e.key==='Shift')setBlock(false)});
-function tickFight(now,dt){
+function tickFight(now,dt){if(F&&!F.over){if(F.en==null)F.en=100;F.en=Math.min(100,F.en+dt*(F.block?40:24));const ef=$('#enFill');if(ef){ef.style.width=F.en+'%';$('#enBar').classList.toggle('low',F.en<20);$('#enTxt').textContent=F.en<9?'tired!':F.en<30?'low':'ready'}}
   if(F){F.cheer=Math.max(0,(F.cheer||0)-dt*(F.over&&F.ko&&F.ko.who==='f'?0.05:0.6))}
   if(F&&F.over){F.shake=Math.max(0,F.shake-dt*2);F.pP=Math.max(0,F.pP-dt*7);F.fP=Math.max(0,F.fP-dt*5)}
   if(!F||F.over)return;
@@ -1953,23 +2143,25 @@ function tickFight(now,dt){
     F.wind=0;F.next=now+fo.every*(rage?0.7:1)*(0.75+Math.random()*0.5)}
   F.pP=Math.max(0,F.pP-dt*7);F.fP=Math.max(0,F.fP-dt*5);F.hP=Math.max(0,F.hP-dt*5);F.hF=Math.max(0,F.hF-dt*6);F.up=Math.max(0,F.up-dt*1.5);F.shake=Math.max(0,F.shake-dt*2);
 }
-function hitPlayer(now,dd){if(F.over)return;{let d=dd;const blocked=F.block;if(blocked)d*=1-F.m.block/100;d=Math.round(d*10)/10;
+function hitPlayer(now,dd){if(F.over)return;{let d=dd*(F.iron?0.7:1);const blocked=F.block;if(blocked)d*=1-F.m.block/100;d=Math.round(d*10)/10;
     F.php-=d;F.fP=1;F.hP=blocked?0.3:1;F.txt.push({s:blocked?'Blocked! -'+d:'-'+d,side:0,t:now,c:blocked?'#4fb0ff':'#ff5d5d'});
-    if(blocked){sfx('block');burst(F.hitPX||100,F.hitY||120,'#4fb0ff',5)}else{sfx('hurt');F.combo=0;F.shake=0.5;burst(F.hitPX||100,F.hitY||120,'#ff5d5d',10)}
+    if(blocked){sfx('block');burst(F.hitPX||100,F.hitY||120,'#4fb0ff',5);F.counterT=now+800;F.txt.push({s:'Punch now!',side:1,t:now,c:'#5fd49c'})}else{sfx('hurt');F.combo=0;F.shake=0.5;burst(F.hitPX||100,F.hitY||120,'#ff5d5d',10)}
     hpBars();if(F.php<=0)endFight(false)}}
 function endFight(win){
   F.over=true;F.superMode=false;{let t;do{t=pick(KOTYPES)}while(t===lastKo);lastKo=t;F.ko={who:win?'f':'p',type:t,t0:performance.now(),landed:false};F.up=0;if(win)F.cheer=1}setBlock(false);const secs=Math.round((performance.now()-F.t0)/1000);addSecs(secs);
   let coins,extra='';
-  if(F.meta.type==='boss'){const i=F.meta.i,rw=15+i*20,first=win&&!S.beaten.includes(i);coins=win?(first?rw*2:rw):5;if(first){S.beaten.push(i);S.best=Math.max(S.best,i+1);
+  if(F.meta.type==='boss'){const i=F.meta.i,rw=15+i*20,first=win&&!S.beaten.includes(i);coins=win?(first?rw*2:rw):-Math.min(S.coins,Math.max(5,Math.round(rw*0.4)));if(first){S.beaten.push(i);S.best=Math.max(S.best,i+1);
       extra=S.beaten.length===FOES.length?'<li>You beat every boss. You are the STADIUM CHAMPION!</li>':`<li>${FOES.length-S.beaten.length} bosses left to beat.</li>`}
     if(win&&first)extra=`<li style="color:var(--tape)">First win bonus!</li>`+extra}
-  else{coins=win?F.foe.coins:3;WILDS[F.meta.wi]=makeWild()}
+  else{coins=win?F.foe.coins:-Math.min(S.coins,Math.max(5,Math.round(F.foe.coins*0.4)));WILDS[F.meta.wi]=makeWild()}
   const st=F.meta.story;if(st)extra+=`<li class="muted" style="font-weight:700">${fillN(win?st.win:st.lose,F.foe.name)}</li>`;
   if(F.meta.type==='boss'&&win)extra+=`<li class="muted" style="font-weight:700">The stadium goes wild!</li>`;
   S.health=win?Math.max(0.1,Math.min(1,F.php/F.m.hp)):0.05;if(win&&S.health<0.35)extra+='<li style="color:var(--hit)">You are hurt! Visit the Hospital to heal.</li>';
+  if(win&&F.lucky&&puUse('lucky')){coins*=2;extra+='<li style="color:var(--tape)">Lucky Coin: double coins!</li>'}
+  if(win&&hasUp('magnet')){coins=Math.round(coins*1.25);extra+='<li style="color:var(--tape)">Coin Magnet: +25%</li>'}
   S.fat=Math.max(0,(S.fat||0)-0.03);drain(8,10);addCoins(coins);save();setTimeout(()=>sfx(win?'win':'lose'),300);
   setTimeout(()=>modal(win?`<h2>You win!</h2><ul><li>${S.name} beat ${F.foe.name}</li><li style="color:var(--tape)">+${coins} coins</li>${extra}</ul>`
-    :`<h2>Knocked out!</h2><ul><li>${F.foe.name} was too strong this time</li><li style="color:var(--tape)">+${coins} coins for trying</li>${extra}</ul><p class="muted">An ambulance is taking you to the Hospital. The doctor will fix you up for free!</p>`,
+    :`<h2>Knocked out!</h2><ul><li>${F.foe.name} was too strong this time</li><li style="color:var(--hit)">${coins<0?coins+' coins lost':'No coins lost (you had none)'}</li>${extra}</ul><p class="muted">An ambulance is taking you to the Hospital. The doctor will fix you up for free!</p>`,
     win?(F.meta.type==='boss'?'Back to stadium':'Back to map'):'Go to Hospital (free)',()=>{const t=F.meta.type;F=null;
       if(win){show(t==='boss'?'stadium':'map');return}
       const hb=BUILD.find(b=>b.go==='hospital');PL.x=hb.x+hb.w/2;PL.y=hb.y+hb.h+18;PL.tx=null;S.px=PL.x;S.py=PL.y;save();
