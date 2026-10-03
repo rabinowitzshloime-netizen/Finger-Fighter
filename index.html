@@ -101,6 +101,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .meter .bar{width:54px;height:9px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2)}
 .meter .bar i{background:var(--ok);transition:width .4s}
 .meter small{font-size:10px;font-weight:900;color:#fff;min-width:42px;white-space:nowrap}
+.tray{display:block;background:#2a2340;border:2px dashed var(--tape);border-radius:14px;padding:12px;color:var(--chalk)}
+.tray h3{margin:0 0 8px;font-size:15px}.tray .items{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+.tray .it{display:inline-flex;align-items:center;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:4px 6px 4px 10px;font-weight:800;font-size:13px}
+.tray .it button{border:0;border-radius:50%;width:22px;height:22px;background:var(--hit);color:#fff;font-weight:900;line-height:22px;padding:0;cursor:pointer}
+.tray .row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}.tray .tot{font-weight:800;font-size:13px}
+.qty{display:inline-flex;align-items:center;gap:6px}.qty b{min-width:14px;text-align:center}.qty .pill{padding:6px 11px}
 .menu-warn{color:var(--hit);font-weight:900}
 .menu-good{color:var(--ok);font-weight:900}
 .meter:nth-child(2) .bar i{background:var(--spd)}
@@ -683,7 +689,7 @@ function drawParts(c,dt){parts=parts.filter(p=>p.t<0.5);for(const p of parts){p.
 
 // ---------- screens ----------
 let screen='map';
-function show(id){screen=id;parts=[];document.querySelectorAll('#app>section').forEach(s=>s.hidden=s.id!==id);
+function show(id){if(screen==='cafe'&&id!=='cafe'&&typeof EATQ!=='undefined'&&EATQ.length){let back=0;for(const q of EATQ)back+=MENU.find(m=>m.id===q).price;S.coins+=back;EATQ=[];save()}screen=id;parts=[];document.querySelectorAll('#app>section').forEach(s=>s.hidden=s.id!==id);
   if(id==='skin')renderHome();if(id==='train')renderTrain();if(id==='shop')renderShop();if(id==='settings')renderSettings();if(id==='stadium')renderStadium();if(id==='mirror'){renderMirror();$('#mirSay').textContent='Swipe the mirror or tap Turn to see every side.'}if(id==='map')renderMapHud();if(id==='cafe'){enterCafe();renderCafe()}if(id==='hospital')renderHospital();updMeters();
   $('.top').hidden=id==='map';updCoins();window.scrollTo(0,0)}
 document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g){sfx('tick');show(g.dataset.go)}});
@@ -1095,27 +1101,41 @@ const set=(id,v)=>{const e=document.getElementById(id);if(e){e.style.width=v+'%'
   const w=$('#hungryMsg');if(w){const low=S.food<30||S.drink<30,hurt=S.health<0.35;w.hidden=!low&&!hurt;if(hurt)w.textContent='Your fighter is hurt! Go to the Hospital to heal.'+(low?' And eat at the Café!':'');else if(low)w.textContent=(S.food<30&&S.drink<30?'Hungry and thirsty!':S.food<30?'Your fighter is hungry!':'Your fighter is thirsty!')+(hungry()?' Too weak to be strong.':'')+' Go to the Café.'}}
 function renderCafe(){updMeters();
   if(CF.dist<1){$('#menuList').innerHTML='<p class="muted" style="text-align:center;font-weight:800">'+(CF.queue.length?'Wait for your turn in line, then walk up to the till.':'Walk up to the till to see what you can order.')+'</p>';return}
-  $('#menuList').innerHTML=MENU.map(m=>`<div class="card"><canvas class="fi" data-f="${m.id}" width="52" height="52"></canvas><span><h3>${m.name}</h3><p>${[m.food?`+${m.food} food`:'',m.drink?`+${m.drink} drink`:''].filter(Boolean).join(' · ')} · ${m.note}</p>${(()=>{const over=Math.max(0,S.food+m.food-100)+Math.max(0,S.drink+m.drink-100);return over>=Math.max(10,(m.food+m.drink)*0.6)?'<p class="menu-warn">Too full! Your tummy will grow</p>':over===0?'<p class="menu-good">Fits perfectly</p>':''})()}</span><button class="pill" data-eat="${m.id}" ${S.coins<m.price?'disabled':''}>Order · <i class="coin"></i>${m.price}</button></div>`).join('');
+  const cnt=id=>CART.filter(x=>x===id).length,tot=cartTotals(),busy=(EAT&&!EAT.done&&!EAT.full)||EATQ.length>0;
+  const trayHtml=busy?`<div class="tray"><h3>Eating your tray...</h3><p class="muted" style="margin:0;font-weight:800">${EATQ.length?EATQ.length+' more to go after this one':'Last one!'}</p></div>`
+    :`<div class="tray"><h3>Your tray${CART.length?' ('+CART.length+')':''}</h3>${CART.length?`<div class="items">${CART.map((id,i)=>`<span class="it">${MENU.find(m=>m.id===id).name}<button data-x="${i}" aria-label="Take away">✕</button></span>`).join('')}</div>`:'<p class="muted" style="margin:0 0 8px;font-weight:800">Empty. Press Add on the food and drinks you want. Changed your mind? Press ✕ to take it away.</p>'}
+      <div class="row"><span class="tot">${tot.food?'+'+tot.food+' food ':''}${tot.drink?'+'+tot.drink+' drink':''}${tot.tooFull?' · <span class="menu-warn">Too much! Tummy will grow</span>':''}</span>${CART.length?`<span style="display:flex;gap:6px"><button class="pill" data-clear style="background:var(--panel);color:var(--chalk);border:1px solid var(--line)">Clear</button><button class="pill" data-pay ${S.coins<tot.price?'disabled':''}>Pay &amp; eat · <i class="coin"></i>${tot.price}</button></span>`:''}</div></div>`;
+  $('#menuList').innerHTML=trayHtml+MENU.map(m=>`<div class="card"><canvas class="fi" data-f="${m.id}" width="52" height="52"></canvas><span><h3>${m.name}</h3><p>${[m.food?`+${m.food} food`:'',m.drink?`+${m.drink} drink`:''].filter(Boolean).join(' · ')} · ${m.note}</p>${(()=>{const over=Math.max(0,S.food+tot.food+m.food-100)+Math.max(0,S.drink+tot.drink+m.drink-100);return over>=Math.max(10,(m.food+m.drink)*0.6)?'<p class="menu-warn">Too full! Your tummy will grow</p>':over===0?'<p class="menu-good">Fits perfectly</p>':''})()}</span>${cnt(m.id)?`<span class="qty"><button class="pill" data-rem="${m.id}" ${busy?'disabled':''}>−</button><b>${cnt(m.id)}</b><button class="pill" data-add="${m.id}" ${busy||tot.price+m.price>S.coins||CART.length>=8?'disabled':''}>+</button></span>`:`<button class="pill" data-add="${m.id}" ${busy||tot.price+m.price>S.coins||CART.length>=8?'disabled':''}>Add · <i class="coin"></i>${m.price}</button>`}</div>`).join('');
   $('#menuList').querySelectorAll('.fi').forEach(cv=>{const {c,w,h}=fit(cv);drawFood(c,cv.dataset.f,w/2,h/2,17)})}
 let EAT=null,CRUMBS=[];
 const EATDUR=4.8;
-$('#menuList').addEventListener('click',e=>{const b=e.target.closest('[data-eat]');if(!b)return;const m=MENU.find(x=>x.id===b.dataset.eat);
-  if(CF.dist<1||CF.out)return;if(EAT&&!EAT.done&&!EAT.full)return;
-  if(S.coins<m.price)return;
+let CART=[],EATQ=[];
+function cartTotals(){let price=0,food=0,drink=0;for(const id of CART){const m=MENU.find(x=>x.id===id);price+=m.price;food+=m.food;drink+=m.drink}
+  const over=Math.max(0,S.food+food-100)+Math.max(0,S.drink+drink-100);return{price,food,drink,tooFull:CART.length>0&&over>=Math.max(10,(food+drink)*0.35)}}
+$('#menuList').addEventListener('click',e=>{if(CF.dist<1||CF.out)return;const busy=(EAT&&!EAT.done&&!EAT.full)||EATQ.length>0;
+  const a=e.target.closest('[data-add]'),r=e.target.closest('[data-rem]'),x=e.target.closest('[data-x]'),pay=e.target.closest('[data-pay]'),clr=e.target.closest('[data-clear]');
+  if(busy)return;
+  if(a){const m=MENU.find(q=>q.id===a.dataset.add);if(CART.length<8&&cartTotals().price+m.price<=S.coins){CART.push(m.id);sfx('tick');renderCafe()}return}
+  if(r){const i=CART.lastIndexOf(r.dataset.rem);if(i>=0){CART.splice(i,1);sfx('tick');renderCafe()}return}
+  if(x){CART.splice(+x.dataset.x,1);sfx('tick');renderCafe();return}
+  if(clr){CART=[];sfx('tick');renderCafe();return}
+  if(pay){const t=cartTotals();if(!CART.length||S.coins<t.price)return;S.coins-=t.price;updCoins();save();sfx('coin');
+    EATQ=CART.slice();CART=[];cafeSay(EATQ.length>1?pick(['Coming right up! Here is your tray.','Wow, a big order! Here you go.']):pick(['Coming right up!','Great choice!','Here you go!']));window.scrollTo({top:0,behavior:'smooth'});
+    eatNext();renderCafe()}});
+function eatNext(){const id=EATQ.shift();if(!id)return;const m=MENU.find(x=>x.id===id);
   {const over=Math.max(0,S.food+m.food-100)+Math.max(0,S.drink+m.drink-100),tooFull=over>=Math.max(10,(m.food+m.drink)*0.6);
-    S.coins-=m.price;updCoins();S.food=Math.min(100,S.food+m.food);S.drink=Math.min(100,S.drink+m.drink);
+    S.food=Math.min(100,S.food+m.food);S.drink=Math.min(100,S.drink+m.drink);
     if(tooFull){S.fat=Math.min(1,(S.fat||0)+0.08);setTimeout(()=>{$('#eatSay').textContent='Too full! Tummy got a bit bigger';setTimeout(()=>{const e=$('#eatSay');if(e)e.textContent=''},2500)},4800)}
-    save();sfx('coin');
+    save();
     const drinkish=m.drink>m.food||m.id==='smoothie';
-    cafeSay(pick(['Coming right up!','Great choice!','Here you go!']));window.scrollTo({top:0,behavior:'smooth'});
-    EAT={id:m.id,t:performance.now(),drink:drinkish,bites:0,say:tooFull?pick(['Ooof, so full!','Maybe that was too much...']):pick(drinkish?['Ahh!','So fresh!','Refreshing!']:['Yum!','Delicious!','So tasty!'])};renderCafe()}});
+    EAT={id:m.id,t:performance.now(),drink:drinkish,bites:0,say:tooFull?pick(['Ooof, so full!','Maybe that was too much...']):pick(drinkish?['Ahh!','So fresh!','Refreshing!']:['Yum!','Delicious!','So tasty!'])};renderCafe()}}
 const CF={out:0,dist:0,walking:false,step:0,say:'',sayT:0,lastStep:0,queue:[],leaving:[],qT:0,qSay:'',qSayT:0,waitSaid:false};
 const CASHIER={arm:0.2,chest:0.25,legs:0.2,skin:'#e0a878',hair:'#2b1d14',hairStyle:'short',shorts:'#2b2f3a',pants:'#2b2f3a',shirt:'#8338ec',sleeves:'#8338ec',gloves:null,shoes:null,headband:null,belt:null,hat:'ht2'};
 function cafeSay(t){CF.say=t;CF.sayT=performance.now()}
 function camUI(){document.querySelectorAll('#camSeg button').forEach(b=>b.classList.toggle('on',b.dataset.cam===(S.cafeView==='eyes'?'eyes':'back')))}
 $('#camSeg').addEventListener('click',e=>{const b=e.target.closest('[data-cam]');if(b){S.cafeView=b.dataset.cam;save();sfx('tick');camUI()}});
 function randPerson(){const hh=pick(HAIRS);return{arm:Math.random()*0.5,chest:Math.random()*0.5,legs:0.3,skin:pick(SKINS),hair:hh[1],hairStyle:hh[0],shorts:pick(WSHORTS),top:Math.random()<0.6?pick(['tp1','tp2','tp3','tp4','tp5']):null,hat:Math.random()<0.25?pick(['ht2','ht3']):null,fat:Math.random()<0.3?Math.random()*0.6:0}}
-function enterCafe(){camUI();CF.out=0;$('#cafeDone').hidden=true;CF.queue=[];CF.leaving=[];CF.waitSaid=false;if(Math.random()<0.6){const n=Math.random()<0.5?1:2;for(let i=0;i<n;i++)CF.queue.push({look:randPerson(),pos:i,item:pick(MENU).id})}CF.qT=performance.now()+800;CF.dist=0;CF.walking=false;EAT=null;cafeSay('Welcome! Come up to the till.')}
+function enterCafe(){camUI();CART=[];EATQ=[];CF.out=0;$('#cafeDone').hidden=true;CF.queue=[];CF.leaving=[];CF.waitSaid=false;if(Math.random()<0.6){const n=Math.random()<0.5?1:2;for(let i=0;i<n;i++)CF.queue.push({look:randPerson(),pos:i,item:pick(MENU).id})}CF.qT=performance.now()+800;CF.dist=0;CF.walking=false;EAT=null;cafeSay('Welcome! Come up to the till.')}
 const cv0=()=>$('#cafeCv');
 ['pointerdown'].forEach(ev=>document.addEventListener(ev,e=>{if(screen!=='cafe'||CF.out)return;if(e.target.id==='cafeCv'||e.target.id==='cafeWalk'){e.preventDefault();if(CF.dist<1){CF.walking=true;move()}}}));
 ['pointerup','pointercancel'].forEach(ev=>document.addEventListener(ev,()=>{CF.walking=false}));
@@ -1124,7 +1144,7 @@ function drawCafe(now,dt){const cv=cv0(),{c,w,h}=fit(cv);dt=dt||0.016;
   const tOut=CF.out?(now-CF.out)/1000:0;
   if(CF.out){CF.dist=Math.max(0,1-tOut*0.5);CF.walking=false;CF.step+=dt*9;if(now-CF.lastStep>380){CF.lastStep=now;sfx('tick')}
     if(tOut>2.4){CF.out=0;const cb=BUILD.find(b=>b.go==='cafe');PL.x=cb.x+cb.w/2;PL.y=cb.y+cb.h+30;PL.tx=null;PL.dir=1;show('map');return}}
-  {const btn=$('#cafeDone'),want=!CF.out&&CF.dist>=1&&EAT&&EAT.done;if(btn.hidden===!!want)btn.hidden=!want}
+  {const btn=$('#cafeDone'),want=!CF.out&&CF.dist>=1&&EAT&&EAT.done&&!EATQ.length;if(btn.hidden===!!want)btn.hidden=!want}
   const cap=1-0.2*CF.queue.length;
   if(CF.walking&&CF.dist>=cap-0.001&&CF.queue.length&&!CF.waitSaid){CF.waitSaid=true;cafeSay('Be right with you! Please wait in line.')}
   if(CF.walking&&CF.dist<Math.min(1,cap)){CF.dist=Math.min(cap,CF.dist+dt*0.45);CF.step+=dt*9;if(now-CF.lastStep>380){CF.lastStep=now;sfx('tick')}
@@ -1253,7 +1273,8 @@ function drawCafe(now,dt){const cv=cv0(),{c,w,h}=fit(cv);dt=dt||0.016;
   else{drawItem();if(fReach>0||fRaise>0){const [hx,hy]=myHand;capsule(c,[w*0.95,h+40,w*0.82,h*0.95,hx+18,hy+14],36,L.skin,true);
       if(L.gloves){c.beginPath();c.arc(hx+14,hy+12,24,0,7);ink(c,L.gloves,2.5)}else{c.beginPath();c.ellipse(hx+14,hy+12,20,16,-0.5,0,7);ink(c,L.skin,2.5)}}}
   CRUMBS=CRUMBS.filter(p=>p.t<0.8);for(const p of CRUMBS){p.t+=1/60;p.x+=p.vx/60;p.y+=p.vy/60;p.vy+=400/60;c.fillStyle=p.col;c.fillRect(p.x-2,p.y-2,4,4)}
-  if(act&&t>EATDUR+1.1&&!EAT.done){EAT.done=true;cafeSay(pick(['Glad you liked it! Anything else?','Want anything else?']));$('#eatSay').textContent=EAT.say;setTimeout(()=>{const e=$('#eatSay');if(e)e.textContent=''},2000)}
+  if(act&&t>EATDUR+1.1&&!EAT.done&&EATQ.length){EAT.done=true;$('#eatSay').textContent=EAT.say;setTimeout(()=>{const e=$('#eatSay');if(e)e.textContent=''},1500);setTimeout(()=>{if(screen==='cafe'&&!CF.out)eatNext()},700)}
+  if(act&&t>EATDUR+1.1&&!EAT.done){EAT.done=true;renderCafe();cafeSay(pick(['Glad you liked it! Anything else?','Want anything else?']));$('#eatSay').textContent=EAT.say;setTimeout(()=>{const e=$('#eatSay');if(e)e.textContent=''},2000)}
   if(EAT&&EAT.full&&!EAT.done){EAT.done=true;cafeSay("You look full already! Come back after training.")}
   if(CF.say&&now-CF.sayT<3500){c.font='800 13px Nunito, sans-serif';const tw=c.measureText(CF.say).width+18,hx0=cx+(csx-cx)*z,bx=Math.max(6,Math.min(w-tw-6,hx0-tw/2)),by=Math.max(6,cy+(cgy-175*cs-cy)*z-30);
     c.fillStyle='#fff';c.beginPath();c.roundRect(bx,by,tw,26,10);c.fill();c.strokeStyle=INK;c.lineWidth=1.5;c.stroke();c.fillStyle='#1b2130';c.textAlign='left';c.fillText(CF.say,bx+9,by+17)}
@@ -1506,17 +1527,20 @@ const TIERS=[
  {name:'Easy',col:'#5fd49c',taps:32,hit:0.10,every:2300,warn:950,guard:0,pay:1},
  {name:'Tough',col:'#ffb627',taps:58,hit:0.15,every:1900,warn:820,guard:0.12,pay:2},
  {name:'Hard',col:'#ff7a1a',taps:88,hit:0.20,every:1600,warn:700,guard:0.22,pay:3.5},
- {name:'Very hard',col:'#ff5d5d',taps:125,hit:0.26,every:1350,warn:600,guard:0.32,pay:6}];
+ {name:'Very hard',col:'#ff5d5d',taps:125,hit:0.26,every:1350,warn:600,guard:0.32,pay:6},
+ {name:'Insane',col:'#c86bff',taps:165,hit:0.28,every:1200,warn:540,guard:0.38,pay:9}];
+// street fighters grow with you: their size is your size plus a bit (or minus a bit for easy ones)
+function wLvl(w){return clamp(growAll()+w.rel,0,1.5)}
+function pickTier(){const g=growAll(),W2=[0.3-0.2*g,0.35-0.1*g,0.25+0.05*g,0.1+0.1*g,g>0.5?(g-0.5)*0.5:0];let r=Math.random()*W2.reduce((a,b)=>a+b,0);for(let i=0;i<W2.length;i++){r-=W2[i];if(r<0)return i}return 1}
 const QUIRKS={fast:'Fast hands',tank:'Tank',sneaky:'Sneaky',guard:'Blocker',double:'Double hitter',rage:'Hothead'};
 function makeWild(){const [x,y]=freeSpot(),h=pick(HAIRS),name=pick(WNAMES);
-  const roll=Math.random(),tier=roll<0.3?0:roll<0.65?1:roll<0.9?2:3,quirk=tier?pick(Object.keys(QUIRKS)):null;
-  const lvl=clamp(growAll()+(tier-1)*0.22+Math.random()*0.1,0,1);
-  const mood=pick(tier===3?['challenger','shadowbox','wander']:['wander','wander','jogger','shadowbox','challenger']);
-  const story=tier===3?pick(LEGENDS):pick(STORIES);
+  const tier=pickTier(),quirk=tier?pick(Object.keys(QUIRKS)):null,rel=(tier-1)*0.17+Math.random()*0.08,lvl=clamp(growAll()+rel,0,1.5);
+  const mood=pick(tier>=3?['challenger','shadowbox','wander']:['wander','wander','jogger','shadowbox','challenger']);
+  const story=tier>=3?pick(LEGENDS):pick(STORIES);
   return{story,x,y,tx:x,ty:y,dir:-1,walk:0,moving:false,name,alert:0,mood,wait:Math.random()*3,cool:0,chase:0,pi:Math.floor(Math.random()*PATH.length),box:Math.random()*5,
-    tier,quirk,r1:0.85+Math.random()*0.3,r2:0.85+Math.random()*0.3,
+    tier,quirk,rel,r1:0.85+Math.random()*0.3,r2:0.85+Math.random()*0.3,
     foe:{name,lvl,look:{arm:lvl,chest:lvl,legs:lvl,skin:pick(SKINS),hair:h[1],hairStyle:h[0],beard:Math.random()<0.2,shorts:pick(WSHORTS),gloves:pick(['#9aa3b8','#e23b3b','#2e7d32','#3a6df0','#111827'])}}}}
-function wildFoe(w){const T=TIERS[w.tier],m=me();
+function wildFoe(w){const T=TIERS[w.tier],m=me();if(w.rel!=null){const L2=wLvl(w);w.foe.lvl=w.foe.look.arm=w.foe.look.chest=w.foe.look.legs=L2}
   const f={name:w.name,lvl:w.foe.lvl,look:w.foe.look,hp:Math.round(m.dmg*T.taps*w.r1),dmg:Math.round(m.hp*T.hit*w.r2*10)/10,every:T.every,warn:T.warn,guard:T.guard,
     coins:Math.round((5+powerLv())*T.pay),tier:T.name,quirk:w.quirk};
   if(w.quirk==='fast'){f.every*=0.7;f.dmg=Math.round(f.dmg*7.5)/10}
@@ -1554,7 +1578,8 @@ function tickMap(now,dt){
   for(const t of TREES){const d=Math.hypot(PL.x-t.x,PL.y-t.y),m=t.r*0.6;if(d<m&&d>0){PL.x=t.x+(PL.x-t.x)/d*m;PL.y=t.y+(PL.y-t.y)/d*m}}
   swapT+=dt;if(swapT>25){swapT=0;const far=WILDS.findIndex(w=>Math.hypot(PL.x-w.x,PL.y-w.y)>600);if(far>=0)WILDS[far]=makeWild()}
   let chasing=WILDS.some(w=>w.chase>0);
-  for(const w of WILDS){const d=Math.hypot(PL.x-w.x,PL.y-w.y);w.cool=Math.max(0,w.cool-dt);w.box+=dt;
+  for(const w of WILDS){if(w.rel==null)w.rel=(w.tier-1)*0.17;const L2=wLvl(w);w.foe.lvl=w.foe.look.arm=w.foe.look.chest=w.foe.look.legs=L2;
+    const d=Math.hypot(PL.x-w.x,PL.y-w.y);w.cool=Math.max(0,w.cool-dt);w.box+=dt;
     const newTarget=(range)=>{for(let k=0;k<10;k++){const tx=clamp(w.x+(Math.random()-0.5)*range,60,WORLD.w-60),ty=clamp(w.y+(Math.random()-0.5)*range,60,WORLD.h-200);if(!inBuild(tx,ty,20)&&!inPond(tx,ty,20)){w.tx=tx;w.ty=ty;return}}};
     let sp=40;
     if(w.chase>0){w.chase-=dt;w.tx=PL.x;w.ty=PL.y;sp=85;if(d<55){w.tx=w.x;w.ty=w.y}if(w.chase<=0){w.cool=12;w.alert=0;newTarget(400)}}
