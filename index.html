@@ -220,7 +220,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .side .med:disabled{opacity:.55}
 .medpop{position:absolute;left:90px;top:50%;z-index:3;background:#fff;color:#c0392b;font-weight:900;border-radius:12px;padding:6px 10px;pointer-events:none;animation:medpop 1.6s forwards}.lefty .medpop{left:auto;right:90px}
 @keyframes medpop{0%{opacity:0;transform:translateY(10px)}15%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
-.mini{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:104px;height:104px;border-radius:14px;border:2px solid rgba(255,255,255,.75);box-shadow:0 4px 12px rgba(0,0,0,.35);z-index:2;pointer-events:auto;cursor:pointer;background:#6f9455}.lefty .mini{right:auto;left:12px}
+.mini{position:absolute;right:12px;top:146px;width:96px;height:96px;border-radius:14px;border:2px solid rgba(255,255,255,.75);box-shadow:0 4px 12px rgba(0,0,0,.35);z-index:2;pointer-events:auto;cursor:pointer;background:#6f9455}.lefty .mini{right:auto;left:12px}
 .haircols{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}.haircols span{margin-right:4px}
 .rules{text-align:left;margin:4px 0;padding-left:22px;display:grid;gap:8px;font-weight:800}.rules li::marker{color:var(--tape);font-weight:900}
 .setup{position:fixed;inset:0;z-index:50;background:rgba(10,13,22,.96);display:grid;place-items:center;padding:16px;overflow-y:auto}
@@ -696,6 +696,7 @@ function drawFighter(c,x,gy,s,L,P){
   if(P.victory){near=[4,shY-28,10,shY-56];far=[-2,shY-28,2,shY-58]}
   if(P.swim!=null){const sa=P.swim,L2=36,sx0=0,sy0=shY+4,arm=a=>{const fx=Math.sin(a)*L2,fy=sy0-Math.cos(a)*L2;return[fx*0.5+Math.cos(a)*6,sy0+(fy-sy0)*0.5+Math.sin(a)*6,fx,fy]};near=arm(sa);far=arm(sa+Math.PI)}
   if(P.curl!=null){const th=Math.PI/2-P.curl*Math.PI*0.9,ex=4,ey=-100+b;near=[ex,ey,ex+24*Math.cos(th),ey+24*Math.sin(th)]}
+  if(P.hands){near=P.hands[0];far=P.hands[1]}
   const armDraw=(A,col,glCol,bul)=>{const [ex,ey,fx,fy]=A,sx=0,sy=shY+4;capsule(c,[sx,sy,ex,ey,fx,fy],at,col,true);capsule(c,[sx,sy,ex,ey],at,col,false);
     const bx=sx+(ex-sx)*0.5,by=sy+(ey-sy)*0.5,br=at*0.5+L.arm*9*bul,an=Math.atan2(ey-sy,ex-sx);c.fillStyle=col;c.beginPath();c.ellipse(bx,by,br,br*0.85,an,0,7);c.fill();
     if(bul>0.7){c.fillStyle='rgba(255,255,255,.22)';c.beginPath();c.ellipse(bx,by-br*0.4,br*0.5,br*0.22,an,0,7);c.fill()}
@@ -2121,6 +2122,21 @@ function drawBigMap(now){const cv=$('#bigCv'),{c,w,h}=fit(cv);const sz=Math.min(
   c.font='900 12px Nunito, sans-serif';const tw=c.measureText('YOU').width+10;c.fillStyle='#fff';c.beginPath();c.roundRect(px-tw/2,py+11,tw,16,6);c.fill();c.fillStyle='#1b2130';c.textAlign='center';c.fillText('YOU',px,py+23);
   c.restore()}
 function drawRider(c,x,y,s,now){const k=s/0.3,d=PL.dir||1,wa=PL.wheel||0,ped=Math.sin(PL.walk||0);
+  // which way is the bike facing? side, towards you (down) or away from you (up)
+  if(PL.speed>20){const ax=Math.abs(PL.vx),ay=Math.abs(PL.vy);if(ay>ax*1.3)PL.face=PL.vy>0?'down':'up';else if(ax>ay*1.3)PL.face='side'}
+  if(PL.face==='down'||PL.face==='up'){const up=PL.face==='up',bob=PL.moving?Math.sin((PL.walk||0)*2)*0.8:0;
+    c.fillStyle='rgba(0,0,0,.28)';c.beginPath();c.ellipse(x,y+2,9*k,16*k,0,0,7);c.fill();
+    const wheelV=(wy,sc)=>{const r=10*k*sc;c.strokeStyle='#1b2130';c.lineWidth=3.5*k;c.beginPath();c.ellipse(x,wy-r,2.6*k,r,0,0,7);c.stroke();
+      c.strokeStyle='#9aa3b8';c.lineWidth=1;const sp=Math.sin(wa*2)*r*0.6;line(c,x-2*k,wy-r+sp,x+2*k,wy-r+sp)};
+    const barY=y-30*k,bars=(full)=>{c.strokeStyle='#e63946';c.lineWidth=3*k;line(c,x,barY,x,y-10*k);c.strokeStyle='#1b2130';c.lineWidth=2.8*k;
+        if(full)line(c,x-17*k,barY,x+17*k,barY);else{line(c,x-7*k,barY,x+7*k,barY);line(c,x-17*k,barY,x-15*k,barY);line(c,x+15*k,barY,x+17*k,barY)}};
+    // back wheel (far end) first, then rider, then the near end
+    if(up){bars(true);wheelV(y-8*k,0.85)}else{wheelV(y-8*k,0.85)}
+    c.strokeStyle='#e63946';c.lineWidth=3*k;line(c,x,y-12*k,x,y-26*k);
+    const L=playerLook();drawFront(c,x,y-6*k+bob,s*0.95,L,{pose:'grip',gripX:12*k/(s*0.95),gripY:-(24*k+bob)/(s*0.95)-18,sit:true,back:up,bob:0});
+    const pl=Math.sin(PL.walk||0)*4*k;c.fillStyle='#2b2f3a';c.fillRect(x-9*k,y-12*k+pl,5*k,3*k);c.fillRect(x+4*k,y-12*k-pl,5*k,3*k);
+    if(up){wheelV(y+4*k,1)}else{wheelV(y+4*k,1);bars(false)}
+    return}
   c.fillStyle='rgba(0,0,0,.28)';c.beginPath();c.ellipse(x,y+2,26*k,5*k,0,0,7);c.fill();
   c.save();c.translate(x,y);c.scale(d*k,k);
   const wheel=wx=>{c.strokeStyle='#1b2130';c.lineWidth=3;c.beginPath();c.arc(wx,-10,10,0,7);c.stroke();c.strokeStyle='#9aa3b8';c.lineWidth=1;for(let i=0;i<4;i++){const a=wa+i*Math.PI/4;line(c,wx+Math.cos(a)*9,-10+Math.sin(a)*9,wx-Math.cos(a)*9,-10-Math.sin(a)*9)}c.fillStyle='#ccc';c.beginPath();c.arc(wx,-10,2,0,7);c.fill()};
@@ -2128,7 +2144,7 @@ function drawRider(c,x,y,s,now){const k=s/0.3,d=PL.dir||1,wa=PL.wheel||0,ped=Mat
   c.strokeStyle='#e63946';c.lineWidth=3;c.lineJoin='round';c.beginPath();c.moveTo(-17,-10);c.lineTo(-4,-26);c.lineTo(12,-26);c.lineTo(17,-10);c.moveTo(-4,-26);c.lineTo(0,-10);c.lineTo(-17,-10);c.moveTo(12,-26);c.lineTo(13,-34);c.stroke();
   c.strokeStyle='#1b2130';c.lineWidth=2.5;line(c,9,-34,17,-34);c.fillStyle='#1b2130';c.beginPath();c.roundRect(-9,-30,11,4,2);c.fill();
   c.strokeStyle='#5b6470';c.lineWidth=2;line(c,0,-10,ped*5,-10+Math.cos(PL.walk||0)*5);c.restore();
-  drawFighter(c,x-d*4*k,y-4*k,s,playerLook(),{flip:d<0,kickF:0.35+Math.max(0,ped)*0.45,kickB:0.1+Math.max(0,-ped)*0.35,relax:true,swing:0.9,bob:PL.moving?Math.abs(Math.sin((PL.walk||0)*2))*1:0,noShadow:true})}
+  drawFighter(c,x-d*1*k,y-4*k,s,playerLook(),{flip:d<0,hands:[[24,-102,46,-100],[20,-104,42,-102]],kickF:0.35+Math.max(0,ped)*0.45,kickB:0.1+Math.max(0,-ped)*0.35,relax:true,swing:0.9,bob:PL.moving?Math.abs(Math.sin((PL.walk||0)*2))*1:0,noShadow:true})}
 function drawMap(now){
   const {c,w,h}=fit(mc);c.fillStyle='#6f9455';c.fillRect(0,0,w,h);
   c.save();c.translate(-Math.round(cam.x),-Math.round(cam.y));
@@ -2230,6 +2246,7 @@ function drawFront(c,x,gy,s,L,P){
   c.beginPath();c.moveTo(-7-L.chest*3,shY+2);c.lineTo(-6,shY-14);c.lineTo(6,shY-14);c.lineTo(7+L.chest*3,shY+2);c.closePath();ink(c,dark);
   // torso
   const sp=P.spread||0;const ER=P.raise||0,RC=P.reach,relaxA=d=>[d*(sw/2+3),-104+b,d*(sw/2+5),-81+b],LRP=(A,B2,k)=>A.map((v,i)=>v+(B2[i]-v)*k);const arms={give:d=>d<0?LRP(relaxA(d),[d*(sw/2+14),-120+b,d*(sw/2+22),-114+b],RC||0):relaxA(d),eat:d=>{if(d<0)return relaxA(d);const mo=[d*(sw/2+12),-114+b,d*8,-134+b];if(RC==null)return LRP(relaxA(d),mo,ER);const tk=[d*(sw/2+10),-112+b,d*(sw/2+16),-118+b];return ER>0?LRP(tk,mo,ER):LRP(relaxA(d),tk,RC)},spread:d=>[d*(sw/2+16+sp*10),shY-4-sp*18,d*(sw/2+30+sp*16),shY-12-sp*38],rope:d=>[d*(sw/2+5),-102+b,d*(sw/2+16),-92+b],relax:d=>back?[d*(sw/2+1),-104+b,d*(sw/2+2),-82+b]:[d*(sw/2+3),-104+b,d*(sw/2+5),-81+b],flex:d=>[d*(sw/2+26),shY+2,d*(sw/2+15),shY-26],victory:d=>[d*(sw/2+14),shY-24,d*(sw/2+9),shY-52],
+    grip:d=>[d*(sw/2+9),-100+b,d*(P.gripX||44),P.gripY??-86],
     punch:d=>{if(back)return[d*(sw/2+7),-108+b,d*(sw*0.18),-122+b];const k=pk(d),G=[d*(sw/2+5),-104+b,d*(sw*0.3),-132+b],E=[d*(sw*0.36),-120+b,d*(sw*0.12),-122+b];return G.map((v,i)=>v+(E[i]-v)*k)}};
   drawArmsF=()=>{for(const d of[-1,1]){const [ex,ey,fx,fy]=arms[pose](d),sx=d*(sw/2-4),sy=shY+2;
     const AC=L.sleeves||(d<0?dark:skin);capsule(c,[sx,sy,ex,ey,fx,fy],at,AC,true);capsule(c,[sx,sy,ex,ey],at,AC,false);
