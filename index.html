@@ -344,7 +344,7 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
     <h2>Settings</h2>
     <button class="pill ghost" id="toHome" style="align-self:flex-start">🏠 Home page</button>
     <div class="setrow"><span>Sound</span><button class="pill" id="sndBtn">Sound on</button></div>
-    <div class="setrow stack"><span>Which hand do you play with?</span><span class="seg" id="handSeg"><button data-hand="left">Left-handed</button><button data-hand="right">Right-handed</button></span></div>
+    <div class="setrow stack"><span>How do you play?</span><span class="seg" id="handSeg"><button data-hand="left">Left-handed</button><button data-hand="right">Right-handed</button><button data-hand="pc">💻 Computer</button></span><small class="muted" id="handTip" style="font-weight:700"></small></div>
     <div class="badge">
       <div class="row"><b>I'm exercising my fingers!</b><small id="streak"></small></div>
       <span class="bar"><i id="goalBar" style="width:0"></i></span>
@@ -510,7 +510,7 @@ const WORK=[
   how:'Put your pointer finger on L and middle finger on R. Tap them one after the other as fast as you can. One at a time! Tapping the same side twice, or both at once, loses a point.'},
  {key:'curl',stat:'str',name:'Pinch Curls',ic:'#ff7a59',letter:'P',dur:25,stars:[6,12,18],unit:'curls',xp:n=>n*1.5,
   what:'Pinch open and shut. Builds Strength.',
-  how:'Put your thumb and pointer finger on the screen. Spread them wide apart, then pinch them together. Each open-and-shut lifts the dumbbell once.'},
+  how:'Put your thumb and pointer finger on the screen. Spread them wide apart, then pinch them together. Each open-and-shut lifts the dumbbell once. Half way through, your fighter swaps to his other arm so both arms get stronger.'},
  {key:'lift',stat:'str',name:'Finger Lifts',ic:'#ff9f1c',letter:'4',dur:25,stars:[8,15,22],unit:'lifts',xp:n=>n*1.2,
   what:'Move one finger at a time. Builds Strength.',
   how:'Hold down all four pads with four fingers. When one glows, lift only that finger and tap it back down. Keep the other three pressed.'},
@@ -572,6 +572,8 @@ const hasUp=id=>{const v=S.up&&S.up[id];return v===1||(typeof v==='number'&&v>Da
 function timeLeft(ms){const d=Math.floor(ms/DAY),h=Math.floor(ms%DAY/3600000),m=Math.max(1,Math.floor(ms%3600000/60000));return d?d+' day'+(d>1?'s':'')+' '+h+' h':h?h+' h '+m+' min':m+' min'}
 function puHave(id){return (S.pu&&S.pu[id])||0}
 function puUse(id){if(puHave(id)>0){S.pu[id]--;return true}return false}
+// the Personal Coach can be upgraded: each level gives 25% more XP
+const COACHP=[1000,1500,2200,3000,4000],coachLv=()=>hasUp('coach')?Math.max(1,S.coachLv||1):0;
 const HCOST=()=>hasUp('hcard')?25:50;
 function gear(k){let t=0;for(const s in S.equip){const g=GEAR.find(x=>x.id===S.equip[s]);if(g&&g.bonus[k])t+=g.bonus[k]}return t}
 function me(){return{dmg:(1+0.6*(S.str.lv-1)+0.4*gear('pow'))*(hungry()?0.6:1),hp:30+10*(S.sta.lv-1)+gear('hp'),
@@ -583,6 +585,8 @@ function eqColor(slot){const g=GEAR.find(x=>x.id===S.equip[slot]);return g?g.col
 function playerLook(){return{arm:grow(S.str.lv),chest:grow(S.sta.lv),legs:grow(S.spd.lv),skin:S.skin,hair:S.hairCol,hairStyle:S.hairStyle,shorts:'#3a6df0',
   gloves:eqColor('gloves'),shoes:eqColor('shoes'),headband:eqColor('headband'),belt:eqColor('belt'),fat:S.fat||0,girl:S.gender==='girl',top:S.equip.top||null,pat:S.equip.pants||null,hat:S.equip.hat||null,face:S.equip.face||null,cape:S.equip.cape||null}}
 const powerLv=()=>S.str.lv+S.spd.lv+S.sta.lv;
+const RANKS=[[0,'Rookie','#9aa3b8'],[8,'Street Fighter','#5fd49c'],[15,'Pro','#4fb0ff'],[25,'Champion','#ffb627'],[40,'Legend','#c86bff']];
+const rankOf=(p=powerLv())=>{let r=RANKS[0];for(const k of RANKS)if(p>=k[0])r=k;return r};
 const starsHtml=n=>[0,1,2].map(i=>i<n?'★':'<span class="off">★</span>').join('');
 
 // ---------- sound ----------
@@ -675,7 +679,7 @@ function drawFighter(c,x,gy,s,L,P){
   c.save();c.translate(x+(P.hurt||0)*(P.flip?6:-6)+(P.shake?Math.sin(performance.now()/25)*P.shake:0),gy);c.scale(P.flip?-s:s,s);
   const jmp=P.jump||0,b=P.bob||0,skin=L.skin,dark=shade(skin,-0.22),farC=shade(skin,-0.32),light=shade(skin,0.15);
   const dp=20+L.chest*18,lt=10+L.legs*12,at=8+L.arm*17,shY=-126+b,bk=-dp*0.45,fr=dp*0.55;
-  c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(4,0,(26+L.chest*10)*(1-jmp/60),5,0,0,7);c.fill();
+  if(!P.noShadow){c.fillStyle='rgba(0,0,0,.3)';c.beginPath();c.ellipse(4,0,(26+L.chest*10)*(1-jmp/60),5,0,0,7);c.fill()}
   c.translate(0,-jmp);
   // ----- arm targets [elbowX, elbowY, fistX, fistY]
   const lerp=(a,t2,t)=>a.map((v,i)=>v+(t2[i]-v)*t);
@@ -835,11 +839,12 @@ $('#gNo').onclick=()=>{GPICK=null;sfx('tick');renderGender()};
 $('#gYes').onclick=()=>{if(!GPICK)return;const keep={sound:S.sound,hand:S.hand,cafeView:S.cafeView,shopTab:S.shopTab};
   S=Object.assign(JSON.parse(JSON.stringify(DEF)),keep,{gender:GPICK,name:GPICK==='girl'?'Bella':'Buddy'});GPICK=null;PL.x=750;PL.y=1440;PL.tx=null;WILDS=Array.from({length:NWILD},makeWild);save();sfx('level');updCoins();updMeters();show('map');openSetup()};
 function renderHome(){renderGender();renderStyle();
-  checkDay();$('#nameIn').value=S.name;$('#powerLv').textContent='Power '+powerLv();
+  checkDay();$('#nameIn').value=S.name;$('#powerLv').textContent=rankOf()[1]+' · Power '+powerLv();
   $('#stats').innerHTML=Object.keys(STATS).map(k=>{const s=S[k];return`<div class="stat"><span>${STATS[k].name}</span><span class="bar"><i style="width:${Math.round(s.xp/XP(s.lv)*100)}%;background:${STATS[k].col}"></i></span><span class="lv">Lv ${s.lv}</span></div>`}).join('');
 }
-function applyHand(){document.body.classList.toggle('lefty',S.hand==='left');document.querySelectorAll('#handSeg button').forEach(b=>b.classList.toggle('on',b.dataset.hand===(S.hand||'right')))}
-$('#handSeg').addEventListener('click',e=>{const b=e.target.closest('[data-hand]');if(b){S.hand=b.dataset.hand;save();sfx('tick');applyHand()}});
+function applyHand(){if(typeof setDevice==='function')setDevice();document.body.classList.toggle('lefty',S.hand==='left'&&!IS_PC);const pick=IS_PC?'pc':(S.hand||'right');document.querySelectorAll('#handSeg button').forEach(b=>b.classList.toggle('on',b.dataset.hand===pick));
+  const t=$('#handTip');if(t)t.textContent=IS_PC?'Computer mode: use the keyboard and mouse in workouts and fights':'Touch mode: use your fingers on the screen'}
+$('#handSeg').addEventListener('click',e=>{const b=e.target.closest('[data-hand]');if(!b)return;if(b.dataset.hand==='pc')S.device='pc';else{S.hand=b.dataset.hand;S.device='touch'}save();sfx('tick');applyHand()});
 // ---------- save codes ----------
 const b64u=bytes=>{let s2='';bytes.forEach(x=>s2+=String.fromCharCode(x));return btoa(s2).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 const unb64u=str=>{const b=atob(str.replace(/-/g,'+').replace(/_/g,'/'));return Uint8Array.from(b,ch=>ch.charCodeAt(0))};
@@ -919,7 +924,9 @@ $('#shopTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]
 function renderShop(){
   const tab=['style','boost'].includes(S.shopTab)?S.shopTab:'power';document.querySelectorAll('#shopTabs button').forEach(b=>b.classList.toggle('on',b.dataset.tab===tab));
   if(tab==='boost'){let h='<p class="muted">Spend your coins on things that help you in the game.</p><div class="slot">Upgrades</div>';
-    for(const u of UPGRADES){const own=hasUp(u.id),v=S.up[u.id],expired=u.days&&typeof v==='number'&&v>1&&v<=Date.now();
+    for(const u of UPGRADES){if(u.id==='coach'){const lv=coachLv(),max=lv>=COACHP.length,pr=COACHP[lv]||0;
+        h+=`<div class="card"><span class="ic boostic">${u.ic}</span><span><h3>${u.name}${lv?` <span class="have">Lv ${lv}</span>`:''}</h3><p>${lv?`Now: +${lv*25}% XP from every workout`:'Get 25% more XP from every workout'}</p><p style="color:var(--muted);font-weight:800">${max?'Max level! Keep forever':lv?`Upgrade: +${(lv+1)*25}% XP`:'Keep forever · can be upgraded'}</p></span>${max?'<button class="pill on" disabled>MAX</button>':`<button class="pill" data-coach ${S.coins<pr?'disabled':''}>${lv?'Lv '+(lv+1)+' · ':''}<i class="coin"></i>${pr}</button>`}</div>`;continue}
+      const own=hasUp(u.id),v=S.up[u.id],expired=u.days&&typeof v==='number'&&v>1&&v<=Date.now();
       const life=u.days?`<p class="${own?'menu-good':expired?'menu-warn':''}" style="${own||expired?'':'color:var(--muted);font-weight:800'}">${own?'Active · '+timeLeft(v-Date.now())+' left':expired?'Expired! Buy again to keep using it':'Lasts '+u.days+' days'}</p>`:'<p style="color:var(--muted);font-weight:800">Keep forever</p>';
       const btn=own&&!u.days?'<button class="pill on" disabled>Owned</button>':`<button class="pill" data-up="${u.id}" ${S.coins<u.price?'disabled':''}>${own?'+'+u.days+'d ':''}<i class="coin"></i>${u.price}</button>`;
       h+=`<div class="card"><span class="ic boostic">${u.ic}</span><span><h3>${u.name}</h3><p>${u.txt}</p>${life}</span>${btn}</div>`}
@@ -941,6 +948,7 @@ function renderShop(){
 }
 $('#shopList').addEventListener('click',e=>{
   const bu=e.target.closest('[data-up]'),bp=e.target.closest('[data-pu]'),um=e.target.closest('[data-usemed]');
+  const bc=e.target.closest('[data-coach]');if(bc){const lv=coachLv(),pr=COACHP[lv];if(pr&&S.coins>=pr){S.coins-=pr;S.up.coach=1;S.coachLv=lv+1;updCoins();save();sfx('level');renderShop()}return}
   if(bu){const u=UPGRADES.find(x=>x.id===bu.dataset.up);if(S.coins>=u.price&&(u.days||!hasUp(u.id))){S.coins-=u.price;S.up[u.id]=u.days?Math.max(Date.now(),hasUp(u.id)?S.up[u.id]:0)+u.days*DAY:1;updCoins();save();sfx('level');renderShop()}return}
   if(bp){const u=POWERUPS.find(x=>x.id===bp.dataset.pu);if(S.coins>=u.price){S.coins-=u.price;S.pu[u.id]=puHave(u.id)+1;updCoins();save();sfx('coin');updMed();renderShop()}return}
   const up2=e.target.closest('[data-useprot]');if(up2){if(puUse('protein')){S.food=100;S.drink=100;updMeters();save();sfx('gulp');renderShop()}return}
@@ -956,7 +964,7 @@ function modal(html,btn,cb){$('#modalBox').innerHTML=html+`<button class="big go
 // ---------- workouts ----------
 let W=null;
 const TIPS=()=>({bag:['Tap L, then R, then L, then R...','Same side twice = lose a point','Both at once = lose a point'],
-  curl:IS_PC?['Hold SPACE (or the mouse) - the ring fills up','Let go when it is in the GREEN part','Hold too long and it SNAPS']:['Put your thumb and pointer finger on the screen','Spread them wide apart','Then pinch them together = 1 curl'],
+  curl:IS_PC?['Hold SPACE (or the mouse) - the ring fills up','Let go when it is in the GREEN part','Half way through, your fighter swaps to his other arm']:['Put your thumb and pointer finger on the screen','Spread them wide apart, then pinch = 1 curl','Half way through, your fighter swaps to his other arm'],
   lift:['Hold down all 4 pads'+(IS_PC?' (A S D F)':' with 4 fingers'),'Lift ONLY the glowing one','Press it back down - keep the others held!'],
   stretch:IS_PC?['Thumb on SPACE, pinky on the letter shown','Use ONE hand and hold both keys','The keys get further apart - stretch!']:['Thumb on one circle, pinky on the other','Hold both - they pull apart and twist','Keep holding and stretch wider'],
   swim:['Swipe down in lane 1, then 2, then 3, then 4'+(IS_PC?' (A S D F)':''),'Then start again from 1','Wrong lane or double tap = lose a point'],
@@ -980,7 +988,7 @@ function hint2(t){let h=$('#wArea .hint');if(!h){$('#wArea').insertAdjacentHTML(
 function hint(t,warn){const h=$('#wArea .hint:not(.toph)');if(h){h.textContent=t;h.classList.toggle('warn',!!warn)}}
 
 // ---------- computer (mouse + keyboard) support ----------
-const IS_PC=matchMedia('(hover:hover) and (pointer:fine)').matches;if(IS_PC)document.body.classList.add('pc');
+let IS_PC=false;function setDevice(){IS_PC=S.device==='pc'||(S.device!=='touch'&&matchMedia('(hover:hover) and (pointer:fine)').matches);document.body.classList.toggle('pc',IS_PC)}setDevice();
 const PCKEYS={bag:'Press F and J one at a time, left then right. Pressing the same key twice, or both at once, loses a point',curl:'Hold SPACE and let go when the ring is in the green zone',lift:'Hold A S D F down together, lift ONLY the glowing key and press it again',stretch:'Hold SPACE with your thumb and the key shown with your pinky, same hand. The keys get further apart',swim:'Press A, S, D, F one after another in a row, then start again. Wrong key or double taps lose a point',beat:'Press D F J K when the notes hit the line'};
 function padPos(el){const r=$('#wArea').getBoundingClientRect(),q=el.getBoundingClientRect();return[q.left-r.left+q.width/2,q.top-r.top+q.height/3]}
 function keyTag(k){return '<br><span class="kk">'+k+'</span>'}
@@ -1099,7 +1107,8 @@ const SETUP={
 };
 const A_W=()=>$('#wArea').getBoundingClientRect().width;
 function tickWorkout(now,dt){
-  if(!W||!W.run)return;const w=W.w,left=w.dur-(now-W.t0)/1000;$('#wTimer').style.width=Math.max(0,left/w.dur*100)+'%';
+  if(!W||!W.run)return;const w=W.w,left=w.dur-(now-W.t0)/1000;
+  if(w.key==='curl'&&!W.swapped&&left<=w.dur/2){W.swapped=true;W.swapT=now;sfx('great')}$('#wTimer').style.width=Math.max(0,left/w.dur*100)+'%';
   if(w.key==='lift'&&W.mouse&&W.mouseDeadline&&now>W.mouseDeadline&&W.lit>=0){W.mouseDeadline=now+1100;W.combo=0;setScore();sfx('bad');hint('Too slow! Click faster',true);const o=W.lit;W.ps[o].classList.remove('lit');let n;do{n=Math.floor(Math.random()*4)}while(n===o);W.lit=n;W.ps[n].classList.add('lit')}
   if(w.key==='swim'&&IS_PC&&W.deadline&&now>W.deadline){W.combo=0;setScore();sfx('bad');hint('Too slow! Quick, the glowing lane',true);W.newLane()}
   if(w.key==='stretch'&&W.kpair){$('#kpair').innerHTML='Hold <span class="kk">SPACE</span> + <span class="kk">'+W.kpair[1].toUpperCase()+'</span> with ONE hand (thumb + pinky)'}
@@ -1168,7 +1177,7 @@ function drawWorkoutFighter(now,dt){
     [h*0.4,h*0.92].forEach(yy=>{for(let x=((now/40)%24)-24;x<w;x+=12){c.fillStyle=Math.floor(x/12)%2?'#ff5d5d':'#fff';c.beginPath();c.arc(x,yy,4,0,7);c.fill()}});
     const s=(h/165)*(0.85+0.3*growAll()),poolL=w*0.5,px=w*0.06+((W.score*12)%poolL),py=h*0.66,lap=Math.floor(W.score*12/poolL)+1;
     const k2=Math.sin(now/70);
-    c.save();c.translate(px,py);c.rotate(Math.PI/2);drawFighter(c,0,0,s,Object.assign({},playerLook(),{gloves:null,shoes:null,barefoot:true,top:null,cape:null,hat:null,face:'goggles',belt:null,headband:null,pat:null,fat:0,shorts:'#e63946',trunks:true,crop:'#e63946'}),{swim:P.swimA,kickF:Math.max(0,k2)*0.25,kickB:Math.max(0,-k2)*0.25,bob:0});c.restore();
+    c.save();c.translate(px,py);c.rotate(Math.PI/2);drawFighter(c,0,0,s,Object.assign({noShadow:true,},playerLook(),{gloves:null,shoes:null,barefoot:true,top:null,cape:null,hat:null,face:'goggles',belt:null,headband:null,pat:null,fat:0,shorts:'#e63946',trunks:true,crop:'#e63946'}),{swim:P.swimA,kickF:Math.max(0,k2)*0.25,kickB:Math.max(0,-k2)*0.25,bob:0});c.restore();
     c.fillStyle='rgba(79,184,238,.55)';c.fillRect(0,py+2,w,h);c.strokeStyle='rgba(255,255,255,.7)';c.lineWidth=2;c.beginPath();for(let x=0;x<=w;x+=6){const yy=py+2+Math.sin(x/14+now/200)*2;x?c.lineTo(x,yy):c.moveTo(x,yy)}c.stroke();
     W.splash=(W.splash||[]).filter(sp=>now-sp.t<500);for(const sp of W.splash){const k=(now-sp.t)/500;c.fillStyle=`rgba(255,255,255,${1-k})`;for(let i=0;i<6;i++){c.beginPath();c.arc(px+130*s+Math.cos(i)*k*26,py-k*18-Math.abs(Math.sin(i*2))*k*14,3,0,7);c.fill()}}
     c.fillStyle='#1b2130';c.font='400 14px Bungee, Impact, sans-serif';c.textAlign='right';c.fillText('LAP '+lap,w-10,h*0.2);
@@ -1190,7 +1199,11 @@ function drawWorkoutFighter(now,dt){
   else if(key==='beat')drawFront(c,x+(P.trip||0)*6,gy,s,L,{pose:'rope',rope,jump,bob:0,sweat:W.run&&(now-W.t0)>6000});
   else drawFighter(c,x,gy,s,L,{bob:W.run?Math.sin(now/180)*1.5:Math.sin(now/400),punch:P.punch,backPunch:P.backPunch,kickF:P.kickF,kickB:P.kickB,
     curl:key==='curl'?(P.curl||0):null,spread:key==='stretch'?P.sp:0,flex:false,shake:P.shake,happy:P.happy>0||W.combo>=10,
-    hurt:P.trip,rope,jump,sweat:W.run&&(now-W.t0)>6000});
+    hurt:P.trip,rope,jump,sweat:W.run&&(now-W.t0)>6000,flip:key==='curl'&&!!W.swapped});
+  // curls: which arm is working, and the big "switch hands" moment half way
+  if(key==='curl'&&W.run){c.font='900 13px Nunito, sans-serif';c.textAlign='left';c.fillStyle='#ffb627';c.fillText((W.swapped?'💪 LEFT ARM':'💪 RIGHT ARM')+(W.swapped?'':' · swaps at half time'),12,22);c.textAlign='center';
+    if(W.swapT&&now-W.swapT<2200){const k=(now-W.swapT)/2200;c.globalAlpha=k<0.8?1:1-(k-0.8)/0.2;const by=h-56;c.fillStyle='rgba(20,24,38,.88)';c.beginPath();c.roundRect(w/2-130,by,260,48,12);c.fill();c.strokeStyle='#ffb627';c.lineWidth=2;c.stroke();
+      c.font='400 22px Bungee, Impact, sans-serif';c.fillStyle='#ffb627';c.fillText('OTHER ARM!',w/2,by+26);c.font='800 12px Nunito, sans-serif';c.fillStyle='#fff';c.fillText('Your fighter switches arms - keep going!',w/2,by+42);c.globalAlpha=1}}
   // chatter
   if(W.run){const act=W.score!==W.lastScore;if(act){W.lastScore=W.score;W.lastAct=now}
     if(!W.lastAct)W.lastAct=W.t0;
@@ -1208,10 +1221,10 @@ function endWorkout(){
   const sc=w.key==='stretch'?Math.round(W.score*10)/10:Math.floor(W.score);
   const stars=w.stars.filter(t=>sc>=t).length,prev=S.bestStars[w.key]||0,newBest=stars>prev;
   if(newBest)S.bestStars[w.key]=stars;
-  const weak=hungry(),lookBefore=playerLook(),gBefore=growAll(),xpBoost=(hasUp('coach')?1.25:1)*(puUse('xp2')?2:1),xp=Math.round(w.xp(sc)*(weak?0.5:1)*xpBoost),before=S[w.stat].lv,up=addXp(w.stat,xp),coins=stars*4+(newBest?(stars-prev)*10:0);
+  const rankBefore=rankOf()[1],weak=hungry(),lookBefore=playerLook(),gBefore=growAll(),xpBoost=(hasUp('coach')?1+0.25*coachLv():1)*(puUse('xp2')?2:1),xp=Math.round(w.xp(sc)*(weak?0.5:1)*xpBoost),before=S[w.stat].lv,up=addXp(w.stat,xp),coins=stars*4+(newBest?(stars-prev)*10:0);
   S.fat=Math.max(0,(S.fat||0)-0.04);drain(10,14);addSecs(w.dur);if(coins)addCoins(coins);save();setTimeout(()=>sfx(up?'level':stars?'coin':'good'),100);
   const nextGoal=w.stars.find(t=>sc<t);
-  modal(`<div class="bigstars">${starsHtml(stars)}</div><h2>${up?'Level up!':stars===3?'Perfect workout!':'Nice workout!'}</h2><ul><li>${sc} ${w.unit}</li><li style="color:${STATS[w.stat].col}">+${xp} ${STATS[w.stat].name} XP${weak?' (half, too hungry!)':''}${xpBoost>1?' (boosted!)':''}</li>${S.food<30||S.drink<30?'<li style="color:var(--hit)">Your fighter needs food and drink. Visit the Café!</li>':''}${coins?`<li style="color:var(--tape)">+${coins} coins${newBest?' (new best!)':''}</li>`:''}${up?`<li>${STATS[w.stat].name} Lv ${before} → ${S[w.stat].lv}</li>`:''}</ul>${up?'<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:6px"><div><canvas id="gB" style="height:130px"></canvas><small class="muted">Before</small></div><b style="font-size:28px;color:var(--tape);padding-bottom:40px">→</b><div><canvas id="gA" style="height:130px"></canvas><small style="color:var(--tape);font-weight:900">Now!</small></div></div><p style="font-weight:900;color:var(--tape)">'+{str:'Bigger arms!',spd:'Stronger legs!',sta:'Bigger chest!'}[w.stat]+'</p>':''}<div><p class="muted">${nextGoal?`Get ${nextGoal} ${w.unit} for the next star.`:S.name+' is getting huge!'}</p>`,
+  modal(`<div class="bigstars">${starsHtml(stars)}</div><h2>${up?'Level up!':stars===3?'Perfect workout!':'Nice workout!'}</h2><ul><li>${sc} ${w.unit}</li><li style="color:${STATS[w.stat].col}">+${xp} ${STATS[w.stat].name} XP${weak?' (half, too hungry!)':''}${xpBoost>1?' (boosted!)':''}</li>${rankOf()[1]!==rankBefore?`<li style="color:${rankOf()[2]};font-size:18px">🎖️ NEW RANK: ${rankOf()[1]}!</li>`:''}${S.food<30||S.drink<30?'<li style="color:var(--hit)">Your fighter needs food and drink. Visit the Café!</li>':''}${coins?`<li style="color:var(--tape)">+${coins} coins${newBest?' (new best!)':''}</li>`:''}${up?`<li>${STATS[w.stat].name} Lv ${before} → ${S[w.stat].lv}</li>`:''}</ul>${up?'<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:6px"><div><canvas id="gB" style="height:130px"></canvas><small class="muted">Before</small></div><b style="font-size:28px;color:var(--tape);padding-bottom:40px">→</b><div><canvas id="gA" style="height:130px"></canvas><small style="color:var(--tape);font-weight:900">Now!</small></div></div><p style="font-weight:900;color:var(--tape)">'+{str:'Bigger arms!',spd:'Stronger legs!',sta:'Bigger chest!'}[w.stat]+'</p>':''}<div><p class="muted">${nextGoal?`Get ${nextGoal} ${w.unit} for the next star.`:S.name+' is getting huge!'}</p>`,
     'Back to gym',()=>{W=null;show('train')});
   if(up){const d=(cv,L,g)=>{const {c,w:cw,h:ch}=fit(cv);drawFighter(c,cw/2,ch-4,(ch/190)*(0.8+0.4*g),L,{flex:true,happy:true})};d($('#gB'),lookBefore,gBefore);d($('#gA'),playerLook(),growAll())}
 }
@@ -1496,7 +1509,7 @@ $('#healBtn').onclick=()=>{if(!HOSP.healing&&!HOSP.arr&&S.health>=0.999){sfx('ti
 const PROF={};
 function bodyProfile(L,s){const key=JSON.stringify(L)+'|'+s.toFixed(3);if(PROF[key])return PROF[key];
   const W=Math.ceil(240*s)+20,H=Math.ceil(160*s)+20,ox=Math.ceil(50*s),oy=Math.ceil(100*s),cv=document.createElement('canvas');cv.width=W;cv.height=H;const c=cv.getContext('2d');
-  c.translate(W-ox,oy);c.rotate(-Math.PI/2);drawFighter(c,0,0,s,L,{relax:true,bob:0});
+  c.translate(W-ox,oy);c.rotate(-Math.PI/2);drawFighter(c,0,0,s,L,{noShadow:true,relax:true,bob:0});
   const d=c.getImageData(0,0,W,H).data,step=Math.max(3,Math.round(6*s)),x0=Math.round(W-ox-134*s),raw=[];
   let last=x0;for(let x=x0;x<W;x+=step){let top=-1;for(let y=0;y<H;y++){if(d[(y*W+x)*4+3]>40){top=y;break}}if(top<0)continue;raw.push([x,oy-top]);last=x}
   // pad above the body, and smooth so it looks like soft cloth
@@ -1541,7 +1554,7 @@ function drawHospital(now,dt){const cv=$('#hospCv'),{c,w,h}=fit(cv);
   if(HOSP.healing){S.health=HOSP.from+(1-HOSP.from)*k;updMeters();
     if(Math.random()<0.1)HOSP.hearts.push({x:bx+bw*0.3+Math.random()*bw*0.5,y:by-h*0.2,t:0});
     if(Math.floor(now/600)!==HOSP.beep){HOSP.beep=Math.floor(now/600);sfx('tick')}
-    c.save();c.translate(lfx,lfy);c.rotate(-Math.PI/2);drawFighter(c,0,0,s,L,{relax:true,happy:k>0.9,hurt:k<0.2?0.4:0});
+    c.save();c.translate(lfx,lfy);c.rotate(-Math.PI/2);drawFighter(c,0,0,s,L,{noShadow:true,relax:true,happy:k>0.9,hurt:k<0.2?0.4:0});
     // bandages and treatment on the body (in body coordinates)
     if(HOSP.done.head){c.beginPath();c.roundRect(-13,-156,27,8,3);ink(c,'#fff',1.4);c.fillStyle='#ff5d5d';c.beginPath();c.arc(-8,-152,1.8,0,7);c.fill();c.strokeStyle='rgba(0,0,0,.12)';c.lineWidth=1;line(c,-5,-156,-3,-148);line(c,3,-156,5,-148)}
     if(HOSP.done.arm){for(let i=0;i<3;i++){c.save();c.translate(-1,-116+i*5);c.rotate(-0.1);c.beginPath();c.roundRect(-9,-2.5,18,5,2);ink(c,'#fff',1.2);c.restore()}}
@@ -1587,8 +1600,8 @@ function drawHospital(now,dt){const cv=$('#hospCv'),{c,w,h}=fit(cv);
     if(fx!=null&&ta<T1){// stretcher with the knocked-out fighter on it
       c.strokeStyle='#5b6470';c.lineWidth=5;line(c,m1,sy-wb,m2,sy-wb);
       c.beginPath();c.roundRect(fx-bodyLen-10,sy-wb-9,bodyLen+20,12,4);ink(c,'#ff9f1c',1.8);c.fillStyle='rgba(255,255,255,.35)';c.fillRect(fx-bodyLen-6,sy-wb-7,bodyLen+12,3);
-      c.save();c.translate(fx-14*s,sy-wb+off);c.rotate(-Math.PI/2);drawFighter(c,0,0,s,L,{relax:true,hurt:0.6});c.restore()}
-    else if(fx!=null){c.save();c.translate(fx-14*s,fy-4);c.rotate(-Math.PI/2);drawFighter(c,0,0,s,L,{relax:true,hurt:0.6});c.restore()}
+      c.save();c.translate(fx-14*s,sy-wb+off);c.rotate(-Math.PI/2);drawFighter(c,0,0,s,L,{noShadow:true,relax:true,hurt:0.6});c.restore()}
+    else if(fx!=null){c.save();c.translate(fx-14*s,fy-4);c.rotate(-Math.PI/2);drawFighter(c,0,0,s,L,{noShadow:true,relax:true,hurt:0.6});c.restore()}
     [m1,m2].forEach((x,i)=>{const k2=walking?Math.sin(ta*9+i*Math.PI):0;drawFront(c,x,h*0.95-wb,dsc,MEDICS[i],{pose:'relax',bob:0,serious:true});
       c.fillStyle='#fff';c.beginPath();c.arc(x,h*0.95-wb-112*dsc,7*dsc,0,7);c.fill();c.fillStyle='#e63946';c.fillRect(x-1.2*dsc,h*0.95-wb-117*dsc,2.4*dsc,10*dsc);c.fillRect(x-5*dsc,h*0.95-wb-113.2*dsc,10*dsc,2.4*dsc)});
     if(ta>=T3){HOSP.arr=null;renderHospital()}}
@@ -2033,7 +2046,7 @@ function drawMini(now){const cv=$('#miniCv');if(!cv)return;const {c,w,h}=fit(cv)
 // ---------- home page ----------
 const HOME={open:false};
 function openHome(){HOME.open=true;$('#home').hidden=false;
-  $('#homeStats').innerHTML=S.setupDone?`<span>Welcome back, ${S.name.replace(/[<>&]/g,'')}!</span><span>⚡ Power ${powerLv()}</span><span><i class="coin"></i> ${S.coins}</span><span>🏆 ${S.beaten.length}/${FOES.length} bosses</span>`:'<span>New here? Press PLAY to make your fighter!</span>'}
+  $('#homeStats').innerHTML=S.setupDone?`<span>Welcome back, ${S.name.replace(/[<>&]/g,'')}!</span><span style="color:${rankOf()[2]}">🎖️ ${rankOf()[1]}</span><span>⚡ Power ${powerLv()}</span><span><i class="coin"></i> ${S.coins}</span><span>🏆 ${S.beaten.length}/${FOES.length} bosses</span>`:'<span>New here? Press PLAY to make your fighter!</span>'}
 function closeHome(){HOME.open=false;$('#home').hidden=true}
 $('#homePlay').onclick=()=>{sfx('level');closeHome();show('map');if(!S.setupDone)openSetup()};
 $('#toHome').onclick=()=>{sfx('tick');show('map');openHome()};
@@ -2139,7 +2152,7 @@ function drawMap(now){
     const f=Math.abs(Math.sin(now/70+b.a*9));c.fillStyle=b.c;c.beginPath();c.ellipse(b.x-3*f,b.y,4*f+0.5,3,0,0,7);c.ellipse(b.x+3*f,b.y,4*f+0.5,3,0,0,7);c.fill();c.fillStyle='#333';c.fillRect(b.x-0.7,b.y-3,1.4,6)}
   for(const wd of WILDS)if(vis(wd.x,wd.y,100)){const hh=166*(0.33+0.08*wd.foe.lvl);tag(c,wd.x,wd.y-hh-12,wd.name,TIERS[wd.tier].col);
     if(wd.alert>0.5){c.fillStyle='#ff5d5d';c.font='400 24px Bungee, Impact, sans-serif';c.textAlign='center';c.fillText('!',wd.x,wd.y-hh-30+Math.sin(now/90)*2)}}
-  tag(c,PL.x,PL.y-166*ps-12,S.name,'#5fd49c');
+  tag(c,PL.x,PL.y-166*ps-12,S.name+' · '+rankOf()[1],rankOf()[2]);
   drawSky(c,now,vis);
   c.restore();
   if(S.marker){const M=S.marker;if(Math.hypot(PL.x-M.x,PL.y-M.y)<80){S.marker=null;save();sfx('level')}
@@ -2434,7 +2447,7 @@ function drawKO(c,x,gy,s,L,P,bk,w){const t=(performance.now()-F.ko.t0)/1000,tr=k
   if(t>=tr.land&&!F.ko.landed){F.ko.landed=true;sfx('thud');F.shake=0.8;burst(x+tr.dx+bk*80*s,gy-6,'#c9b48a',16)}
   c.save();c.translate(x+tr.dx,gy+tr.dy);c.rotate(tr.rot);
   if(tr.twirl){c.scale(Math.cos(tr.twirl*18),1)}
-  drawFighter(c,0,0,s,L,Object.assign({},P,{ko:true,hurt:0,bob:0}));c.restore();
+  drawFighter(c,0,0,s,L,Object.assign({},P,{ko:true,hurt:0,bob:0,noShadow:true}));c.restore();
   if(F.ko.landed){const hx=x+tr.dx+Math.sin(tr.rot)*140*s,hy=gy+tr.dy-Math.cos(tr.rot)*140*s-10*s,now=performance.now();
     for(let i=0;i<3;i++){const a=now/300+i*2.1;const sx=hx+Math.cos(a)*22*s,sy=hy-18*s+Math.sin(a)*7*s;
       c.fillStyle='#ffe14d';c.beginPath();for(let k=0;k<10;k++){const rr=k%2?3:7,aa=k*Math.PI/5;c.lineTo(sx+Math.cos(aa)*rr,sy+Math.sin(aa)*rr)}c.closePath();c.fill()}}
