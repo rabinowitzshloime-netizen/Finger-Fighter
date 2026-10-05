@@ -692,7 +692,7 @@ function drawFighter(c,x,gy,s,L,P){
   if(P.block){near=[fr+6,-112+b,fr+14,-142+b];far=[fr+2,-114+b,fr+9,-151+b]}
   if(P.windup)near=[bk-2,-108+b,bk+8,-124+b];
   if(P.uppercut)near=[fr+14,-140+b,fr+22,-176+b];
-  if(P.flex){near=[fr+22,shY+8,fr+18,shY-22];far=[fr+18,shY+6,fr+14,shY-24]}
+  if(P.flex){const fw=at*0.35;near=[fr+24+fw,shY+12,fr+28+fw*1.2,shY-16];far=[fr+20+fw,shY+10,fr+24+fw*1.2,shY-18]}
   if(P.victory){near=[4,shY-28,10,shY-56];far=[-2,shY-28,2,shY-58]}
   if(P.swim!=null){const sa=P.swim,L2=36,sx0=0,sy0=shY+4,arm=a=>{const fx=Math.sin(a)*L2,fy=sy0-Math.cos(a)*L2;return[fx*0.5+Math.cos(a)*6,sy0+(fy-sy0)*0.5+Math.sin(a)*6,fx,fy]};near=arm(sa);far=arm(sa+Math.PI)}
   if(P.curl!=null){const th=Math.PI/2-P.curl*Math.PI*0.9,ex=4,ey=-100+b;near=[ex,ey,ex+24*Math.cos(th),ey+24*Math.sin(th)]}
@@ -1229,7 +1229,7 @@ function endWorkout(){
   const nextGoal=w.stars.find(t=>sc<t);
   modal(`<div class="bigstars">${starsHtml(stars)}</div><h2>${up?'Level up!':stars===3?'Perfect workout!':'Nice workout!'}</h2><ul><li>${sc} ${w.unit}</li><li style="color:${STATS[w.stat].col}">+${xp} ${STATS[w.stat].name} XP${weak?' (half, too hungry!)':''}${xpBoost>1?' (boosted!)':''}</li>${rankOf()[1]!==rankBefore?`<li style="color:${rankOf()[2]};font-size:18px">🎖️ NEW RANK: ${rankOf()[1]}!</li>`:''}${S.food<30||S.drink<30?'<li style="color:var(--hit)">Your fighter needs food and drink. Visit the Café!</li>':''}${coins?`<li style="color:var(--tape)">+${coins} coins${newBest?' (new best!)':''}</li>`:''}${up?`<li>${STATS[w.stat].name} Lv ${before} → ${S[w.stat].lv}</li>`:''}</ul>${up?'<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:6px"><div><canvas id="gB" style="height:130px"></canvas><small class="muted">Before</small></div><b style="font-size:28px;color:var(--tape);padding-bottom:40px">→</b><div><canvas id="gA" style="height:130px"></canvas><small style="color:var(--tape);font-weight:900">Now!</small></div></div><p style="font-weight:900;color:var(--tape)">'+{str:'Bigger arms!',spd:'Stronger legs!',sta:'Bigger chest!'}[w.stat]+'</p>':''}<div><p class="muted">${nextGoal?`Get ${nextGoal} ${w.unit} for the next star.`:S.name+' is getting huge!'}</p>`,
     'Back to gym',()=>{W=null;show('train')});
-  if(up){const d=(cv,L,g)=>{const {c,w:cw,h:ch}=fit(cv);drawFighter(c,cw/2,ch-4,(ch/190)*(0.8+0.4*g),L,{flex:true,happy:true})};d($('#gB'),lookBefore,gBefore);d($('#gA'),playerLook(),growAll())}
+  if(up){const gM=Math.max(gBefore,growAll()),d=(cv,L,g)=>{const {c,w:cw,h:ch}=fit(cv);const fs=Math.min((ch-8)/(215*(0.8+0.4*gM)),cw/(130*(0.8+0.4*gM)));drawFighter(c,cw/2,ch-4,fs*(0.8+0.4*g),L,{flex:true,happy:true})};d($('#gB'),lookBefore,gBefore);d($('#gA'),playerLook(),growAll())}
 }
 
 // ---------- stories ----------
@@ -1622,7 +1622,7 @@ const BUILD=[
  {x:560,y:230,w:380,h:230,name:'Stadium',sign:'STADIUM',roof:'#2f5d8a',kind:'stadium',go:'stadium'},
  {x:330,y:1297,w:125,h:88,name:'Mirror Room',sign:'MIRROR',roof:'#c86bff',kind:'big',go:'mirror'},{x:990,y:1300,w:120,h:85,sign:'CAFE',roof:'#8338ec',kind:'shopfront',name:'Café',go:'cafe'},
  {x:230,y:960,w:90,h:70,sign:'ICE CREAM',roof:'#ff7a9c',kind:'shopfront'},{x:820,y:985,w:125,h:85,sign:'LIBRARY',roof:'#2a9d8f',kind:'big'},
- {x:1250,y:640,w:135,h:95,name:'Hospital',sign:'HOSPITAL',roof:'#4fb0ff',kind:'hospital',go:'hospital'},{x:170,y:140,w:160,h:105,sign:'SCHOOL',roof:'#f4a261',kind:'big'},
+ {x:895,y:757,w:135,h:95,name:'Hospital',sign:'HOSPITAL',roof:'#4fb0ff',kind:'hospital',go:'hospital'},{x:170,y:140,w:160,h:105,sign:'SCHOOL',roof:'#f4a261',kind:'big'},
  {x:1000,y:110,w:100,h:75,sign:'',roof:'#457b9d',kind:'house'},{x:1250,y:330,w:100,h:75,sign:'',roof:'#6a994e',kind:'house'},
  {x:560,y:500,w:100,h:75,sign:'',roof:'#bc4749',kind:'house'},{x:110,y:1040,w:100,h:75,sign:'',roof:'#ffb627',kind:'house'},{x:555,y:1290,w:140,h:95,name:'Finger Gym',sign:'GYM',roof:'#c0463f',go:'train'},{x:805,y:1290,w:140,h:95,name:'Gear Shop',sign:'SHOP',roof:'#3a6df0',go:'shop'},
  // ---- new east side and south side of town ----
@@ -1661,7 +1661,7 @@ const BUTTERFLIES=Array.from({length:14},(_,i)=>({x:Math.random()*3000,y:Math.ra
 const FOUNTAIN={x:750,y:900,r:46};
 const PLAY={x:345,y:975,w:320,h:255};
 const BEDS=[[690,600],[810,600],[690,700],[810,700],[690,800],[810,800],[690,990],[690,1090],[690,1190],[810,1130],[810,1215]].map(([x,y])=>({x:x-18,y:y-10,w:36,h:20,c:['#ff7a9c','#ffe14d','#c86bff','#ff9f1c'][Math.floor((x+y)/7)%4]}));
-const BENCHES=[[220,1340],[1270,1258],[200,700],[560,960],[960,840],[1430,1700],[1900,1960],[1650,1950],[1880,560],[420,1930],[2440,2580]];
+const BENCHES=[[220,1340],[1270,1258],[200,700],[560,960],[1070,840],[1430,1700],[1900,1960],[1650,1950],[1880,560],[420,1930],[2440,2580]];
 const LAMPS=[];for(let y=560;y<=1380;y+=205){LAMPS.push([702,y],[798,y])}for(let x=220;x<=1300;x+=215){if(Math.abs(x-750)>120&&Math.abs(x-430)>60&&Math.abs(x-1180)>60){LAMPS.push([x,856],[x,946])}}
 for(const R0 of ROADS){const [a,b]=R0,vert=a[0]===b[0];const lo=Math.max(0,Math.min(vert?a[1]:a[0],vert?b[1]:b[0])),hi=Math.min(3000,Math.max(vert?a[1]:a[0],vert?b[1]:b[0]));
   for(let t=lo+100;t<hi-60;t+=230){for(const sd of[-48,48]){const x=vert?a[0]+sd:t,y=vert?t:a[1]+sd;if(x<1520&&y<1520)continue;
