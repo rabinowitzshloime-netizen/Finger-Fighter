@@ -220,7 +220,23 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .side .med:disabled{opacity:.55}
 .medpop{position:absolute;left:90px;top:50%;z-index:3;background:#fff;color:#c0392b;font-weight:900;border-radius:12px;padding:6px 10px;pointer-events:none;animation:medpop 1.6s forwards}.lefty .medpop{left:auto;right:90px}
 @keyframes medpop{0%{opacity:0;transform:translateY(10px)}15%{opacity:1;transform:none}80%{opacity:1}100%{opacity:0;transform:translateY(-14px)}}
-.mini{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:104px;height:104px;border-radius:14px;border:2px solid rgba(255,255,255,.75);box-shadow:0 4px 12px rgba(0,0,0,.35);z-index:2;pointer-events:none;background:#6f9455}.lefty .mini{right:auto;left:12px}
+.mini{position:absolute;right:12px;top:50%;transform:translateY(-50%);width:104px;height:104px;border-radius:14px;border:2px solid rgba(255,255,255,.75);box-shadow:0 4px 12px rgba(0,0,0,.35);z-index:2;pointer-events:auto;cursor:pointer;background:#6f9455}.lefty .mini{right:auto;left:12px}
+.haircols{flex-basis:100%;display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin-top:6px}.haircols span{margin-right:4px}
+.rules{text-align:left;margin:4px 0;padding-left:22px;display:grid;gap:8px;font-weight:800}.rules li::marker{color:var(--tape);font-weight:900}
+.setup{position:fixed;inset:0;z-index:50;background:rgba(10,13,22,.96);display:grid;place-items:center;padding:16px;overflow-y:auto}
+.setupbox{width:100%;max-width:420px;background:var(--panel);border:1px solid var(--line);border-radius:22px;padding:18px;display:grid;gap:12px;text-align:center}
+.setupbox h2{margin:0}.setupbox canvas{width:100%;height:220px;border-radius:16px;background:linear-gradient(#2a3350,#1b2130)}
+.dots{display:flex;justify-content:center;gap:6px}.dots i{width:9px;height:9px;border-radius:50%;background:#3a4560}.dots i.on{background:var(--tape)}
+.sunav{display:grid;grid-template-columns:auto 1fr;gap:10px;align-items:center}.sunav .big{margin:0}
+.suopts{display:flex;flex-wrap:wrap;justify-content:center;gap:8px}.suopts .sw{width:42px;height:42px}
+.suopts .opt{padding:10px 14px;border-radius:14px;border:2px solid var(--line);background:#2a3350;color:var(--chalk);font-weight:900;font-size:15px;cursor:pointer}
+.suopts .opt.on{border-color:var(--tape);background:var(--tape);color:var(--tape-ink)}
+#suName{width:100%;box-sizing:border-box;font:900 20px Nunito,sans-serif;padding:12px 14px;border-radius:14px;border:2px solid var(--tape);background:#141a28;color:var(--chalk);text-align:center}
+.secret{margin-top:6px}.secret summary{cursor:pointer;font-weight:900;color:var(--muted);list-style:none}.secret summary::-webkit-details-marker{display:none}.secret[open] summary{color:var(--chalk);margin-bottom:8px}.secret[open]{display:flex;flex-direction:column;gap:8px}
+.bigmap{position:fixed;inset:0;z-index:40;background:#10141f;display:flex;flex-direction:column;gap:10px;padding:14px 14px calc(14px + env(safe-area-inset-bottom,0px))}
+.bmhead{display:flex;justify-content:space-between;align-items:center}.bmhead h2{margin:0}
+#bigCv{flex:1;width:100%;min-height:0;border-radius:16px;touch-action:none}
+.bmkey{display:flex;flex-wrap:wrap;justify-content:center;gap:10px;font-weight:800;font-size:12px;color:var(--muted)}.bmkey i{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:5px;vertical-align:-1px}
 .side .tr{background:var(--tape);color:var(--tape-ink);box-shadow:0 4px 0 #b37700}
 .act{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:2;min-width:230px;max-width:calc(100% - 120px)}
 .act:active{transform:translateX(-50%) translateY(3px)}
@@ -262,11 +278,27 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
       <button data-go="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>SETTINGS</button>
       <button id="medBtn" class="med" hidden aria-label="Use First-Aid Kit"><span class="medic">🩹</span>USE<i id="medN">×1</i></button>
     </nav>
-    <canvas id="miniCv" class="mini" aria-hidden="true"></canvas>
+    <canvas id="miniCv" class="mini" role="button" aria-label="Open the big map"></canvas>
     <div class="maphint" id="mapHint"><span class="touchonly">Tap or hold anywhere to walk. Find someone to fight!</span><span class="pconly">Click to walk, or use the arrow keys / WASD. Press Enter to fight or go in.</span></div>
     <button class="big go act" id="actBtn" hidden>Fight!</button>
   </section>
 
+  <div id="bigMap" class="bigmap" hidden>
+    <div class="bmhead"><h2>Town map</h2><span style="display:flex;gap:8px"><button class="pill ghost" id="bmClear" hidden>Remove marker</button><button class="pill" id="bmClose">✕ Close</button></span></div>
+    <p class="muted" style="margin:0;text-align:center;font-weight:800">Tap anywhere on the map to put a marker there</p>
+    <canvas id="bigCv"></canvas>
+    <div class="bmkey"><span><i style="background:#5fd49c;box-shadow:0 0 0 2px #fff"></i>You</span><span><i style="background:#5fd49c"></i>Easy</span><span><i style="background:#ffb627"></i>Tough</span><span><i style="background:#ff7a1a"></i>Hard</span><span><i style="background:#ff5d5d"></i>Very hard</span><span><i style="background:#c86bff"></i>Insane</span></div>
+  </div>
+  <div id="setup" class="setup" hidden>
+    <div class="setupbox">
+      <div class="dots" id="suDots"></div>
+      <h2 id="suTitle">Make your fighter</h2>
+      <canvas id="suCv"></canvas>
+      <div id="suBody"></div>
+      <p id="suErr" class="menu-warn" style="margin:0;min-height:18px"></p>
+      <div class="sunav"><button class="pill ghost" id="suBack">Back</button><button class="big go" id="suNext">Next</button></div>
+    </div>
+  </div>
   <section id="skin" hidden>
     <button class="back" data-go="map">&larr; Back to map</button>
     <h2>Your fighter</h2>
@@ -302,16 +334,16 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
       <li>In a fight, tap <b>PUNCH</b> fast and hold <b>BLOCK</b> when you see the red !</li>
       <li>Spend coins in the <b>Shop</b> on gear.</li>
     </ol>
-    <div class="savebox">
-      <b>Save code</b>
-      <p class="muted">Your progress saves by itself on this phone or computer. To carry on somewhere else, copy your save code, then paste it into the game on the other device.</p>
-      <button class="pill" id="copySave">Copy my save code</button>
-      <textarea id="saveCode" readonly rows="3" aria-label="Your save code"></textarea>
+    <div class="setrow"><span>Start over</span><button class="pill ghost" id="resetBtn">Reset progress</button></div>
+    <details class="savebox secret" id="saveDet">
+      <summary>🔒 Save code (secret - don't show anyone)</summary>
+      <p class="muted">Your progress saves by itself on this phone or computer. To carry on somewhere else, copy your save code, then paste it into the game on the other device. Keep it secret: anyone with your code can copy your fighter.</p>
+      <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="pill" id="copySave">Copy my save code</button><button class="pill ghost" id="showSave">Show code</button></div>
+      <textarea id="saveCode" readonly rows="3" aria-label="Your save code" hidden></textarea>
       <textarea id="loadCode" rows="3" placeholder="Paste a save code here" aria-label="Paste a save code"></textarea>
       <button class="pill ghost" id="loadSave">Load save code</button>
       <p id="saveMsg" style="font-weight:800;margin:0"></p>
-    </div>
-    <div class="setrow"><span>Start over</span><button class="pill ghost" id="resetBtn">Reset progress</button></div>
+    </details>
   </section>
 
   <section id="train" hidden>
@@ -378,7 +410,7 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
   <section id="stadium" hidden>
     <button class="back" data-go="map">&larr; Back to map</button>
     <h2>The Stadium</h2>
-    <p class="muted">Pick any boss you want to fight. The crowd is waiting! Your first win against each boss pays double.</p>
+    <p class="muted">Bosses come one at a time. Beat a boss to unlock the next one. The crowd is waiting!</p>
     <p id="champ" style="font-weight:900;color:var(--tape)"></p>
     <div class="list" id="bossList"></div>
   </section>
@@ -451,7 +483,7 @@ const FOES=[
 const WORK=[
  {key:'bag',stat:'spd',name:'Speed Bag',ic:'#4fb0ff',letter:'2',dur:20,stars:[30,60,90],unit:'hits',xp:n=>n/3,
   what:'Two fingers, left-right-left. Builds Speed.',
-  how:'Put your pointer finger on L and middle finger on R. Tap them one after the other as fast as you can. Tapping the same side twice breaks your combo.'},
+  how:'Put your pointer finger on L and middle finger on R. Tap them one after the other as fast as you can. One at a time! Tapping the same side twice, or both at once, loses a point.'},
  {key:'curl',stat:'str',name:'Pinch Curls',ic:'#ff7a59',letter:'P',dur:25,stars:[6,12,18],unit:'curls',xp:n=>n*1.5,
   what:'Pinch open and shut. Builds Strength.',
   how:'Put your thumb and pointer finger on the screen. Spread them wide apart, then pinch them together. Each open-and-shut lifts the dumbbell once.'},
@@ -466,14 +498,16 @@ const WORK=[
   how:'Put one finger over each lane. Tap the lane when a note reaches the line.'},
  {key:'swim',stat:'sta',name:'Swimming',ic:'#1fb5a8',letter:'W',dur:25,stars:[20,35,50],unit:'strokes',xp:n=>n/1.5,
   what:'Swipe down with 4 fingers, one at a time. Builds Stamina.',
-  how:'Put 4 fingers on the 4 lanes, one finger in each. Swipe down with the finger in the glowing lane, then the next one: 1, 2, 3, 4, and again. Each swipe is one swimming stroke.'}
+  how:'Put 4 fingers on the 4 lanes, one finger in each. Swipe down with the finger in the glowing lane, then the next one: 1, 2, 3, 4, and again. Each swipe is one swimming stroke. One at a time! The wrong lane or a double tap loses a point.'}
 ];
 
 // ---------- save ----------
 const DEF={name:'Buddy',str:{lv:1,xp:0},spd:{lv:1,xp:0},sta:{lv:1,xp:0},coins:0,owned:[],equip:{},food:100,drink:100,fat:0,health:1,gender:'boy',best:0,day:'',moves:0,secs:0,bestStars:{},streak:0,lastActive:'',sound:true,beaten:[],skin:'#e0a878',hairStyle:'short',hairCol:'#2b1d14',up:{},pu:{}};
 let S=null;
 try{S=JSON.parse(localStorage.getItem('ff-save'))}catch(e){}
+const HAD_SAVE=!!S;
 S=Object.assign(JSON.parse(JSON.stringify(DEF)),S||{});
+if(S.setupDone==null)S.setupDone=HAD_SAVE;
 if(!S.beaten)S.beaten=[];if(!S.beaten.length&&S.best>0)for(let i=0;i<S.best;i++)S.beaten.push(i);
 function save(){try{if(typeof PL!=='undefined'){S.px=Math.round(PL.x);S.py=Math.round(PL.y)}localStorage.setItem('ff-save',JSON.stringify(S))}catch(e){}}
 const dayStr=d=>d.toDateString();
@@ -574,6 +608,7 @@ function smiley(c,x,y,r){c.beginPath();c.arc(x,y,r,0,7);ink(c,'#ffe14d',1.4);c.f
   c.strokeStyle=INK;c.lineWidth=1.3;c.beginPath();c.arc(x,y+r*0.05,r*0.55,0.3,Math.PI-0.3);c.stroke()}
 function bolt(c,x,y,k){c.beginPath();c.moveTo(x+2*k,y-12*k);c.lineTo(x-6*k,y+2*k);c.lineTo(x,y+2*k);c.lineTo(x-3*k,y+13*k);c.lineTo(x+7*k,y-3*k);c.lineTo(x+1*k,y-3*k);c.closePath();c.fillStyle='#ffe14d';c.fill()}
 function paintTop(c,id,x0,y0,x1,y1,mode,cx){const W=x1-x0,H=y1-y0,cy=y0+H*0.38;
+  if(id&&id[0]==='c'&&id[1]==='#'){c.fillStyle=id.slice(1);c.fillRect(x0,y0,W,H);c.fillStyle='rgba(255,255,255,.18)';c.fillRect(x0,y0,W,H*0.12);return}
   if(id==='kitR'||id==='kitB'){c.fillStyle=id==='kitR'?'#e63946':'#2f6fd6';c.fillRect(x0,y0,W,H);c.fillStyle='rgba(255,255,255,.85)';c.fillRect(x0,y0+H*0.1,W,H*0.09)}
   if(id==='tp1'){['#ff4d4d','#ff9f1c','#ffe14d','#5fd49c','#4fb0ff','#9b5de5'].forEach((col,i)=>{c.fillStyle=col;c.fillRect(x0,y0+i*H/6,W,H/6+1)});if(mode!=='back')smiley(c,cx,cy,mode==='front'?9:6)}
   if(id==='tp2'){c.fillStyle='#ff9f1c';c.fillRect(x0,y0,W,H);c.fillStyle='#1b1b1b';for(let i=-2;i<8;i++){const yy=y0+i*H/6;c.beginPath();c.moveTo(x0,yy);c.lineTo(x0+W*0.35,yy+5);c.lineTo(x0,yy+9);c.fill();c.beginPath();c.moveTo(x1,yy+6);c.lineTo(x1-W*0.35,yy+11);c.lineTo(x1,yy+15);c.fill()}}
@@ -731,16 +766,41 @@ document.addEventListener('click',e=>{const g=e.target.closest('[data-go]');if(g
 
 const SKINS=['#f6d2b4','#e0a878','#c68642','#8d5a3b','#5c3a24'];
 const HAIRS=[['short','#2b1d14'],['spiky','#e0c068'],['mohawk','#d9342b'],['bun','#6b2d1a'],['flat','#1d1d1d'],['bald','#333']];
-function renderStyle(){$('#styleRow').innerHTML='Skin '+SKINS.map(c=>`<button class="sw ${S.skin===c?'on':''}" data-skin="${c}" style="background:${c}" aria-label="Skin tone"></button>`).join('')+'<button class="hairb" id="hairB">Change hair</button>'}
+const HAIRCOLS=['#1d1d1d','#2b1d14','#5a3a24','#6b2d1a','#b5651d','#d9342b','#e0c068','#f3e5ab','#9aa3b8','#3a6df0','#ff7a9c','#5fd49c','#9b5de5'];
+function renderStyle(){$('#styleRow').innerHTML='Skin '+SKINS.map(c=>`<button class="sw ${S.skin===c?'on':''}" data-skin="${c}" style="background:${c}" aria-label="Skin tone"></button>`).join('')+'<button class="hairb" id="hairB">Change hairstyle</button>'
+  +'<div class="haircols"><span>Hair colour</span>'+HAIRCOLS.map(c=>`<button class="sw ${S.hairCol===c?'on':''}" data-hc="${c}" style="background:${c}" aria-label="Hair colour"></button>`).join('')+'</div>'}
 $('#styleRow').addEventListener('click',e=>{const k=e.target.closest('[data-skin]');if(k){S.skin=k.dataset.skin;save();sfx('tick');renderStyle()}
-  if(e.target.id==='hairB'){let i=HAIRS.findIndex(h=>h[0]===S.hairStyle);[S.hairStyle,S.hairCol]=HAIRS[(i+1)%HAIRS.length];save();sfx('tick')}});
+  const hc=e.target.closest('[data-hc]');if(hc){S.hairCol=hc.dataset.hc;save();sfx('tick');renderStyle()}
+  if(e.target.id==='hairB'){let i=HAIRS.findIndex(h=>h[0]===S.hairStyle);S.hairStyle=HAIRS[(i+1)%HAIRS.length][0];save();sfx('tick')}});
+// ---------- first time: make your fighter ----------
+const HAIRNAMES={short:'Short',spiky:'Spiky',mohawk:'Mohawk',bun:'Bun',flat:'Flat top',bald:'Bald'};
+const SU={step:0,open:false,steps:[
+  {t:'Boy or girl?',body:()=>`<p class="muted" style="margin:0">Welcome to Finger Fighter! First, make your own fighter.</p><div class="suopts">${['boy','girl'].map(g=>`<button class="opt ${S.gender===g?'on':''}" data-sug="${g}">${g==='boy'?'Boy':'Girl'}</button>`).join('')}</div>`},
+  {t:'What is your fighter called?',body:()=>`<input id="suName" maxlength="12" placeholder="Type a name" value="${(S.name||'').replace(/"/g,'')}">`,check:()=>{const v=($('#suName')||{}).value||'';if(!v.trim())return 'Please type a name for your fighter';S.name=v.trim();return ''}},
+  {t:'Pick a skin colour',body:()=>`<div class="suopts">${SKINS.map(c=>`<button class="sw ${S.skin===c?'on':''}" data-sus="${c}" style="background:${c}" aria-label="Skin colour"></button>`).join('')}</div>`},
+  {t:'Pick a hairstyle',body:()=>`<div class="suopts">${HAIRS.map(h=>`<button class="opt ${S.hairStyle===h[0]?'on':''}" data-suh="${h[0]}">${HAIRNAMES[h[0]]||h[0]}</button>`).join('')}</div>`},
+  {t:'Pick a hair colour',body:()=>`<div class="suopts">${HAIRCOLS.map(c=>`<button class="sw ${S.hairCol===c?'on':''}" data-suc="${c}" style="background:${c}" aria-label="Hair colour"></button>`).join('')}</div>`}]};
+function openSetup(){SU.open=true;SU.step=0;if(!S.name||S.name==='Buddy'||S.name==='Bella')S.name='';$('#setup').hidden=false;renderSetup()}
+function renderSetup(){const st=SU.steps[SU.step];$('#suTitle').textContent=st.t;$('#suBody').innerHTML=st.body();$('#suErr').textContent='';
+  $('#suDots').innerHTML=SU.steps.map((_,i)=>`<i class="${i<=SU.step?'on':''}"></i>`).join('');
+  $('#suBack').style.visibility=SU.step?'visible':'hidden';$('#suNext').textContent=SU.step===SU.steps.length-1?"Let's fight!":'Next';
+  const n=$('#suName');if(n){n.focus();n.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();$('#suNext').click()}})}}
+$('#suBody').addEventListener('click',e=>{const g=e.target.closest('[data-sug]'),k=e.target.closest('[data-sus]'),h=e.target.closest('[data-suh]'),c=e.target.closest('[data-suc]');
+  if(g)S.gender=g.dataset.sug;if(k)S.skin=k.dataset.sus;if(h)S.hairStyle=h.dataset.suh;if(c)S.hairCol=c.dataset.suc;
+  if(g||k||h||c){sfx('tick');save();renderSetup()}});
+$('#suBack').onclick=()=>{if(SU.step>0){SU.step--;sfx('tick');renderSetup()}};
+$('#suNext').onclick=()=>{const st=SU.steps[SU.step],err=st.check?st.check():'';if(err){$('#suErr').textContent=err;sfx('bad');return}
+  if(SU.step<SU.steps.length-1){SU.step++;sfx('tick');renderSetup();return}
+  S.setupDone=true;save();SU.open=false;$('#setup').hidden=true;sfx('level');updCoins();updMeters();show('map')};
+function drawSetup(now){const cv=$('#suCv'),{c,w,h}=fit(cv);c.clearRect(0,0,w,h);c.fillStyle='rgba(255,255,255,.06)';c.beginPath();c.ellipse(w/2,h-16,70,10,0,0,7);c.fill();
+  drawFront(c,w/2,h-14,h/230,playerLook(),{pose:'relax',bob:Math.sin(now/400)*1.5})}
 let GPICK=null;
 function renderGender(){document.querySelectorAll('#genderSeg button').forEach(b=>b.classList.toggle('on',b.dataset.g===(S.gender||'boy')));$('#genderWarn').hidden=!GPICK}
 $('#genderSeg').addEventListener('click',e=>{const b=e.target.closest('[data-g]');if(!b)return;if(b.dataset.g===(S.gender||'boy')){GPICK=null;renderGender();return}
   GPICK=b.dataset.g;$('#genderTxt').textContent=`Changing to a ${GPICK} starts a brand new fighter. Your coins, levels and gear will all be gone!`;sfx('bad');renderGender()});
 $('#gNo').onclick=()=>{GPICK=null;sfx('tick');renderGender()};
 $('#gYes').onclick=()=>{if(!GPICK)return;const keep={sound:S.sound,hand:S.hand,cafeView:S.cafeView,shopTab:S.shopTab};
-  S=Object.assign(JSON.parse(JSON.stringify(DEF)),keep,{gender:GPICK,name:GPICK==='girl'?'Bella':'Buddy'});GPICK=null;PL.x=750;PL.y=1440;PL.tx=null;WILDS=Array.from({length:NWILD},makeWild);save();sfx('level');updCoins();updMeters();show('skin')};
+  S=Object.assign(JSON.parse(JSON.stringify(DEF)),keep,{gender:GPICK,name:GPICK==='girl'?'Bella':'Buddy'});GPICK=null;PL.x=750;PL.y=1440;PL.tx=null;WILDS=Array.from({length:NWILD},makeWild);save();sfx('level');updCoins();updMeters();show('map');openSetup()};
 function renderHome(){renderGender();renderStyle();
   checkDay();$('#nameIn').value=S.name;$('#powerLv').textContent='Power '+powerLv();
   $('#stats').innerHTML=Object.keys(STATS).map(k=>{const s=S[k];return`<div class="stat"><span>${STATS[k].name}</span><span class="bar"><i style="width:${Math.round(s.xp/XP(s.lv)*100)}%;background:${STATS[k].col}"></i></span><span class="lv">Lv ${s.lv}</span></div>`}).join('');
@@ -756,20 +816,21 @@ async function makeSaveCode(){const raw=new TextEncoder().encode(JSON.stringify(
 async function readSaveCode(code){code=code.trim().replace(/\s+/g,'');const [tag,body]=[code.slice(0,4),code.slice(4)];let bytes=unb64u(body);
   if(tag==='FF1.'){bytes=new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).arrayBuffer())}else if(tag!=='FF0.')throw new Error('bad');
   const data=JSON.parse(new TextDecoder().decode(bytes));if(!data||!data.str||!data.sta)throw new Error('bad');return data}
+$('#showSave').onclick=()=>{const ta=$('#saveCode');ta.hidden=!ta.hidden;$('#showSave').textContent=ta.hidden?'Show code':'Hide code';sfx('tick')};
 async function fillSaveCode(){try{$('#saveCode').value=await makeSaveCode()}catch(e){$('#saveCode').value=''}}
 $('#copySave').onclick=async()=>{const code=await makeSaveCode();const ta=$('#saveCode');ta.value=code;
   try{await navigator.clipboard.writeText(code);$('#saveMsg').textContent='Copied! Paste it into the game on your other device.';$('#saveMsg').style.color='var(--ok)'}
-  catch(e){ta.focus();ta.select();$('#saveMsg').textContent='Your code is selected in the box. Copy it from there.';$('#saveMsg').style.color='var(--tape)'}sfx('coin')};
+  catch(e){ta.hidden=false;$('#showSave').textContent='Hide code';ta.focus();ta.select();$('#saveMsg').textContent='Your code is selected in the box. Copy it from there.';$('#saveMsg').style.color='var(--tape)'}sfx('coin')};
 $('#loadSave').onclick=async e=>{const b=e.currentTarget,msg=$('#saveMsg');let data;
   try{data=await readSaveCode($('#loadCode').value)}catch(err){msg.textContent="That code didn't work. Check you copied all of it.";msg.style.color='var(--hit)';sfx('bad');return}
   if(!b.dataset.arm){b.dataset.arm='1';b.textContent='Tap again to replace your progress';msg.textContent=`This save has ${data.name||'a fighter'} with ${data.coins||0} coins.`;msg.style.color='var(--tape)';setTimeout(()=>{b.dataset.arm='';b.textContent='Load save code'},4000);return}
-  S=Object.assign(JSON.parse(JSON.stringify(DEF)),data);save();b.dataset.arm='';b.textContent='Load save code';$('#loadCode').value='';msg.textContent='Loaded! Welcome back, '+S.name+'.';msg.style.color='var(--ok)';sfx('level');applyHand();renderSnd();updCoins();updMeters();fillSaveCode()};
-function renderSettings(){fillSaveCode();$('#saveMsg').textContent='';checkDay();renderSnd();applyHand();const min=Math.floor(S.secs/60);
+  S=Object.assign(JSON.parse(JSON.stringify(DEF)),data,{setupDone:true});save();b.dataset.arm='';b.textContent='Load save code';$('#loadCode').value='';msg.textContent='Loaded! Welcome back, '+S.name+'.';msg.style.color='var(--ok)';sfx('level');applyHand();renderSnd();updCoins();updMeters();fillSaveCode()};
+function renderSettings(){fillSaveCode();$('#saveDet').open=false;$('#saveCode').hidden=true;$('#showSave').textContent='Show code';$('#saveMsg').textContent='';checkDay();renderSnd();applyHand();const min=Math.floor(S.secs/60);
   $('#goalBar').style.width=Math.min(100,S.secs/300*100)+'%';
   $('#today').textContent=min>=5?`Goal done! ${S.moves} finger moves · ${min} min today`+(min>=20?' · time to rest your fingers':''):`Today: ${S.moves} finger moves · ${min} of 5 min`;
   $('#streak').textContent=S.streak>1&&S.lastActive===S.day?`${S.streak} days in a row`:'';
   const rb=$('#resetBtn');rb.textContent='Reset progress';rb.dataset.arm=''}
-$('#resetBtn').onclick=e=>{const b=e.currentTarget;if(b.dataset.arm){try{localStorage.removeItem('ff-save')}catch(_){}S=JSON.parse(JSON.stringify(DEF));save();WILDS=Array.from({length:NWILD},makeWild);PL.x=750;PL.y=1440;show('map');return}
+$('#resetBtn').onclick=e=>{const b=e.currentTarget;if(b.dataset.arm){try{localStorage.removeItem('ff-save')}catch(_){}S=JSON.parse(JSON.stringify(DEF));S.setupDone=false;save();WILDS=Array.from({length:NWILD},makeWild);PL.x=750;PL.y=1440;updCoins();updMeters();show('map');openSetup();return}
   b.dataset.arm='1';b.textContent='Tap again to erase everything';setTimeout(()=>{b.dataset.arm='';b.textContent='Reset progress'},3000)};
 function renderMapHud(){checkDay();const min=Math.floor(S.secs/60);$('#mGoal').style.width=Math.min(100,S.secs/300*100)+'%';
   $('#mGoalTxt').textContent=min>=5?`Workout goal done! ${min} min`:`Finger workout: ${min} of 5 min`}
@@ -814,9 +875,12 @@ $('#workList').addEventListener('click',e=>{const b=e.target.closest('[data-w]')
 
 function renderStadium(){
   $('#champ').textContent=`Bosses beaten: ${S.beaten.length} of ${FOES.length}`+(S.beaten.length===FOES.length?' · CHAMPION!':'');
-  $('#bossList').innerHTML=FOES.map((f,i)=>{const b=bossFoe(i),done=S.beaten.includes(i),rw=15+i*20;
-    return`<button class="card boss" data-b="${i}"><canvas class="bp" width="52" height="64"></canvas><span><h3>${f.name}</h3><p><b style="color:${i>=7?'var(--hit)':'var(--tape)'}">Level ${i+1}</b> · Health ${b.hp}</p><p style="font-style:italic">"${BOSSQ[i]}"</p></span><span class="tag">${done?'<span style="color:var(--ok)">Beaten ✓</span>':''}<span style="color:var(--tape)">+${done?rw:rw*2}</span></span></button>`}).join('');
-  $('#bossList').querySelectorAll('.bp').forEach((cv,i)=>{const b=bossFoe(i);const {c,w,h}=fit(cv);drawFighter(c,w/2+4,h-2,(h/200)*(0.85+0.2*b.lvl),Object.assign({shoes:null,headband:null,belt:null},b.look),{flip:true})})}
+  const cur=FOES.findIndex((_,i)=>!S.beaten.includes(i)),ready=cur>=0;
+  $('#bossList').innerHTML=FOES.map((f,i)=>{const b=bossFoe(i),done=S.beaten.includes(i),rw=15+i*20,open=i===cur&&ready;
+    if(!open){const why=done?'<span style="color:var(--ok)">Beaten ✓</span>':i===cur?'<span style="color:var(--tape)">New boss tomorrow!</span>':'🔒 Locked';
+      return`<div class="card boss locked" style="opacity:${done?0.75:0.5}"><canvas class="bp" width="52" height="64"></canvas><span><h3>${i===cur||done?f.name:'???'}</h3><p><b>Level ${i+1}</b>${done||i===cur?' · Health '+b.hp:''}</p><p style="font-style:italic">${done?'Already beaten':i===cur?'You beat a boss today. Come back tomorrow to fight '+f.name+'!':'Beat the boss before to unlock'}</p></span><span class="tag">${why}</span></div>`}
+    return`<button class="card boss" data-b="${i}" style="outline:3px solid var(--tape)"><canvas class="bp" width="52" height="64"></canvas><span><h3>${f.name}</h3><p><b style="color:${i>=7?'var(--hit)':'var(--tape)'}">Level ${i+1}</b> · Health ${b.hp}</p><p style="font-style:italic">"${BOSSQ[i]}"</p></span><span class="tag">${done?'<span style="color:var(--ok)">Beaten ✓</span>':''}<span style="color:var(--tape)">+${done?rw:rw*2}</span></span></button>`}).join('');
+  $('#bossList').querySelectorAll('.bp').forEach((cv,i)=>{const b=bossFoe(i);const {c,w,h}=fit(cv);c.filter=(i>cur&&cur>=0)?'brightness(0)':'none';drawFighter(c,w/2+4,h-2,(h/200)*(0.85+0.2*b.lvl),Object.assign({shoes:null,headband:null,belt:null},b.look),{flip:true})})}
 $('#bossList').addEventListener('click',e=>{const b=e.target.closest('[data-b]');if(b){sfx('tick');const i=+b.dataset.b;preFight(bossFoe(i),{type:'boss',i})}});
 $('#shopTabs').addEventListener('click',e=>{const b=e.target.closest('[data-tab]');if(b){S.shopTab=b.dataset.tab;save();sfx('tick');renderShop()}});
 function renderShop(){
@@ -857,7 +921,16 @@ function modal(html,btn,cb){$('#modalBox').innerHTML=html+`<button class="big go
 
 // ---------- workouts ----------
 let W=null;
-function startWorkout(w){
+const TIPS=()=>({bag:['Tap L, then R, then L, then R...','Same side twice = lose a point','Both at once = lose a point'],
+  curl:IS_PC?['Hold SPACE (or the mouse) - the ring fills up','Let go when it is in the GREEN part','Hold too long and it SNAPS']:['Put your thumb and pointer finger on the screen','Spread them wide apart','Then pinch them together = 1 curl'],
+  lift:['Hold down all 4 pads'+(IS_PC?' (A S D F)':' with 4 fingers'),'Lift ONLY the glowing one','Press it back down - keep the others held!'],
+  stretch:IS_PC?['Thumb on SPACE, pinky on the letter shown','Use ONE hand and hold both keys','The keys get further apart - stretch!']:['Thumb on one circle, pinky on the other','Hold both - they pull apart and twist','Keep holding and stretch wider'],
+  swim:['Swipe down in lane 1, then 2, then 3, then 4'+(IS_PC?' (A S D F)':''),'Then start again from 1','Wrong lane or double tap = lose a point'],
+  beat:['Notes fall down 4 lanes','Tap the lane'+(IS_PC?' (D F J K)':'')+' when a note hits the line','Miss and you trip on the rope!']});
+function startWorkout(w){if(!S.tut)S.tut={};if((S.tut[w.key]||0)<2){S.tut[w.key]=(S.tut[w.key]||0)+1;save();startWorkout2(w);
+    modal(`<h2>How to do ${w.name}</h2><p class="muted" style="margin:0 0 6px">Rules (shown your first 2 times)</p><ol class="rules">${(TIPS()[w.key]||[]).map(t=>`<li>${t}</li>`).join('')}</ol><p style="font-size:13px;line-height:1.4;margin:6px 0 0">${w.how}</p>`,"Got it, let's go!",null);return}
+  startWorkout2(w)}
+function startWorkout2(w){
   sfx('tick');show('workout');$('#wTitle').textContent=w.name;$('#wHow').textContent=w.how+(IS_PC&&PCKEYS[w.key]?' Computer: '+PCKEYS[w.key]+'.':'');$('#wTimer').style.width='100%';
   const A=$('#wArea');A.innerHTML=`<button class="big go startbtn">Start!<small>${w.dur} seconds</small></button>`;
   A.onpointerdown=A.onpointermove=A.onpointerup=A.onpointercancel=A.onpointerleave=null;
@@ -874,7 +947,7 @@ function hint(t,warn){const h=$('#wArea .hint:not(.toph)');if(h){h.textContent=t
 
 // ---------- computer (mouse + keyboard) support ----------
 const IS_PC=matchMedia('(hover:hover) and (pointer:fine)').matches;if(IS_PC)document.body.classList.add('pc');
-const PCKEYS={bag:'Press F or J for whichever side glows - it changes randomly, wrong key loses a point',curl:'Hold SPACE and let go when the ring is in the green zone',lift:'Hold A S D F down together, lift ONLY the glowing key and press it again',stretch:'Hold SPACE with your thumb and the key shown with your pinky, same hand. The keys get further apart',swim:'Press A S D F for the glowing lane, quickly - it jumps around',beat:'Press D F J K when the notes hit the line'};
+const PCKEYS={bag:'Press F and J one at a time, left then right. Pressing the same key twice, or both at once, loses a point',curl:'Hold SPACE and let go when the ring is in the green zone',lift:'Hold A S D F down together, lift ONLY the glowing key and press it again',stretch:'Hold SPACE with your thumb and the key shown with your pinky, same hand. The keys get further apart',swim:'Press A, S, D, F one after another in a row, then start again. Wrong key or double taps lose a point',beat:'Press D F J K when the notes hit the line'};
 function padPos(el){const r=$('#wArea').getBoundingClientRect(),q=el.getBoundingClientRect();return[q.left-r.left+q.width/2,q.top-r.top+q.height/3]}
 function keyTag(k){return '<br><span class="kk">'+k+'</span>'}
 const WKEYS={};
@@ -887,18 +960,16 @@ const SETUP={
   bag(A){
     A.innerHTML='<div class="pads" style="grid-template-columns:1fr 1fr"><div class="pad">L'+keyTag('F')+'</div><div class="pad">R'+keyTag('J')+'</div></div>';
     const ps=[...A.querySelectorAll('.pad')];let last=-1;ps[0].classList.add('lit');
-    W.onKey=(k,down)=>{if(!down)return;const i={f:0,arrowleft:0,j:1,arrowright:1}[k];if(i==null)return;const[x,y]=padPos(ps[i]);
-      if(!W.kb){W.kb=true;W.want=0;hint2('Keyboard: hit the side that glows. It changes randomly!')}
-      const p=ps[i];p.classList.add('down');setTimeout(()=>p.classList.remove('down'),90);
-      if(i===W.want){W.combo++;wScore(1);sfx('hit');if(i)W.pose.punch=1;else W.pose.backPunch=1;W.pose.bagV=(W.pose.bagV||0)+(i?9:7);floatTxt(x,y-20,W.combo%10===0?W.combo+'!':'+1');
-        ps[W.want].classList.remove('lit');W.want=Math.random()<0.5?0:1;setTimeout(()=>{if(W&&W.run)ps[W.want].classList.add('lit')},70)}
-      else{W.combo=0;W.score=Math.max(0,W.score-1);setScore();sfx('bad');p.classList.add('bad');setTimeout(()=>p.classList.remove('bad'),150);floatTxt(x,y-20,'-1')}};
+    // one at a time: left, right, left, right... hitting the same side twice (a double tap) or both at once loses a point
+    W.onKey=(k,down)=>{if(!down)return;const i={f:0,arrowleft:0,j:1,arrowright:1}[k];if(i==null)return;const[x,y]=padPos(ps[i]);hit(i,x,y)};
     ps.forEach((p,i)=>p.onpointerdown=e=>{if(!W.run)return;e.preventDefault();move();const[x,y]=relXY(e);hit(i,x,y)});
-    function hit(i,x,y){const p=ps[i];
+    let lastT=0;
+    function hit(i,x,y){const p=ps[i],now=performance.now(),tooQuick=now-lastT<70;lastT=now;
       p.classList.add('down');setTimeout(()=>p.classList.remove('down'),90);
-      if(i!==last){last=i;W.combo++;wScore(1);sfx('hit');ps[i].classList.remove('lit');ps[1-i].classList.add('lit');
+      if(i!==last&&!tooQuick){last=i;W.combo++;wScore(1);sfx('hit');ps[i].classList.remove('lit');ps[1-i].classList.add('lit');
         if(i)W.pose.punch=1;else W.pose.backPunch=1;W.pose.bagV=(W.pose.bagV||0)+(i?9:7);floatTxt(x,y-20,W.combo%10===0?W.combo+'!':'+1')}
-      else{W.combo=0;setScore();sfx('bad');p.classList.add('bad');setTimeout(()=>p.classList.remove('bad'),150)}}
+      else{W.combo=0;W.score=Math.max(0,W.score-1);setScore();sfx('bad');p.classList.add('bad');setTimeout(()=>p.classList.remove('bad'),150);floatTxt(x,y-20,'-1');
+        hint2(tooQuick?'One at a time! Both together loses a point':'Double tap! Hit the OTHER side next')}}
   },
   curl(A){
     A.innerHTML='<canvas></canvas><div class="hint">Put thumb and pointer finger on the screen</div>';
@@ -970,11 +1041,12 @@ const SETUP={
     const laneOf=e=>{const r=A.getBoundingClientRect();return Math.max(0,Math.min(3,Math.floor((e.clientX-r.left)/r.width*4)))};
     A.onpointerdown=e=>{if(!W.run)return;e.preventDefault();W.sw.set(e.pointerId,{y:e.clientY,lane:laneOf(e),done:false});move();ps[laneOf(e)].classList.add('down')};
     W.newLane=()=>{ps[W.next].classList.remove('lit');let n;do{n=Math.floor(Math.random()*4)}while(n===W.next);W.next=n;ps[n].classList.add('lit');W.deadline=performance.now()+Math.max(700,1500-W.combo*20)};
-    if(IS_PC){W.deadline=performance.now()+2500;A.insertAdjacentHTML('beforeend','<div class="pckeys" style="bottom:28px">Computer: the glowing lane jumps around - be quick!</div>')}
-    const stroke=(lane,x,y)=>{
-      if(lane===W.next){W.combo++;wScore(1);sfx('good');W.pose.swimT+=Math.PI;W.splash.push({t:performance.now()});if(IS_PC)W.newLane();else{ps[W.next].classList.remove('lit');W.next=(W.next+1)%4;ps[W.next].classList.add('lit')}
+    if(IS_PC)A.insertAdjacentHTML('beforeend','<div class="pckeys" style="bottom:28px">Computer: A S D F one after another, in a row</div>');
+    let lastS=0;
+    const stroke=(lane,x,y)=>{const now=performance.now(),quick=now-lastS<110;lastS=now;
+      if(lane===W.next&&!quick){W.combo++;wScore(1);sfx('good');W.pose.swimT+=Math.PI;W.splash.push({t:performance.now()});ps[W.next].classList.remove('lit');W.next=(W.next+1)%4;ps[W.next].classList.add('lit');
         floatTxt(x,y-20,W.combo%10===0?W.combo+'!':'+1');hint('Next: finger '+(W.next+1))}
-      else{W.combo=0;setScore();sfx('bad');ps[lane].classList.add('bad');setTimeout(()=>ps[lane].classList.remove('bad'),150);hint('Use finger '+(W.next+1)+' - the glowing lane')}};
+      else{W.combo=0;W.score=Math.max(0,W.score-1);setScore();sfx('bad');ps[lane].classList.add('bad');setTimeout(()=>ps[lane].classList.remove('bad'),150);floatTxt(x,y-20,'-1');hint((quick?'One at a time! ':'Wrong lane! ')+'Use finger '+(W.next+1)+' - the glowing lane',true)}};
     A.onpointermove=e=>{const q=W.sw.get(e.pointerId);if(!q||q.done||!W.run)return;if(e.clientY-q.y>40){q.done=true;const r=A.getBoundingClientRect();stroke(q.lane,e.clientX-r.left,e.clientY-r.top)}};
     W.onKey=(k,down)=>{const i='asdf'.indexOf(k);if(i<0||k.length!==1)return;if(!down){ps[i].classList.remove('down');return}ps[i].classList.add('down');const[x,y]=padPos(ps[i]);stroke(i,x,y)};
     const up=e=>{const q=W.sw.get(e.pointerId);if(q)ps[q.lane].classList.remove('down');W.sw.delete(e.pointerId)};A.onpointerup=up;A.onpointercancel=up;A.onpointerleave=up;
@@ -1373,7 +1445,7 @@ const CASHIER_SW=()=>(26+CASHIER.chest*26)*1.25;
 const HOSP={healing:false,t:0,from:1,say:'',sayT:0,hearts:[]};
 const MEDICS=[{arm:0.3,chest:0.3,legs:0.3,skin:'#f1c9a0',hair:'#5a3a24',hairStyle:'short',shorts:'#1f5e3a',pants:'#1f5e3a',shirt:'#2f9e5f',sleeves:'#2f9e5f',shoes:'#222'},{arm:0.3,chest:0.3,legs:0.3,skin:'#8d5a3b',hair:'#1d1d1d',hairStyle:'bun',girl:true,shorts:'#1f5e3a',pants:'#1f5e3a',shirt:'#2f9e5f',sleeves:'#2f9e5f',shoes:'#222'}];
 const DOC={arm:0.15,chest:0.25,legs:0.2,skin:'#c68642',hair:'#1d1d1d',hairStyle:'short',shorts:'#2b2f3a',pants:'#2b2f3a',shirt:'#9ad0ff',sleeves:'#ffffff',coat:true,face:'fc1'};
-function renderHospital(){updMeters();const b=$('#healBtn');const full=S.health>=0.999;b.disabled=HOSP.healing||!!HOSP.arr;b.innerHTML=HOSP.arr?'Arriving on a stretcher...<small>The paramedics are bringing you in</small>':HOSP.healing?(HOSP.free?'Healing... free<small>The ambulance trip is on us</small>':'Healing...<small>Lie still and rest</small>'):full?'All healthy!<small>Come back after a fight</small>':S.coins<HCOST()?'Get healed · '+HCOST()+' coins<small>You need '+(HCOST()-S.coins)+' more coins. Train in the gym to earn some!</small>':'Get healed · '+HCOST()+' coins<small>'+(hasUp('hcard')?'Hospital Card discount!':'Lie down and rest')+'</small>';
+function renderHospital(){updMeters();const b=$('#healBtn');const full=S.health>=0.999;b.disabled=HOSP.healing||!!HOSP.arr;b.innerHTML=HOSP.arr?'Arriving on a stretcher...<small>The paramedics are bringing you in</small>':HOSP.healing?(HOSP.free?'Healing... free<small>The ambulance trip is on us</small>':'Healing...<small>Lie still and rest</small>'):full?'All healthy! Leave hospital<small>Tap to go back outside</small>':S.coins<HCOST()?'Get healed · '+HCOST()+' coins<small>You need '+(HCOST()-S.coins)+' more coins. Train in the gym to earn some!</small>':'Get healed · '+HCOST()+' coins<small>'+(hasUp('hcard')?'Hospital Card discount!':'Lie down and rest')+'</small>';
   if(HOSP.arr){HOSP.say='Quick, bring the patient in here!';HOSP.sayT=performance.now();return}
   if(HOSP.healing)return;
   HOSP.say=full?"You're in great shape! Come back if you get hurt.":"Ouch, you look hurt! Lie down on the bed and I'll fix you up.";HOSP.sayT=performance.now()}
@@ -1384,7 +1456,7 @@ function startHeal(free){if(HOSP.healing)return;if(S.health>=0.999){HOSP.say="Yo
   const all=[{t:'check',say:'Let me listen to your heart...'},{t:'head',say:'That bump needs a bandage.'},{t:'arm',say:'Wrapping up that sore arm.'},{t:'ice',say:'An ice pack for this bruise.'},{t:'medicine',say:'Now take this medicine. Open wide!'}];
   HOSP.steps=S.health<0.3?all:S.health<0.6?[all[0],all[2],all[4]]:[all[0],all[4]];
   renderHospital();HOSP.say=free?"You got knocked out! The ambulance brought you in. Don't worry, this one is free.":'Lie down and relax. Let me take a look...';HOSP.sayT=HOSP.t;sfx('good');$('#healBtn').disabled=true}
-$('#healBtn').onclick=()=>startHeal(false);
+$('#healBtn').onclick=()=>{if(!HOSP.healing&&!HOSP.arr&&S.health>=0.999){sfx('tick');show('map');return}startHeal(false)};
 // measures how tall the lying body is along its length, so the blanket can follow it exactly
 const PROF={};
 function bodyProfile(L,s){const key=JSON.stringify(L)+'|'+s.toFixed(3);if(PROF[key])return PROF[key];
@@ -1493,7 +1565,7 @@ function drawHospital(now,dt){const cv=$('#hospCv'),{c,w,h}=fit(cv);
     const tw=Math.max(...lines.map(l=>c.measureText(l).width))+18,bx2=Math.max(6,Math.min(w-tw-6,dx-tw+30)),by2=Math.max(4,dgy-175*dsc-lines.length*16);c.fillStyle='#fff';c.beginPath();c.roundRect(bx2,by2,tw,lines.length*16+10,10);c.fill();c.strokeStyle=INK;c.lineWidth=1.3;c.stroke();c.fillStyle='#1b2130';c.textAlign='left';lines.forEach((l,i)=>c.fillText(l,bx2+9,by2+18+i*16))}
 }
 // ---------- map ----------
-const WORLD={w:3000,h:3000};const NWILD=14;
+const WORLD={w:3000,h:3000};const NWILD=18;
 const BUILD=[
  {x:560,y:230,w:380,h:230,name:'Stadium',sign:'STADIUM',roof:'#2f5d8a',kind:'stadium',go:'stadium'},
  {x:330,y:1297,w:125,h:88,name:'Mirror Room',sign:'MIRROR',roof:'#c86bff',kind:'big',go:'mirror'},{x:990,y:1300,w:120,h:85,sign:'CAFE',roof:'#8338ec',kind:'shopfront',name:'Café',go:'cafe'},
@@ -1669,6 +1741,18 @@ function drawSky(c,now,vis){
   // a flock of birds
   const fx=((now/28)%2400)-400,fy=180+Math.sin(now/2500)*80;
   for(let i=0;i<5;i++){const x=fx-Math.abs(i-2)*22,y=fy+(i-2)*14,f=Math.sin(now/120+i)*4;if(!vis(x,y,20))continue;c.strokeStyle='#2b2f3a';c.lineWidth=2;c.beginPath();c.moveTo(x-7,y-f);c.quadraticCurveTo(x-3,y-3,x,y);c.quadraticCurveTo(x+3,y-3,x+7,y-f);c.stroke()}}
+// sprinkle extra houses and little shops all over the big map (same spots every time)
+(()=>{const r=rnd(2024),ROOFS=['#457b9d','#bc4749','#6a994e','#ffb627','#e76f51','#2a9d8f','#8338ec','#e63946','#bc6c25','#3a6df0'],
+  SHOPS=['FLOWERS','BOOKS','GROCER','BARBER','PETS','GARAGE','DINER','CANDY','SPORTS','BIKES','MUSIC','HATS'];let sh=0;
+  for(let gy=60;gy<WORLD.h-120;gy+=165)for(let gx=40;gx<WORLD.w-150;gx+=175){
+    const x=gx+r()*45,y=gy+r()*40,shop=r()<0.22,w=shop?125:95+Math.round(r()*20),h=shop?90:75+Math.round(r()*12);
+    if(r()<0.3)continue;
+    const cx=x+w/2,cy=y+h/2;
+    if(nearPath(cx,cy)<92||nearPath(x,y)<60||nearPath(x+w,y+h)<60||nearPath(x+w,y)<60||nearPath(x,y+h)<60)continue;
+    if(BUILD.some(b=>x<b.x+b.w+45&&x+w+45>b.x&&y<b.y+b.h+60&&y+h+60>b.y))continue;
+    if(inPond(cx,cy,90)||nearDecor(cx,cy,70)||PONDS.some(p=>Math.hypot(cx-p.x,cy-p.y)<Math.max(p.rx,p.ry)+110))continue;
+    if(Math.hypot(cx-PL.x,cy-PL.y)<150)continue;
+    BUILD.push(shop?{x,y,w,h,sign:SHOPS[sh++%SHOPS.length],roof:ROOFS[Math.floor(r()*ROOFS.length)],kind:'shopfront'}:{x,y,w,h,sign:'',roof:ROOFS[Math.floor(r()*ROOFS.length)],kind:'house'})}})();
 const TREES=[],TUFTS=[],FLOWERS=[];
 (()=>{const r=rnd(7);let tries=0;while(TREES.length<470&&tries++<30000){const x=30+r()*(WORLD.w-60),y=30+r()*(WORLD.h-60);
   if(nearPath(x,y)<85)continue;if(inBuild(x,y,60)||inPond(x,y,30)||nearDecor(x,y,30))continue;
@@ -1715,6 +1799,42 @@ function wildFoe(w){const T=TIERS[w.tier],m=me();if(w.rel!=null){const L2=wLvl(w
   if(w.quirk==='rage')f.rage=true;
   return f}
 let WILDS=Array.from({length:NWILD},makeWild);let swapT=0;
+// ---------- townspeople: they just live here, you can't fight them ----------
+const SHIRTS=['#e63946','#3a6df0','#2a9d8f','#ffb627','#8338ec','#f4a261','#6a994e','#ff7a9c','#ffffff','#1d3557','#9b5de5','#e9c46a'];
+function townLook(){const l=randPerson();l.top='c'+pick(SHIRTS);l.shorts=pick(['#2b2f3a','#457b9d','#6b4f3a','#3a4560','#1d3557','#a8dadc']);l.girl=Math.random()<0.45;if(l.girl)l.crop=null;l.arm=Math.random()*0.3;l.chest=Math.random()*0.3;l.legs=0.2;return l}
+const TOWN=[];
+(()=>{return;const r=Math.random;
+  for(let i=0;i<34;i++){const R0=pick(ROADS),vert=R0[0][0]===R0[1][0],side=r()<0.5?-38:38,lo=Math.max(30,Math.min(vert?R0[0][1]:R0[0][0],vert?R0[1][1]:R0[1][0])),hi=Math.min(2970,Math.max(vert?R0[0][1]:R0[0][0],vert?R0[1][1]:R0[1][0]));
+    TOWN.push({mode:'walk',R:R0,vert,side,t:lo+r()*(hi-lo),lo,hi,d:r()<0.5?1:-1,sp:22+r()*16,look:townLook(),walk:r()*6,stop:0})}
+  BENCHES.forEach(([bx,by],i)=>{if(i%2===0)TOWN.push({mode:'sit',x:bx+(i%4?-8:8),y:by+2,look:townLook()})});
+  for(let i=0;i<3;i++)TOWN.push({mode:'bike',a:i*2.1,sp:0.25+r()*0.12,look:townLook()});
+  for(let i=0;i<3;i++)TOWN.push({mode:'skate',ph:r()*6,row:i,look:townLook()});
+  for(let i=0;i<2;i++)TOWN.push({mode:'jog',a:i*Math.PI,sp:0.22+r()*0.05,look:townLook()});
+  [[700,960],[712,960],[800,840],[812,842]].forEach(([x,y],i)=>TOWN.push({mode:'chat',x,y,dir:i%2?-1:1,look:townLook()}));
+  const z=ZONES[2];for(let i=0;i<6;i++)TOWN.push({mode:'chat',x:z.x+90+i*120,y:z.y-6+(i%2)*z.h+ (i%2?24:0),dir:1,watch:true,look:townLook()});
+  for(const b of BUILD.filter(b=>b.kind==='shopfront'&&!b.go).slice(0,10))TOWN.push({mode:'chat',x:b.x+b.w/2+18,y:b.y+b.h+16,dir:-1,look:townLook()})})();
+function townTick(dt){for(const p of TOWN){
+  if(p.mode==='walk'){if(p.stop>0){p.stop-=dt;p.moving=false;continue}p.t+=p.d*p.sp*dt;p.walk+=dt*p.sp/5;p.moving=true;
+    if(p.t>p.hi||p.t<p.lo){p.d*=-1;p.t=Math.max(p.lo,Math.min(p.hi,p.t))}if(Math.random()<dt*0.04){p.stop=1+Math.random()*3}
+    const c0=p.vert?p.R[0][0]:p.R[0][1];if(p.vert){p.x=c0+p.side;p.y=p.t;p.dir=p.side>0?1:-1}else{p.x=p.t;p.y=c0+p.side;p.dir=p.d}}
+  else if(p.mode==='bike'){const z=ZONES[0];p.a+=dt*p.sp;const rx=z.w/2-23,ry=z.h/2-23,cx=z.x+z.w/2,cy=z.y+z.h/2;
+    // follow the oval track (a stadium shape)
+    const L=Math.PI*ry*2+(rx-ry)*4,u=((p.a*L/(Math.PI*2))%L+L)%L,st=(rx-ry)*2;let x,y,dir;
+    if(u<st){x=cx-(rx-ry)+u;y=cy+ry;dir=1}else if(u<st+Math.PI*ry){const q=(u-st)/ry;x=cx+(rx-ry)+Math.sin(q)*ry;y=cy+Math.cos(q)*ry;dir=Math.cos(q)>0?1:-1}
+    else if(u<st*2+Math.PI*ry){x=cx+(rx-ry)-(u-st-Math.PI*ry);y=cy-ry;dir=-1}else{const q=(u-st*2-Math.PI*ry)/ry;x=cx-(rx-ry)-Math.sin(q)*ry;y=cy-Math.cos(q)*ry;dir=Math.cos(q)>0?-1:1}
+    p.x=x;p.y=y;p.dir=dir;p.walk+=dt*14;p.moving=true}
+  else if(p.mode==='skate'){const z=ZONES[1];p.ph+=dt*0.9;p.x=z.x+z.w/2+Math.sin(p.ph)*(z.w/2-100);p.y=z.y+90+p.row*80+Math.sin(p.ph*2)*10;p.dir=Math.cos(p.ph)>0?1:-1;p.moving=false}
+  else if(p.mode==='jog'){const q=PONDS[5];p.a+=dt*p.sp;p.x=q.x+Math.cos(p.a)*(q.rx+40);p.y=q.y+Math.sin(p.a)*(q.ry+34);p.dir=-Math.sin(p.a)>0?1:-1;p.walk+=dt*9;p.moving=true}
+  else if(p.mode==='chat'){p.bob=(p.bob||Math.random()*6)+dt}}}
+function drawTownPerson(c,p,now){
+  if(p.mode==='sit'){drawFront(c,p.x,p.y,0.28,p.look,{pose:'relax',sit:true,bob:0});return}
+  if(p.mode==='bike'){const s=0.28,k=Math.sin(p.walk);c.save();c.translate(p.x,p.y);c.scale(p.dir,1);c.strokeStyle='#1b2130';c.lineWidth=2;
+    for(const wx of[-15,15]){c.beginPath();c.arc(wx,-8,8,0,7);c.stroke()}c.strokeStyle='#e63946';c.lineWidth=2.4;c.beginPath();c.moveTo(-15,-8);c.lineTo(-3,-22);c.lineTo(12,-22);c.lineTo(15,-8);c.moveTo(-3,-22);c.lineTo(0,-8);c.lineTo(-15,-8);c.moveTo(12,-22);c.lineTo(13,-28);c.stroke();c.restore();
+    drawFighter(c,p.x-p.dir*2,p.y-10,s,p.look,{flip:p.dir<0,kickF:Math.max(0,k)*0.5,kickB:Math.max(0,-k)*0.5,bob:0});return}
+  if(p.mode==='skate'){c.fillStyle='#ffb627';c.beginPath();c.roundRect(p.x-12,p.y-3,24,4,2);c.fill();c.fillStyle='#1b2130';c.beginPath();c.arc(p.x-8,p.y+2,2,0,7);c.arc(p.x+8,p.y+2,2,0,7);c.fill();
+    drawFighter(c,p.x,p.y-3,0.28,p.look,{flip:p.dir<0,victory:Math.sin(p.ph*3)>0.6,bob:0});return}
+  if(p.mode==='chat'){const t=p.bob;drawFighter(c,p.x,p.y,0.3,p.look,{flip:p.dir<0,bob:Math.sin(t*2)*1.2,victory:p.watch&&Math.sin(t*0.7)>0.85,happy:Math.sin(t*0.5)>0.5});return}
+  drawMapFighter(c,p.x,p.y,p.look,p.dir,p.moving?p.walk:0,now,false,0.3)}
 let curAct=null;
 function setAct(a){const k=a?a.txt+a.sub:'';if(k===(curAct?curAct.k:'')){if(a)curAct.fn=a.fn;return}
   curAct=a?{...a,k}:null;const b=$('#actBtn');b.hidden=!a;if(a&&mapHint){mapHint=false;$('#mapHint').hidden=true}if(a){b.innerHTML=`${a.txt}${a.sub?`<small>${a.sub}</small>`:''}`;b.disabled=!!a.locked;if(!a.locked)sfx('tick')}}
@@ -1727,10 +1847,10 @@ mc.addEventListener('pointerdown',e=>{e.preventDefault();PL.hold=true;setT(e);mo
   if(mapHint){mapHint=false;$('#mapHint').hidden=true}});
 mc.addEventListener('pointermove',e=>{if(PL.hold)setT(e)});
 ['pointerup','pointercancel'].forEach(ev=>mc.addEventListener(ev,()=>PL.hold=false));
-addEventListener('keydown',e=>{if(screen!=='map')return;KEYS[e.key.toLowerCase()]=true;if(e.key==='Enter'||e.key===' '){e.preventDefault();doAct()}});
+addEventListener('keydown',e=>{if(screen!=='map'||SU.open||BM.open)return;KEYS[e.key.toLowerCase()]=true;if(e.key==='Enter'||e.key===' '){e.preventDefault();doAct()}});
 addEventListener('keyup',e=>{KEYS[e.key.toLowerCase()]=false});
 function tickMap(now,dt){
-  if(!$('#modal').hidden)return;
+  if(!$('#modal').hidden||SU.open||BM.open)return;
   const kx=(KEYS.arrowright||KEYS.d?1:0)-(KEYS.arrowleft||KEYS.a?1:0),ky=(KEYS.arrowdown||KEYS.s?1:0)-(KEYS.arrowup||KEYS.w?1:0);
   let vx=0,vy=0;const SPD=hasUp('bike')?285:190;
   if(kx||ky){const m=Math.hypot(kx,ky);vx=kx/m;vy=ky/m;PL.tx=null;if(mapHint){mapHint=false;$('#mapHint').hidden=true}}
@@ -1873,7 +1993,52 @@ function drawMini(now){const cv=$('#miniCv');if(!cv)return;const {c,w,h}=fit(cv)
   c.drawImage(MINI.img,0,0,w,h);
   c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=1;const ms=mapSize();c.strokeRect(cam.x*k,cam.y*k,ms.w*k,ms.h*k);
   for(const wd of WILDS){c.fillStyle=TIERS[wd.tier].col;c.beginPath();c.arc(wd.x*k,wd.y*k,1.8,0,7);c.fill()}
+  if(S.marker){c.fillStyle='#ff3d81';c.strokeStyle='#fff';c.lineWidth=1.2;c.beginPath();c.arc(S.marker.x*k,S.marker.y*k,3.2,0,7);c.fill();c.stroke()}
   const pulse=2.8+Math.sin(now/200)*0.8;c.fillStyle='#fff';c.beginPath();c.arc(PL.x*k,PL.y*k,pulse+1.2,0,7);c.fill();c.fillStyle='#5fd49c';c.beginPath();c.arc(PL.x*k,PL.y*k,pulse,0,7);c.fill()}
+// ---------- big map: tap the little map to see the whole town ----------
+const BM={open:false,cache:null};
+function openBigMap(){BM.open=true;$('#bigMap').hidden=false;$('#bmClear').hidden=!S.marker;BM.cache=null;PL.tx=null;PL.hold=false;sfx('tick')}
+function closeBigMap(){BM.open=false;$('#bigMap').hidden=true;sfx('tick')}
+$('#miniCv').addEventListener('pointerdown',e=>{e.preventDefault();e.stopPropagation();openBigMap()});
+$('#bmClose').onclick=closeBigMap;
+function bmGeom(){const cv=$('#bigCv'),r=cv.getBoundingClientRect(),sz=Math.min(r.width,r.height);return{r,sz,k:sz/WORLD.w,ox:(r.width-sz)/2,oy:(r.height-sz)/2}}
+$('#bigCv').addEventListener('pointerdown',e=>{e.preventDefault();const g=bmGeom(),x=(e.clientX-g.r.left-g.ox)/g.k,y=(e.clientY-g.r.top-g.oy)/g.k;
+  if(x<0||y<0||x>WORLD.w||y>WORLD.h)return;
+  if(S.marker&&Math.hypot(S.marker.x-x,S.marker.y-y)<60/g.k*0.5+40){S.marker=null;sfx('tick')}else{S.marker={x:Math.round(x),y:Math.round(y)};sfx('coin')}
+  save();$('#bmClear').hidden=!S.marker});
+$('#bmClear').onclick=()=>{S.marker=null;save();$('#bmClear').hidden=true;sfx('tick')};
+function drawPin(c,x,y,sc,now){const b=Math.abs(Math.sin(now/300))*4*sc;c.save();c.translate(x,y);c.scale(sc,sc);c.fillStyle='rgba(0,0,0,.25)';c.beginPath();c.ellipse(0,2,9,3.5,0,0,7);c.fill();
+  c.translate(0,-b);c.beginPath();c.moveTo(0,0);c.bezierCurveTo(-4,-8,-13,-14,-13,-24);c.arc(0,-24,13,Math.PI,0);c.bezierCurveTo(13,-14,4,-8,0,0);c.closePath();ink(c,'#ff3d81',2);c.fillStyle='#fff';c.beginPath();c.arc(0,-24,5,0,7);c.fill();c.restore()}
+addEventListener('keydown',e=>{if(BM.open&&(e.key==='Escape'||e.key.toLowerCase()==='m')){closeBigMap();e.preventDefault()}else if(!BM.open&&screen==='map'&&!SU.open&&$('#modal').hidden&&e.key.toLowerCase()==='m')openBigMap()});
+function drawBigMap(now){const cv=$('#bigCv'),{c,w,h}=fit(cv);const sz=Math.min(w,h),k=sz/WORLD.w,ox=(w-sz)/2,oy=(h-sz)/2;
+  const key=w+'x'+h;
+  if(!BM.cache||BM.cache.key!==key){const o=document.createElement('canvas');o.width=cv.width;o.height=cv.height;const x=o.getContext('2d'),dpr=cv.width/w;x.scale(dpr,dpr);x.translate(ox,oy);
+    x.fillStyle='#6f9455';x.beginPath();x.roundRect(0,0,sz,sz,12);x.fill();x.save();x.beginPath();x.roundRect(0,0,sz,sz,12);x.clip();
+    for(const z of ZONES){x.fillStyle=z.k==='track'?'#b5503a':z.k==='skate'?'#b9bec7':'#4f9a4a';x.beginPath();x.roundRect(z.x*k,z.y*k,z.w*k,z.h*k,z.k==='track'?z.h*k/2:4);x.fill()}
+    x.fillStyle='#4f8aa6';for(const p of PONDS){x.beginPath();x.ellipse(p.x*k,p.y*k,p.rx*k,p.ry*k,0,0,7);x.fill()}
+    x.fillStyle='#3d7034';for(const t of TREES){x.beginPath();x.arc(t.x*k,t.y*k,Math.max(1.5,t.r*k*0.9),0,7);x.fill()}
+    x.lineCap='butt';x.strokeStyle='#c9c5bc';x.lineWidth=92*k;for(const R0 of ROADS){x.beginPath();x.moveTo(R0[0][0]*k,R0[0][1]*k);x.lineTo(R0[1][0]*k,R0[1][1]*k);x.stroke()}
+    x.strokeStyle='#5b5e64';x.lineWidth=62*k;for(const R0 of ROADS){x.beginPath();x.moveTo(R0[0][0]*k,R0[0][1]*k);x.lineTo(R0[1][0]*k,R0[1][1]*k);x.stroke()}
+    x.strokeStyle='rgba(255,255,255,.6)';x.lineWidth=1;x.setLineDash([4,4]);for(const R0 of ROADS){x.beginPath();x.moveTo(R0[0][0]*k,R0[0][1]*k);x.lineTo(R0[1][0]*k,R0[1][1]*k);x.stroke()}x.setLineDash([]);
+    x.fillStyle='#64676d';x.beginPath();x.arc(FOUNTAIN.x*k,FOUNTAIN.y*k,78*k,0,7);x.fill();x.fillStyle='#4fb8ee';x.beginPath();x.arc(FOUNTAIN.x*k,FOUNTAIN.y*k,FOUNTAIN.r*k,0,7);x.fill();
+    x.fillStyle='#a8774c';x.fillRect(PLAY.x*k,PLAY.y*k,PLAY.w*k,PLAY.h*k);
+    for(const b of BUILD){x.fillStyle=b.go?b.roof:'#efe6d2';x.strokeStyle=b.go?'#fff':shade(b.roof,-0.1);x.lineWidth=b.go?2:1.2;x.beginPath();x.rect(b.x*k,b.y*k,b.w*k,b.h*k);x.fill();x.stroke();if(!b.go){x.fillStyle=b.roof;x.fillRect(b.x*k,b.y*k,b.w*k,Math.max(2,b.h*k*0.3))}}
+    const label=(t,X,Y,bg,fg,fs)=>{x.font=`900 ${fs}px Nunito, sans-serif`;const tw=x.measureText(t).width+10;x.fillStyle=bg;x.beginPath();x.roundRect(X-tw/2,Y-fs*0.8,tw,fs*1.5,6);x.fill();x.fillStyle=fg;x.textAlign='center';x.fillText(t,X,Y+fs*0.35)};
+    const fs=Math.max(9,Math.min(13,sz/55));
+    if(sz>=560)for(const b of BUILD)if(b.sign&&!b.go)label(b.sign,(b.x+b.w/2)*k,(b.y+b.h/2)*k,'rgba(255,255,255,.75)','#2b2f3a',fs*0.75);
+    label('Playground',(PLAY.x+PLAY.w/2)*k,(PLAY.y+PLAY.h/2)*k,'rgba(255,255,255,.85)','#5b3d22',fs*0.85);
+    label('Bike Track',(ZONES[0].x+ZONES[0].w/2)*k,(ZONES[0].y+ZONES[0].h/2)*k,'rgba(255,255,255,.85)','#b5503a',fs*0.85);
+    label('Skate Park',(ZONES[1].x+ZONES[1].w/2)*k,(ZONES[1].y+ZONES[1].h/2)*k,'rgba(255,255,255,.85)','#5b6470',fs*0.85);
+    label('Football',(ZONES[2].x+ZONES[2].w/2)*k,(ZONES[2].y+ZONES[2].h/2)*k,'rgba(255,255,255,.85)','#2f6a2a',fs*0.85);
+    const SHORT={train:'Gym',shop:'Shop',cafe:'Café',mirror:'Mirror',hospital:'Hospital',stadium:'Stadium'};for(const b of BUILD)if(b.go)label(SHORT[b.go]||b.name,(b.x+b.w/2)*k,(b.y+b.h/2)*k-(b.go==='mirror'||b.go==='shop'?fs*0.9:0),'#1b2130','#ffe14d',fs*0.9);
+    x.restore();BM.cache={key,img:o}}
+  c.clearRect(0,0,w,h);c.drawImage(BM.cache.img,0,0,w,h);c.save();c.translate(ox,oy);
+  for(const wd of WILDS){c.fillStyle=TIERS[wd.tier].col;c.strokeStyle='#1b2130';c.lineWidth=1.5;c.beginPath();c.arc(wd.x*k,wd.y*k,4,0,7);c.fill();c.stroke()}
+  if(S.marker)drawPin(c,S.marker.x*k,S.marker.y*k,1,now);
+  const px=PL.x*k,py=PL.y*k,pulse=7+Math.sin(now/200)*2;c.fillStyle='rgba(95,212,156,.35)';c.beginPath();c.arc(px,py,pulse+6,0,7);c.fill();
+  c.fillStyle='#5fd49c';c.strokeStyle='#fff';c.lineWidth=2.5;c.beginPath();c.arc(px,py,6.5,0,7);c.fill();c.stroke();
+  c.font='900 12px Nunito, sans-serif';const tw=c.measureText('YOU').width+10;c.fillStyle='#fff';c.beginPath();c.roundRect(px-tw/2,py+11,tw,16,6);c.fill();c.fillStyle='#1b2130';c.textAlign='center';c.fillText('YOU',px,py+23);
+  c.restore()}
 function drawMap(now){
   const {c,w,h}=fit(mc);c.fillStyle='#6f9455';c.fillRect(0,0,w,h);
   c.save();c.translate(-Math.round(cam.x),-Math.round(cam.y));
@@ -1899,8 +2064,13 @@ function drawMap(now){
   if(vis(750,900,120))ents.push([900,()=>drawFountain(c,now)]);
   for(const [lx,ly] of LAMPS)if(vis(lx,ly,80))ents.push([ly,()=>drawLamp(c,lx,ly,now)]);
   for(const [bx,by] of BENCHES)if(vis(bx,by,60))ents.push([by,()=>drawBench(c,bx,by)]);
-  for(const wd of WILDS)if(vis(wd.x,wd.y,100)){const sb=wd.mood==='shadowbox'&&!wd.moving,ph=wd.box*5;ents.push([wd.y,()=>drawMapFighter(c,wd.x,wd.y,wd.foe.look,wd.dir,wd.moving?wd.walk:0,now,false,0.33+0.08*wd.foe.lvl,sb?{punch:Math.max(0,Math.sin(ph))**3,backPunch:Math.max(0,-Math.sin(ph))**3}:null)])}
-  ents.push([PL.y,()=>drawMapFighter(c,PL.x,PL.y,playerLook(),PL.dir,PL.moving?PL.walk:0,now,false,ps)]);
+  townTick(Math.min(0.05,(now-(drawMap.tl||now))/1000));drawMap.tl=now;
+  for(const tp of TOWN)if(vis(tp.x,tp.y,80))ents.push([tp.y+(tp.mode==='sit'?1:0),()=>drawTownPerson(c,tp,now)]);
+  // fighters only put their guard up when you come near (or when they're chasing you)
+  for(const wd of WILDS)if(vis(wd.x,wd.y,100)){const dP=Math.hypot(wd.x-PL.x,wd.y-PL.y),alert=dP<170||wd.chase>0,sb=wd.mood==='shadowbox'&&!wd.moving&&dP<300,ph=wd.box*5;
+    const ex=sb?{punch:Math.max(0,Math.sin(ph))**3,backPunch:Math.max(0,-Math.sin(ph))**3}:alert?null:{relax:true,swing:wd.moving?Math.sin(wd.walk):Math.sin(now/900+wd.x)*0.12};
+    ents.push([wd.y,()=>drawMapFighter(c,wd.x,wd.y,wd.foe.look,wd.dir,wd.moving?wd.walk:0,now,false,0.33+0.08*wd.foe.lvl,ex)])}
+  {const near=WILDS.some(wd=>Math.hypot(wd.x-PL.x,wd.y-PL.y)<170||wd.chase>0);ents.push([PL.y,()=>drawMapFighter(c,PL.x,PL.y,playerLook(),PL.dir,PL.moving?PL.walk:0,now,false,ps,near?null:{relax:true,swing:PL.moving?Math.sin(PL.walk):Math.sin(now/900)*0.12})])}
   ents.sort((a,b)=>a[0]-b[0]).forEach(e=>e[1]());
   for(const b of BUTTERFLIES){b.a+=0.02;b.x=(b.x+Math.cos(b.a)*0.9+WORLD.w)%WORLD.w;b.y=(b.y+Math.sin(b.a*1.3)*0.7+WORLD.h)%WORLD.h;if(!vis(b.x,b.y,20))continue;
     const f=Math.abs(Math.sin(now/70+b.a*9));c.fillStyle=b.c;c.beginPath();c.ellipse(b.x-3*f,b.y,4*f+0.5,3,0,0,7);c.ellipse(b.x+3*f,b.y,4*f+0.5,3,0,0,7);c.fill();c.fillStyle='#333';c.fillRect(b.x-0.7,b.y-3,1.4,6)}
@@ -1909,6 +2079,12 @@ function drawMap(now){
   tag(c,PL.x,PL.y-166*ps-12,S.name,'#5fd49c');
   drawSky(c,now,vis);
   c.restore();
+  if(S.marker){const M=S.marker;if(Math.hypot(PL.x-M.x,PL.y-M.y)<80){S.marker=null;save();sfx('level')}
+    else{const sx=M.x-cam.x,sy=M.y-cam.y;
+      if(sx>-20&&sx<w+20&&sy>-20&&sy<h+20){c.save();c.translate(-cam.x,-cam.y);drawPin(c,M.x,M.y,1.3,now);c.restore()}
+      else{const ang=Math.atan2(sy-h/2,sx-w/2),ex=clamp(w/2+Math.cos(ang)*w,120,w-70),ey=clamp(h/2+Math.sin(ang)*h,120,h-140),dist=Math.round(Math.hypot(PL.x-M.x,PL.y-M.y)/10);
+        c.save();c.translate(ex,ey);c.rotate(ang);c.beginPath();c.moveTo(22,0);c.lineTo(-10,-14);c.lineTo(-4,0);c.lineTo(-10,14);c.closePath();ink(c,'#ff3d81',2);c.restore();
+        c.font='900 12px Nunito, sans-serif';c.textAlign='center';c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=3;c.strokeText('Marker · '+dist+'m',ex,ey+30);c.fillText('Marker · '+dist+'m',ex,ey+30)}}}
   if(S.beaten.length<FOES.length){const bx=750,by=480,sx=bx-cam.x,sy=by-cam.y;
     if(sx<-20||sx>w+20||sy<-20||sy>h+20){const ang=Math.atan2(sy-h/2,sx-w/2);
       const ex=clamp(w/2+Math.cos(ang)*w,120,w-70),ey=clamp(h/2+Math.sin(ang)*h,90,h-110);
@@ -2150,8 +2326,8 @@ function hitPlayer(now,dd){if(F.over)return;{let d=dd*(F.iron?0.7:1);const block
 function endFight(win){
   F.over=true;F.superMode=false;{let t;do{t=pick(KOTYPES)}while(t===lastKo);lastKo=t;F.ko={who:win?'f':'p',type:t,t0:performance.now(),landed:false};F.up=0;if(win)F.cheer=1}setBlock(false);const secs=Math.round((performance.now()-F.t0)/1000);addSecs(secs);
   let coins,extra='';
-  if(F.meta.type==='boss'){const i=F.meta.i,rw=15+i*20,first=win&&!S.beaten.includes(i);coins=win?(first?rw*2:rw):-Math.min(S.coins,Math.max(5,Math.round(rw*0.4)));if(first){S.beaten.push(i);S.best=Math.max(S.best,i+1);
-      extra=S.beaten.length===FOES.length?'<li>You beat every boss. You are the STADIUM CHAMPION!</li>':`<li>${FOES.length-S.beaten.length} bosses left to beat.</li>`}
+  if(F.meta.type==='boss'){const i=F.meta.i,rw=15+i*20,first=win&&!S.beaten.includes(i);coins=win?(first?rw*2:rw):-Math.min(S.coins,Math.max(5,Math.round(rw*0.4)));if(first){S.beaten.push(i);S.best=Math.max(S.best,i+1);S.bossDay=new Date().toDateString();
+      extra=S.beaten.length===FOES.length?'<li>You beat every boss. You are the STADIUM CHAMPION!</li>':`<li>${FOES.length-S.beaten.length} bosses left. The next boss is now unlocked!</li>`}
     if(win&&first)extra=`<li style="color:var(--tape)">First win bonus!</li>`+extra}
   else{coins=win?F.foe.coins:-Math.min(S.coins,Math.max(5,Math.round(F.foe.coins*0.4)));WILDS[F.meta.wi]=makeWild()}
   const st=F.meta.story;if(st)extra+=`<li class="muted" style="font-weight:700">${fillN(win?st.win:st.lose,F.foe.name)}</li>`;
@@ -2232,6 +2408,8 @@ function drawHero(now){
 // ---------- loop ----------
 let last=performance.now();
 function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
+  if(SU.open)drawSetup(now);
+  if(BM.open)drawBigMap(now);
   if(screen==='skin')drawHero(now);
   if(screen==='mirror')drawMirror(now,dt);
   if(screen==='cafe')drawCafe(now,dt);
@@ -2241,7 +2419,7 @@ function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
   if(screen==='fight'){tickFight(now,dt);drawFight(dt)}
   requestAnimationFrame(loop)}
 if(S.px&&S.py&&!inBuild(S.px,S.py)&&!inPond(S.px,S.py)){PL.x=S.px;PL.y=S.py}
-checkDay();renderSnd();applyHand();show('map');requestAnimationFrame(loop);
+checkDay();renderSnd();applyHand();show('map');if(!S.setupDone)openSetup();requestAnimationFrame(loop);
 setInterval(save,4000);addEventListener('pagehide',save);addEventListener('beforeunload',save);
 try{navigator.storage&&navigator.storage.persist&&navigator.storage.persist()}catch(e){}
 document.addEventListener('visibilitychange',()=>{if(document.hidden)save()});
