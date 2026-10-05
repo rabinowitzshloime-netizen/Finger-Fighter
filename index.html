@@ -548,6 +548,11 @@ const UPGRADES=[
  {id:'lunch',name:'Lunch Box',price:400,days:5,ic:'🍱',txt:'Food and drink go down 40% slower'},
  {id:'hcard',name:'Hospital Card',price:600,days:3,ic:'💳',txt:'Healing at the Hospital costs 25 instead of 50'},
  {id:'magnet',name:'Coin Magnet',price:900,days:3,ic:'🧲',txt:'Get 25% more coins from every fight'},
+ {id:'radar',name:'Fighter Radar',price:700,ic:'📡',txt:'An arrow on the map always points to the nearest street fighter'},
+ {id:'thick',name:'Tough Skin',price:800,days:5,ic:'🦏',txt:'Take 15% less damage in every fight'},
+ {id:'lgloves',name:'Lucky Gloves',price:700,days:3,ic:'🥊',txt:'+10% chance of a lucky double hit in fights'},
+ {id:'chef',name:"Chef's Card",price:300,days:5,ic:'👨‍🍳',txt:'Everything at the Café costs half price'},
+ {id:'vip',name:'Stadium VIP',price:800,days:3,ic:'🎫',txt:'Boss wins pay 50% more coins'},
  {id:'coach',name:'Personal Coach',price:1000,ic:'📋',txt:'Get 25% more XP from every workout'}];
 const POWERUPS=[
  {id:'energy',name:'Energy Drink',price:80,ic:'⚡',txt:'Next fight: your punches are 30% stronger'},
@@ -555,6 +560,10 @@ const POWERUPS=[
  {id:'super',name:'Super Starter',price:100,ic:'💥',txt:'Next fight: start with SUPER already full'},
  {id:'lucky',name:'Lucky Coin',price:100,ic:'🍀',txt:'Next win pays double coins'},
  {id:'xp2',name:'Double XP Ticket',price:120,ic:'🎟️',txt:'Next workout gives double XP'},
+ {id:'protein',name:'Protein Bar',price:70,ic:'🍫',txt:'Fill your food and drink bars to full, right now. Press Use'},
+ {id:'fury',name:'Fury Gloves',price:90,ic:'🔥',txt:'Next fight: +25% chance of lucky double hits'},
+ {id:'slowmo',name:'Slow-Mo Watch',price:110,ic:'⏱️',txt:'Next fight: your enemy punches slower and the warning lasts longer'},
+ {id:'second',name:'Second Wind',price:150,ic:'💨',txt:'Next fight: if you get knocked out, you jump back up with half your health'},
  {id:'medkit',name:'First-Aid Kit',price:60,ic:'🩹',txt:'Heal 50% health without going to the Hospital. Press Use when you are hurt'}];
 const DAY=86400000;
 // upgrades with "days" run out: S.up[id] holds the time they expire. The others keep the value 1 (forever)
@@ -915,7 +924,7 @@ function renderShop(){
       const btn=own&&!u.days?'<button class="pill on" disabled>Owned</button>':`<button class="pill" data-up="${u.id}" ${S.coins<u.price?'disabled':''}>${own?'+'+u.days+'d ':''}<i class="coin"></i>${u.price}</button>`;
       h+=`<div class="card"><span class="ic boostic">${u.ic}</span><span><h3>${u.name}</h3><p>${u.txt}</p>${life}</span>${btn}</div>`}
     h+='<div class="slot">Power-ups · used up when you use them</div>';
-    for(const u of POWERUPS){const n=puHave(u.id),med=u.id==='medkit';h+=`<div class="card"><span class="ic boostic">${u.ic}</span><span><h3>${u.name}${n?` <span class="have">×${n}</span>`:''}</h3><p>${u.txt}${med?'':'. Used up automatically.'}</p></span><span style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="pill" data-pu="${u.id}" ${S.coins<u.price?'disabled':''}><i class="coin"></i>${u.price}</button>${med&&n?`<button class="pill ghost" data-usemed ${S.health>=0.999?'disabled':''}>Use</button>`:''}</span></div>`}
+    for(const u of POWERUPS){const n=puHave(u.id),med=u.id==='medkit'||u.id==='protein';h+=`<div class="card"><span class="ic boostic">${u.ic}</span><span><h3>${u.name}${n?` <span class="have">×${n}</span>`:''}</h3><p>${u.txt}${med?'':'. Used up automatically.'}</p></span><span style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><button class="pill" data-pu="${u.id}" ${S.coins<u.price?'disabled':''}><i class="coin"></i>${u.price}</button>${med&&n?`<button class="pill ghost" ${u.id==='protein'?'data-useprot':'data-usemed'} ${(u.id==='protein'?S.food>=99.5&&S.drink>=99.5:S.health>=0.999)?'disabled':''}>Use</button>`:''}</span></div>`}
     $('#shopList').innerHTML=h;return}
   let h=tab==='power'?'<p class="muted">Makes your fighter stronger in fights.</p>':'<p class="muted">Just for looks. Check them out in the Mirror Room!</p>';
   for(const slot of Object.keys(SLOTNAME)){
@@ -934,6 +943,7 @@ $('#shopList').addEventListener('click',e=>{
   const bu=e.target.closest('[data-up]'),bp=e.target.closest('[data-pu]'),um=e.target.closest('[data-usemed]');
   if(bu){const u=UPGRADES.find(x=>x.id===bu.dataset.up);if(S.coins>=u.price&&(u.days||!hasUp(u.id))){S.coins-=u.price;S.up[u.id]=u.days?Math.max(Date.now(),hasUp(u.id)?S.up[u.id]:0)+u.days*DAY:1;updCoins();save();sfx('level');renderShop()}return}
   if(bp){const u=POWERUPS.find(x=>x.id===bp.dataset.pu);if(S.coins>=u.price){S.coins-=u.price;S.pu[u.id]=puHave(u.id)+1;updCoins();save();sfx('coin');updMed();renderShop()}return}
+  const up2=e.target.closest('[data-useprot]');if(up2){if(puUse('protein')){S.food=100;S.drink=100;updMeters();save();sfx('gulp');renderShop()}return}
   if(um){if(S.health<0.999&&puUse('medkit')){S.health=Math.min(1,S.health+0.5);updMeters();save();sfx('good');renderShop()}return}
   const b=e.target.closest('[data-buy]'),q=e.target.closest('[data-eq]');
   if(b){const g=GEAR.find(x=>x.id===b.dataset.buy);if(S.coins>=g.price){S.coins-=g.price;S.owned.push(g.id);S.equip[g.slot]=g.id;save();sfx('coin');show('shop')}}
@@ -1257,6 +1267,7 @@ const MENU=[
  {id:'milk',name:'Milk',price:5,food:10,drink:30,note:'Strong bones'},
  {id:'juice',name:'Orange Juice',price:6,food:0,drink:40,note:'Sweet and fresh'},
  {id:'smoothie',name:'Power Smoothie',price:12,food:20,drink:50,note:'Food and drink in one'}];
+MENU.forEach(m=>{m.base=m.price;Object.defineProperty(m,'price',{get(){return typeof hasUp==='function'&&hasUp('chef')?Math.ceil(this.base/2):this.base}})});
 function drawFood(c,id,x,y,r,lvl=1,tilt=0){c.save();c.translate(x,y);const k=r/20;c.scale(k,k);if(tilt)c.rotate(tilt);c.lineJoin='round';c.lineCap='round';
   if(id==='banana'){c.lineWidth=9;c.strokeStyle=INK;c.beginPath();c.arc(0,-8,16,0.35,Math.PI-0.35);c.stroke();c.lineWidth=6;c.strokeStyle='#ffe14d';c.stroke();c.fillStyle='#6b4226';c.beginPath();c.arc(15,-2,2.5,0,7);c.arc(-15,-2,2.5,0,7);c.fill()}
   if(id==='apple'){c.beginPath();c.arc(-5,3,11,0,7);c.arc(5,3,11,0,7);ink(c,'#e63946',2);c.strokeStyle='#6b4226';c.lineWidth=2.5;line(c,0,-6,2,-14);c.fillStyle='#5fd49c';c.beginPath();c.ellipse(7,-12,5,2.5,-0.5,0,7);c.fill();c.fillStyle='rgba(255,255,255,.4)';c.beginPath();c.ellipse(-8,-2,3,5,0.4,0,7);c.fill()}
@@ -2137,6 +2148,10 @@ function drawMap(now){
       else{const ang=Math.atan2(sy-h/2,sx-w/2),ex=clamp(w/2+Math.cos(ang)*w,120,w-70),ey=clamp(h/2+Math.sin(ang)*h,120,h-140),dist=Math.round(Math.hypot(PL.x-M.x,PL.y-M.y)/10);
         c.save();c.translate(ex,ey);c.rotate(ang);c.beginPath();c.moveTo(22,0);c.lineTo(-10,-14);c.lineTo(-4,0);c.lineTo(-10,14);c.closePath();ink(c,'#ff3d81',2);c.restore();
         c.font='900 12px Nunito, sans-serif';c.textAlign='center';c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=3;c.strokeText('Marker · '+dist+'m',ex,ey+30);c.fillText('Marker · '+dist+'m',ex,ey+30)}}}
+  if(hasUp('radar')&&WILDS.length){let nb=null,nd=1e9;for(const wd of WILDS){const d=Math.hypot(wd.x-PL.x,wd.y-PL.y);if(d<nd){nd=d;nb=wd}}
+    const sx=nb.x-cam.x,sy=nb.y-cam.y;if(sx<-20||sx>w+20||sy<-20||sy>h+20){const ang=Math.atan2(sy-h/2,sx-w/2),ex=clamp(w/2+Math.cos(ang)*w,120,w-70),ey=clamp(h/2+Math.sin(ang)*h,150,h-170);
+      c.save();c.translate(ex,ey);c.rotate(ang);c.beginPath();c.moveTo(18,0);c.lineTo(-9,-12);c.lineTo(-3,0);c.lineTo(-9,12);c.closePath();ink(c,TIERS[nb.tier].col,2);c.restore();
+      c.font='900 11px Nunito, sans-serif';c.textAlign='center';c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=3;const tx='📡 '+nb.name;c.strokeText(tx,ex,ey+27);c.fillText(tx,ex,ey+27)}}
   if(S.beaten.length<FOES.length){const bx=750,by=480,sx=bx-cam.x,sy=by-cam.y;
     if(sx<-20||sx>w+20||sy<-20||sy>h+20){const ang=Math.atan2(sy-h/2,sx-w/2);
       const ex=clamp(w/2+Math.cos(ang)*w,120,w-70),ey=clamp(h/2+Math.sin(ang)*h,90,h-110);
@@ -2320,13 +2335,16 @@ function startFight(foe,meta){
   // a little harder: foes hit a bit harder, have a bit more health, attack slightly faster and guard a bit more
   foe=Object.assign({},foe,{hp:Math.round(foe.hp*1.15),dmg:Math.round(foe.dmg*7)/10,every:Math.max(1050,foe.every*0.95),warn:Math.max(foe.quirk==='sneaky'?560:700,(foe.warn||850)*0.93),guard:Math.min(0.55,(foe.guard||0)+0.04)});
   const m=me(),used=[];if(puUse('energy')){m.dmg*=1.3;used.push('Energy Drink')}const ironOn=puUse('iron');if(ironOn)used.push('Iron Skin');const supOn=puUse('super');if(supOn)used.push('Super Starter');
-  const luckyOn=puHave('lucky')>0;if(luckyOn)used.push('Lucky Coin');save();
+  const luckyOn=puHave('lucky')>0;if(luckyOn)used.push('Lucky Coin');
+  if(hasUp('lgloves'))m.crit=Math.min(75,m.crit+10);if(puUse('fury')){m.crit=Math.min(85,m.crit+25);used.push('Fury Gloves')}
+  const slowOn=puUse('slowmo');if(slowOn)used.push('Slow-Mo Watch');const secondOn=puUse('second');if(secondOn)used.push('Second Wind');save();
   show('fight');$('#pName').textContent=S.name;$('#fName').textContent=foe.name;
   const r1=v=>Math.round(v*10)/10;$('#pPow').textContent=`Punch ${r1(m.dmg)} · every tap`+(hungry()?' (hungry!)':'');$('#fPow').textContent=`Punch ${r1(foe.dmg)} · every ${r1((foe.every+(foe.warn||850))/1000)}s`;
   if(S.health==null)S.health=1;
   F={meta,foe,m,lvl:foe.lvl,php:Math.max(1,m.hp*S.health),fhp:foe.hp,next:performance.now()+1500,wind:0,block:false,pP:0,fP:0,hP:0,hF:0,txt:[],over:false,
-    sup:supOn?100:0,iron:ironOn,lucky:luckyOn,combo:0,superMode:false,up:0,shake:0,ptr:new Map(),startSpread:0,
+    sup:supOn?100:0,iron:ironOn,secondWind:secondOn,lucky:luckyOn,combo:0,superMode:false,up:0,shake:0,ptr:new Map(),startSpread:0,
     fl:Object.assign({shoes:null,headband:null,belt:null,hair:'#222'},foe.look),t0:performance.now()};
+  if(slowOn){F.foe.every*=1.3;F.foe.warn=(F.foe.warn||850)*1.35}
   hpBars();if(used.length)$('#pPow').textContent+=' · '+used.map(n=>POWERUPS.find(u=>u.name===n).ic).join('');
 }
 function hpBars(){$('#pHp').style.width=Math.max(0,F.php/F.m.hp*100)+'%';$('#fHp').style.width=Math.max(0,F.fhp/F.foe.hp*100)+'%';
@@ -2371,14 +2389,15 @@ function tickFight(now,dt){if(F&&!F.over){if(F.en==null)F.en=100;F.en=Math.min(1
     F.wind=0;F.next=now+fo.every*(rage?0.7:1)*(0.75+Math.random()*0.5)}
   F.pP=Math.max(0,F.pP-dt*7);F.fP=Math.max(0,F.fP-dt*5);F.hP=Math.max(0,F.hP-dt*5);F.hF=Math.max(0,F.hF-dt*6);F.up=Math.max(0,F.up-dt*1.5);F.shake=Math.max(0,F.shake-dt*2);
 }
-function hitPlayer(now,dd){if(F.over)return;{let d=dd*(F.iron?0.7:1);const blocked=F.block;if(blocked)d*=1-F.m.block/100;d=Math.round(d*10)/10;
+function hitPlayer(now,dd){if(F.over)return;{let d=dd*(F.iron?0.7:1)*(hasUp('thick')?0.85:1);const blocked=F.block;if(blocked)d*=1-F.m.block/100;d=Math.round(d*10)/10;
     F.php-=d;F.fP=1;F.hP=blocked?0.3:1;F.txt.push({s:blocked?'Blocked! -'+d:'-'+d,side:0,t:now,c:blocked?'#4fb0ff':'#ff5d5d'});
     if(blocked){sfx('block');burst(F.hitPX||100,F.hitY||120,'#4fb0ff',5);F.counterT=now+800;F.txt.push({s:'Punch now!',side:1,t:now,c:'#5fd49c'})}else{sfx('hurt');F.combo=0;F.shake=0.5;burst(F.hitPX||100,F.hitY||120,'#ff5d5d',10)}
+    if(F.php<=0&&F.secondWind){F.secondWind=false;F.php=F.m.hp*0.5;F.txt.push({s:'SECOND WIND!',side:0,t:now,c:'#5fd49c'});sfx('level')}
     hpBars();if(F.php<=0)endFight(false)}}
 function endFight(win){
   F.over=true;F.superMode=false;{let t;do{t=pick(KOTYPES)}while(t===lastKo);lastKo=t;F.ko={who:win?'f':'p',type:t,t0:performance.now(),landed:false};F.up=0;if(win)F.cheer=1}setBlock(false);const secs=Math.round((performance.now()-F.t0)/1000);addSecs(secs);
   let coins,extra='';
-  if(F.meta.type==='boss'){const i=F.meta.i,rw=15+i*20,first=win&&!S.beaten.includes(i);coins=win?(first?rw*2:rw):-Math.min(S.coins,Math.max(5,Math.round(rw*0.4)));if(first){S.beaten.push(i);S.best=Math.max(S.best,i+1);S.bossDay=new Date().toDateString();
+  if(F.meta.type==='boss'){const i=F.meta.i,rw=15+i*20,first=win&&!S.beaten.includes(i);coins=win?Math.round((first?rw*2:rw)*(hasUp('vip')?1.5:1)):-Math.min(S.coins,Math.max(5,Math.round(rw*0.4)));if(first){S.beaten.push(i);S.best=Math.max(S.best,i+1);S.bossDay=new Date().toDateString();
       extra=S.beaten.length===FOES.length?'<li>You beat every boss. You are the STADIUM CHAMPION!</li>':`<li>${FOES.length-S.beaten.length} bosses left. The next boss is now unlocked!</li>`}
     if(win&&first)extra=`<li style="color:var(--tape)">First win bonus!</li>`+extra}
   else{coins=win?F.foe.coins:-Math.min(S.coins,Math.max(5,Math.round(F.foe.coins*0.4)));WILDS[F.meta.wi]=makeWild()}
