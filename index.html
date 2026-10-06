@@ -247,6 +247,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .hbtns{margin-top:auto;width:100%;display:grid;gap:10px}.hbtns .big{font-size:26px;padding:16px;letter-spacing:.08em}
 .hrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hrow .pill{justify-content:center;padding:11px;background:rgba(20,26,40,.85);color:var(--chalk);border:1px solid var(--line)}
 .hnote{margin:12px 0 0;font-weight:800;font-size:12px;color:#8e98b3}
+.stat .xpn{grid-column:2;margin-top:-4px;color:var(--muted);font-weight:800;font-size:11px}.coachn{margin:4px 0 0;font-weight:800;font-size:12px;color:var(--tape)}
 .side .tr{background:var(--tape);color:var(--tape-ink);box-shadow:0 4px 0 #b37700}
 .act{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:2;min-width:230px;max-width:calc(100% - 120px)}
 .act:active{transform:translateX(-50%) translateY(3px)}
@@ -375,6 +376,7 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
     <button class="back" data-go="map">&larr; Back to map</button>
     <h2>Finger Gym</h2>
     <p class="muted">Real finger exercises. Get 3 stars on each one for extra coins.</p>
+    <div class="stats" id="gymStats"></div>
     <div class="list" id="workList"></div>
   </section>
 
@@ -843,7 +845,7 @@ $('#gYes').onclick=()=>{if(!GPICK)return;const keep={sound:S.sound,hand:S.hand,c
   S=Object.assign(JSON.parse(JSON.stringify(DEF)),keep,{gender:GPICK,name:GPICK==='girl'?'Bella':'Buddy'});GPICK=null;PL.x=750;PL.y=1440;PL.tx=null;WILDS=Array.from({length:NWILD},makeWild);save();sfx('level');updCoins();updMeters();show('map');openSetup()};
 function renderHome(){renderGender();renderStyle();
   checkDay();$('#nameIn').value=S.name;$('#powerLv').textContent=rankOf()[1]+' · Power '+powerLv();
-  $('#stats').innerHTML=Object.keys(STATS).map(k=>{const s=S[k];return`<div class="stat"><span>${STATS[k].name}</span><span class="bar"><i style="width:${Math.round(s.xp/XP(s.lv)*100)}%;background:${STATS[k].col}"></i></span><span class="lv">Lv ${s.lv}</span></div>`}).join('');
+  $('#stats').innerHTML=statsHtml();
 }
 function applyHand(){if(typeof setDevice==='function')setDevice();document.body.classList.toggle('lefty',S.hand==='left'&&!IS_PC);const pick=IS_PC?'pc':(S.hand||'right');document.querySelectorAll('#handSeg button').forEach(b=>b.classList.toggle('on',b.dataset.hand===pick));
   const t=$('#handTip');if(t)t.textContent=IS_PC?'Computer mode: use the keyboard and mouse in workouts and fights':'Touch mode: use your fingers on the screen'}
@@ -908,7 +910,8 @@ function drawWorkIcon(c,key,w,h){c.save();c.scale(w/52,h/52);c.lineCap='round';c
     c.strokeStyle='#fff';c.lineWidth=2;c.beginPath();for(let x=0;x<=52;x+=4)x?c.lineTo(x,32+Math.sin(x/4)*2):c.moveTo(x,32);c.stroke();
     c.beginPath();for(let x=0;x<=52;x+=4)x?c.lineTo(x,42+Math.sin(x/4+1)*2):c.moveTo(x,42);c.stroke()}
   c.restore()}
-function renderTrain(){
+function statsHtml(){return Object.keys(STATS).map(k=>{const s=S[k],need=XP(s.lv),have=Math.floor(s.xp);return`<div class="stat"><span>${STATS[k].name}</span><span class="bar" title="${have} of ${need} XP"><i style="width:${Math.round(s.xp/need*100)}%;background:${STATS[k].col}"></i></span><span class="lv">Lv ${s.lv}</span><small class="xpn">${have} / ${need} XP</small></div>`}).join('')+(hasUp('coach')?`<p class="coachn">📋 Personal Coach Lv ${coachLv()}: +${coachLv()*25}% XP</p>`:'')}
+function renderTrain(){$('#gymStats').innerHTML=statsHtml();
   $('#workList').innerHTML=WORK.map(w=>`<button class="card" data-w="${w.key}"><canvas class="ic wi" data-k="${w.key}" style="background:${w.ic}" width="52" height="52"></canvas><span><h3>${w.name}</h3><p>${w.what}</p></span><span class="tag"><span class="stars">${starsHtml(S.bestStars[w.key]||0)}</span><span style="color:${w.ic}">${STATS[w.stat].name.slice(0,3).toUpperCase()} Lv ${S[w.stat].lv}</span></span></button>`).join('');
   $('#workList').querySelectorAll('.wi').forEach(cv=>{const {c,w,h}=fit(cv);drawWorkIcon(c,cv.dataset.k,w,h)});
 }
