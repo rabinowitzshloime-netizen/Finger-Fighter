@@ -144,6 +144,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .setrow.stack .seg button{flex:1}
 .card .ic svg{display:block}
 .card canvas.ic{width:52px;height:52px;padding:0}
+.shopPrev{display:block;width:100%;height:150px;border-radius:14px;background:linear-gradient(#9fd3f0,#cfeaf7 60%,#6f9455 60%);border:1px solid var(--line);margin:4px 0 6px}
 .card[disabled]{opacity:.45;cursor:default}
 .pill{display:inline-flex;align-items:center;gap:5px;padding:7px 12px;border-radius:999px;border:0;font-weight:900;background:var(--tape);color:var(--tape-ink)}
 .pill.ghost{background:var(--panel2);color:var(--chalk)}
@@ -249,6 +250,11 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .hnote{margin:12px 0 0;font-weight:800;font-size:12px;color:#8e98b3}
 .stat .xpn{grid-column:2;margin-top:-4px;color:var(--muted);font-weight:800;font-size:11px}.coachn{margin:4px 0 0;font-weight:800;font-size:12px;color:var(--tape)}
 .trains{display:inline-block;margin:3px 0 2px;padding:2px 9px;border-radius:999px;color:#1b2130;font-weight:900;font-size:12px}
+.tourcard{border:2px solid var(--tape);background:linear-gradient(90deg,#3a2a10,var(--panel))}
+.bracket{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;text-align:left;font-size:11px;font-weight:800;margin:8px 0}
+.bracket .col{display:flex;flex-direction:column;justify-content:space-around;gap:6px}.bracket h4{margin:0 0 2px;font-size:11px;color:var(--tape);text-align:center}
+.bracket .m{background:#141a28;border:1px solid var(--line);border-radius:8px;padding:4px 6px}.bracket .m div{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.bracket .w{color:#5fd49c}.bracket .l{color:#6b7488;text-decoration:line-through}.bracket .me{color:#ffb627}
 .side .tr{background:var(--tape);color:var(--tape-ink);box-shadow:0 4px 0 #b37700}
 .act{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:2;min-width:230px;max-width:calc(100% - 120px)}
 .act:active{transform:translateX(-50%) translateY(3px)}
@@ -439,10 +445,24 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
     <button class="back" data-go="map">&larr; Back to map</button>
     <h2>The Stadium</h2>
     <p class="muted">Bosses come one at a time. Beat a boss to unlock the next one. The crowd is waiting!</p>
+    <button class="card tourcard" id="tourBtn"><span class="ic boostic" style="font-size:30px">🏆</span><span><h3>Tournament</h3><p id="tourTxt">Win 3 fights in a row to become champion!</p></span><span class="tag" id="tourTag"></span></button>
     <p id="champ" style="font-weight:900;color:var(--tape)"></p>
     <div class="list" id="bossList"></div>
   </section>
 
+  <section id="arcade" hidden>
+    <button class="back" data-go="map">&larr; Back to map</button>
+    <h2>Arcade</h2>
+    <div id="arcPick"><p class="muted">Pay to play and win prizes! The better you play, the more you win.</p><div id="arcList" class="list"></div></div>
+    <div id="arcPlay" hidden><p id="arcInfo" class="muted" style="text-align:center;font-weight:800;margin:4px 0 8px"></p><canvas id="arcCv" style="display:block;width:100%;height:440px;border-radius:16px;background:#141826;touch-action:none"></canvas></div>
+  </section>
+  <section id="bikes" hidden>
+    <button class="back" data-go="map">&larr; Back to map</button>
+    <h2>Bike Shop</h2>
+    <p class="muted">Make your bike faster and cooler. A faster bike wins more races at the Bike Track!</p>
+    <canvas id="bikePrev" class="shopPrev"></canvas>
+    <div id="bikeList" class="list"></div>
+  </section>
   <section id="shop" hidden>
     <button class="back" data-go="map">&larr; Back to map</button>
     <h2>Gear Shop</h2>
@@ -506,7 +526,15 @@ const FOES=[
  {name:'Lightning Lola',hs:'bun',hc:'#9b5de5',hp:880,dmg:40,every:1150,skin:'#f1c9a0',shorts:'#4fb0ff',gl:'#4fb0ff',top:'tp3',face:'fc1'},
  {name:'Brick Boris',hs:'flat',hc:'#5a3a24',beard:1,hp:1100,dmg:48,every:1100,skin:'#e8b48a',shorts:'#8a5a2b',gl:'#b5651d',pat:'pt3',hb:'#111827'},
  {name:'Mighty Mo',hs:'short',hc:'#111',hp:1400,dmg:58,every:1000,skin:'#5c3a24',shorts:'#9b5de5',gl:'#ffd23f',hat:'ht1',cape:'cp1'},
- {name:'The Volcano',hs:'spiky',hc:'#ff4d00',hp:1800,dmg:72,every:900,skin:'#d9a066',shorts:'#e63946',gl:'#ff4d00',pat:'pt2',hb:'#ff4d00',belt:'#ffd23f'}
+ {name:'The Volcano',hs:'spiky',hc:'#ff4d00',hp:1800,dmg:72,every:900,skin:'#d9a066',shorts:'#e63946',gl:'#ff4d00',pat:'pt2',hb:'#ff4d00',belt:'#ffd23f'},
+ {name:'Frosty Fiona',hs:'bun',hc:'#dff3ff',hp:2300,dmg:85,every:880,skin:'#f6d2b4',shorts:'#4fb0ff',gl:'#bfe6ff',top:'tp3',face:'fc2',cape:'cp2'},
+ {name:'Captain Crusher',hs:'flat',hc:'#1d1d1d',beard:1,hp:2900,dmg:98,every:860,skin:'#8d5a3b',shorts:'#1d3557',gl:'#e63946',hat:'ht2',belt:'#ffd23f'},
+ {name:'Shadow Ninja',hs:'short',hc:'#111',hp:3600,dmg:112,every:820,skin:'#c68642',shorts:'#111827',gl:'#111827',top:'tp4',hb:'#e63946',face:'fc1'},
+ {name:'Dino Dan',hs:'mohawk',hc:'#5fd49c',hp:4400,dmg:128,every:800,skin:'#e0a878',shorts:'#2e7d32',gl:'#5fd49c',pat:'pt4',hb:'#5fd49c'},
+ {name:'The Gorilla',hs:'bald',hc:'#333',beard:1,hp:5400,dmg:145,every:780,skin:'#5c3a24',shorts:'#6b4f3a',gl:'#2b2f3a',belt:'#c0c6d1'},
+ {name:'Queen Quake',hs:'bun',hc:'#c86bff',hp:6600,dmg:165,every:760,skin:'#8d5a3b',shorts:'#9b5de5',gl:'#ffd23f',hat:'ht1',cape:'cp1',top:'tp1'},
+ {name:'Robo Rex',hs:'flat',hc:'#9aa3b8',hp:8000,dmg:188,every:740,skin:'#c0c6d1',shorts:'#3a4560',gl:'#9aa3b8',face:'fc2',top:'tp4',belt:'#4fb0ff'},
+ {name:'The Final Fist',hs:'spiky',hc:'#ffd23f',hp:10000,dmg:215,every:700,skin:'#d9a066',shorts:'#111827',gl:'#ffd23f',hat:'ht1',cape:'cp2',pat:'pt1',belt:'#ffd23f',hb:'#ffd23f'}
 ];
 const WORK=[
  {key:'bag',stat:'spd',name:'Speed Bag',ic:'#4fb0ff',letter:'2',dur:20,stars:[30,60,90],unit:'hits',xp:n=>n/3,
@@ -530,12 +558,13 @@ const WORK=[
 ];
 
 // ---------- save ----------
-const DEF={name:'Buddy',str:{lv:1,xp:0},spd:{lv:1,xp:0},sta:{lv:1,xp:0},coins:0,owned:[],equip:{},food:100,drink:100,fat:0,health:1,gender:'boy',best:0,day:'',moves:0,secs:0,bestStars:{},streak:0,lastActive:'',sound:true,beaten:[],skin:'#e0a878',hairStyle:'short',hairCol:'#2b1d14',up:{},pu:{}};
+const DEF={name:'Buddy',raceWins:0,raceBest:0,bikeLv:0,bikeCols:[],bikeCol:'red',str:{lv:1,xp:0},spd:{lv:1,xp:0},sta:{lv:1,xp:0},coins:0,owned:[],equip:{},food:100,drink:100,fat:0,health:1,gender:'boy',best:0,day:'',moves:0,secs:0,bestStars:{},streak:0,lastActive:'',sound:true,beaten:[],skin:'#e0a878',hairStyle:'short',hairCol:'#2b1d14',up:{},pu:{}};
 let S=null;
 try{S=JSON.parse(localStorage.getItem('ff-save'))}catch(e){}
 const HAD_SAVE=!!S;
 S=Object.assign(JSON.parse(JSON.stringify(DEF)),S||{});
 if(S.setupDone==null)S.setupDone=HAD_SAVE;
+if(S.pets&&S.pets.length){const PR={dog:400,cat:400,bunny:600,parrot:900,penguin:1200,dragon:3000};for(const id of S.pets)S.coins+=PR[id]||0}S.pets=[];S.pet=null;
 if(!S.beaten)S.beaten=[];if(!S.beaten.length&&S.best>0)for(let i=0;i<S.best;i++)S.beaten.push(i);
 function save(){try{if(typeof PL!=='undefined'){S.px=Math.round(PL.x);S.py=Math.round(PL.y)}localStorage.setItem('ff-save',JSON.stringify(S))}catch(e){}}
 const dayStr=d=>d.toDateString();
@@ -800,7 +829,7 @@ function drawParts(c,dt){parts=parts.filter(p=>p.t<0.5);for(const p of parts){p.
 // ---------- screens ----------
 let screen='map';
 function show(id){if(screen==='cafe'&&id!=='cafe'&&typeof EATQ!=='undefined'&&EATQ.length){let back=0;for(const q of EATQ)back+=MENU.find(m=>m.id===q).price;S.coins+=back;EATQ=[];save()}screen=id;parts=[];document.querySelectorAll('#app>section').forEach(s=>s.hidden=s.id!==id);
-  if(id==='skin')renderHome();if(id==='train')renderTrain();if(id==='shop')renderShop();if(id==='settings')renderSettings();if(id==='stadium')renderStadium();if(id==='mirror'){renderMirror();$('#mirSay').textContent='Swipe the mirror or tap Turn to see every side.'}if(id==='map')renderMapHud();if(id==='cafe'){enterCafe();renderCafe()}if(id==='hospital')renderHospital();updMeters();
+  if(id==='skin')renderHome();if(id==='train')renderTrain();if(id==='shop')renderShop();if(id==='settings')renderSettings();if(id==='stadium')renderStadium();if(id==='mirror'){renderMirror();$('#mirSay').textContent='Swipe the mirror or tap Turn to see every side.'}if(id==='map')renderMapHud();if(id==='cafe'){enterCafe();renderCafe()}if(id==='hospital')renderHospital();if(id==='bikes')renderBikes();if(id==='arcade')renderArcade();updMeters();
   $('.top').hidden=id==='map';updCoins();window.scrollTo(0,0)}
 $('#bikeBtn').addEventListener('click',()=>{S.onBike=S.onBike===false;PL.vx=PL.vy=0;save();sfx('tick');updBike()});
 $('#medBtn').addEventListener('click',()=>{if((S.health??1)>=0.999||!puUse('medkit'))return;S.health=Math.min(1,S.health+0.5);save();sfx('good');updMeters();
@@ -918,7 +947,32 @@ function renderTrain(){$('#gymStats').innerHTML=statsHtml();
 }
 $('#workList').addEventListener('click',e=>{const b=e.target.closest('[data-w]');if(b)startWorkout(WORK.find(w=>w.key===b.dataset.w))});
 
-function renderStadium(){
+// ---------- tournament: 8 fighters, 3 rounds in a row, health carries over ----------
+let TOUR=null;const TROUNDS=['Quarter-final','Semi-final','FINAL'];
+const tourFee=()=>50+powerLv()*5,tourPrize=()=>Math.round((300+powerLv()*40)*(hasUp('vip')?1.5:1));
+function renderTour(){$('#tourTxt').textContent=TOUR?`You're in the ${TROUNDS[TOUR.r]}! Tap to see the bracket.`:`8 fighters. Win 3 fights in a row - no healing in between! Prize: ${tourPrize()} coins + a trophy.`;
+  $('#tourTag').innerHTML=TOUR?'<span style="color:var(--tape)">Continue</span>':`<span>Entry</span><span style="color:var(--tape)"><i class="coin"></i>${tourFee()}</span>`+(S.trophies?`<span>🏆×${S.trophies}</span>`:'')}
+function tourFoe(r){const w=makeWild();w.tier=[1,2,3][r];w.rel=[0.05,0.22,0.4][r];w.name=TOUR.opp[r];w.quirk=r?pick(Object.keys(QUIRKS)):null;w.foe.name=w.name;const f=wildFoe(w);f.name=w.name;return f}
+function bracketHtml(){const T=TOUR,me=S.name.replace(/[<>&]/g,''),N=T.field;
+  const m=(a,b,win)=>`<div class="m"><div class="${win===a?'w':win?'l':''} ${a===me?'me':''}">${a}</div><div class="${win===b?'w':win?'l':''} ${b===me?'me':''}">${b}</div></div>`;
+  const W=T.wins;return `<div class="bracket"><div class="col"><h4>Quarter-finals</h4>${[0,1,2,3].map(i=>m(N[i*2],N[i*2+1],W[0][i])).join('')}</div>
+    <div class="col"><h4>Semi-finals</h4>${[0,1].map(i=>m(W[0][i*2]||'?',W[0][i*2+1]||'?',W[1][i])).join('')}</div>
+    <div class="col"><h4>Final</h4>${m(W[1][0]||'?',W[1][1]||'?',W[2][0])}${W[2][0]?`<div style="text-align:center;font-size:14px">🏆<br>${W[2][0]}</div>`:''}</div></div>`}
+function startTour(){const fee=tourFee();if(S.coins<fee){modal(`<h2>Tournament</h2><p>The entry costs <b>${fee} coins</b>. You have ${S.coins}. Win some street fights first!</p>`,'OK',null);sfx('bad');return}
+  if(S.health<0.6){modal(`<h2>Too hurt!</h2><p>You need at least 60% health to enter a tournament. Visit the Hospital first.</p>`,'OK',null);sfx('bad');return}
+  S.coins-=fee;updCoins();save();sfx('coin');
+  const n=[...WNAMES].sort(()=>Math.random()-0.5).slice(0,7),me=S.name.replace(/[<>&]/g,'');
+  // bracket: you vs n0 | n2 vs n1 | n3 vs n4 | n5 vs n6. Your opponents: n0, then n1, then n3 in the final
+  TOUR={r:0,opp:[n[0],n[1],n[3]],field:[me,n[0],n[2],n[1],n[3],n[4],n[5],n[6]],wins:[[null,n[1],n[3],pick([n[5],n[6]])],[],[]]};
+  showBracket()}
+function showBracket(){const T=TOUR;$('#modalBox').innerHTML=`<h2>🏆 Tournament</h2><p style="margin:0;font-weight:900;color:var(--tape)">${TROUNDS[T.r]}: ${S.name.replace(/[<>&]/g,'')} vs ${T.opp[T.r]}</p>${bracketHtml()}
+  <p class="muted" style="margin:0">Your health: <b>${Math.round(S.health*100)}%</b> - no healing between rounds!</p>
+  <div style="display:grid;grid-template-columns:1fr 2fr;gap:8px"><button class="pill ghost" id="tQuit" style="justify-content:center">Give up</button><button class="big go" id="tGo">Fight ${TROUNDS[T.r]}!</button></div>`;
+  $('#modal').hidden=false;
+  $('#tGo').onclick=()=>{$('#modal').hidden=true;const f=tourFoe(T.r);startFight(f,{type:'tour',r:T.r})};
+  $('#tQuit').onclick=()=>{TOUR=null;$('#modal').hidden=true;sfx('tick');renderStadium()}}
+$('#tourBtn').onclick=()=>{sfx('tick');if(TOUR)showBracket();else startTour()};
+function renderStadium(){renderTour();
   $('#champ').textContent=`Bosses beaten: ${S.beaten.length} of ${FOES.length}`+(S.beaten.length===FOES.length?' · CHAMPION!':'');
   const cur=FOES.findIndex((_,i)=>!S.beaten.includes(i)),ready=cur>=0;
   $('#bossList').innerHTML=FOES.map((f,i)=>{const b=bossFoe(i),done=S.beaten.includes(i),rw=15+i*20,open=i===cur&&ready;
@@ -1104,7 +1158,7 @@ const SETUP={
     A.innerHTML='<canvas></canvas>';W.cv=A.querySelector('canvas');W.notes=[];W.nextNote=performance.now()+600;W.flash=[0,0,0,0];W.fx=[];
     const tap=lane=>{
       W.flash[lane]=1;let best=null,bd=1;for(const n of W.notes)if(n.lane===lane){const d=Math.abs(n.y-0.84);if(d<bd){bd=d;best=n}}
-      if(best&&bd<0.09){W.notes.splice(W.notes.indexOf(best),1);W.combo++;const perfect=bd<0.04;wScore(perfect?1.5:1);sfx(perfect?'great':'good');W.pose.ropeT=0;
+      if(best&&bd<(IS_PC?0.13:0.09)){W.notes.splice(W.notes.indexOf(best),1);W.combo++;const perfect=bd<(IS_PC?0.05:0.04);wScore(perfect?1.5:1);sfx(perfect?'great':'good');W.pose.ropeT=0;
         W.fx.push({lane,t:performance.now(),s:perfect?'PERFECT':'GOOD'})}
       else{W.combo=0;setScore();sfx('bad');W.pose.trip=1}};
     A.onpointerdown=e=>{if(!W.run)return;e.preventDefault();move();const r=A.getBoundingClientRect();tap(clamp(Math.floor((e.clientX-r.left)/r.width*4),0,3))};
@@ -1159,15 +1213,16 @@ function tickWorkout(now,dt){
     W.place();
   }
   if(w.key==='beat'){
-    const el=(now-W.t0)/1000,fall=clamp(1.7-el*0.025,1.05,1.7);
+    const el=(now-W.t0)/1000,pcK=IS_PC?1.35:1,fall=clamp(1.7-el*0.025,1.05,1.7)*pcK;
     if(now>=W.nextNote){let lane=Math.floor(Math.random()*4);W.notes.push({lane,y:0});
-      if(el>8&&Math.random()<0.25){let l2;do{l2=Math.floor(Math.random()*4)}while(l2===lane);W.notes.push({lane:l2,y:0})}
-      W.nextNote=now+clamp(560-el*12,300,560)}
+      if(el>(IS_PC?15:8)&&Math.random()<(IS_PC?0.12:0.25)){let l2;do{l2=Math.floor(Math.random()*4)}while(l2===lane);W.notes.push({lane:l2,y:0})}
+      W.nextNote=now+clamp(560-el*12,300,560)*(IS_PC?1.3:1)}
     for(const n of W.notes)n.y+=dt/fall;
     const miss=W.notes.filter(n=>n.y>0.98);if(miss.length){W.combo=0;setScore()}W.notes=W.notes.filter(n=>n.y<=0.98);
     const {c,w:cw,h:ch}=fit(W.cv);c.clearRect(0,0,cw,ch);const lw=cw/4,cols=['#4fb0ff','#5fd49c','#ffb627','#ff7a59'];
     for(let i=0;i<4;i++){W.flash[i]=Math.max(0,W.flash[i]-dt*6);c.fillStyle=`rgba(255,255,255,${0.03+W.flash[i]*0.15})`;c.fillRect(i*lw+3,0,lw-6,ch)}
     c.fillStyle='#f4efe4';c.fillRect(0,ch*0.84-2,cw,4);
+    if(IS_PC){c.textAlign='center';c.font='400 18px Bungee, Impact, sans-serif';for(let i=0;i<4;i++){c.fillStyle=W.flash[i]>0.2?'#fff':'rgba(255,255,255,.55)';c.fillText('DFJK'[i],i*lw+lw/2,ch*0.84+26)}}
     for(const n of W.notes){c.fillStyle=cols[n.lane];c.beginPath();c.roundRect(n.lane*lw+8,n.y*ch-12,lw-16,24,10);c.fill()}
     W.fx=W.fx.filter(f=>now-f.t<500);c.textAlign='center';c.font='400 14px Bungee, Impact, sans-serif';
     for(const f of W.fx){const k=(now-f.t)/500;c.globalAlpha=1-k;c.fillStyle='#fff';c.fillText(f.s,f.lane*lw+lw/2,ch*0.84-20-k*30)}c.globalAlpha=1;
@@ -1199,7 +1254,10 @@ function drawCoach(c,w,h,now,opt){if(!W)return;opt=opt||{};const left=W.run?W.w.
   c.strokeStyle='#f4efe4';c.lineWidth=1.5;const ny=cy-118*cs;c.beginPath();c.moveTo(cx-8*cs,ny);c.quadraticCurveTo(cx,ny+22*cs,cx+8*cs,ny);c.stroke();c.fillStyle='#c0c6d1';c.beginPath();c.roundRect(cx-4*cs,ny+16*cs,9*cs,6*cs,2);c.fill();
   c.restore();
   if(!opt.small){c.font='900 10px Nunito, sans-serif';c.textAlign='center';c.fillStyle='#ffb627';c.fillText('COACH',cx,Math.min(h-2,cy+2))}}
-function drawCoachBubble(c,w,h,now){if(!W||!hasUp('coach'))return;const talking=W.cSay&&now-W.cSay.at<2200,cx=W.cX||Math.max(40,w*0.12);
+function drawCoachBubble(c,w,h,now){if(!W||!hasUp('coach'))return;
+  // while the OTHER ARM! sign shows in curls, the coach waits so his words don't cover it
+  if(W.w.key==='curl'&&W.swapT&&now-W.swapT<2300){if(W.cSay&&now-W.cSay.at<2200)W.cSay.at=now;return}
+  const talking=W.cSay&&now-W.cSay.at<2200,cx=W.cX||Math.max(40,w*0.12);
   if(talking){c.font='900 13px Nunito, sans-serif';const t=W.cSay.t,tw=Math.min(w-12,c.measureText(t).width+18),bx=W.w.key==='swim'?6:Math.max(6,Math.min(w-tw-6,cx+48)),by=W.w.key==='swim'?h*0.38:h-34;
     c.fillStyle='#ffb627';c.beginPath();c.roundRect(bx,by,tw,26,10);c.fill();c.beginPath();if(W.w.key==='swim'){c.moveTo(bx+10,by+26);c.lineTo(bx-4,by+40);c.lineTo(bx+24,by+26)}else{c.moveTo(bx,by+4);c.lineTo(bx-12,by-4);c.lineTo(bx,by+18)}c.fill();
     c.fillStyle='#1b2130';c.textAlign='left';c.save();c.beginPath();c.rect(bx,by,tw,26);c.clip();c.fillText(t,bx+9,by+17);c.restore()}}
@@ -1290,11 +1348,11 @@ const LEGENDS=[
  {intro:"{n} just came back from a secret training camp in the mountains.",say:"I trained with a bear.",win:"Maybe the bear was not a very good coach.",lose:"The bear training worked."},
  {intro:"{n} once beat three people at the same time. Well, that's what {n} says.",say:"You're number four!",win:"Turns out that story wasn't true after all.",lose:"Maybe the story was true."}];
 const QTIP={fast:'Fast hands: hits often, but softer.',tank:'Tank: lots of health. Keep punching!',sneaky:'Sneaky: only a short warning before each hit.',guard:'Blocker: wait when the guard is up.',double:'Double hitter: keep blocking for the second hit.',rage:'Hothead: gets faster when low on health.'};
-const BOSSQ=["I've been training my noodle arms all year!","You won't even see me coming.","Big Barry. Big punches. Big trouble.","My fists feel like iron. Want to check?","I'm a tank. Tanks don't fall over.","Everything about me is MEGA.","You don't beat the Mountain. You climb it. Good luck.","Hear that rumble? That's me coming.","You'll never catch me. I'm too fast!","Hitting me is like punching a wall.","Bow to the king of the stadium!","Stand back. I am about to ERUPT!"];
+const BOSSQ=["I've been training my noodle arms all year!","You won't even see me coming.","Big Barry. Big punches. Big trouble.","My fists feel like iron. Want to check?","I'm a tank. Tanks don't fall over.","Everything about me is MEGA.","You don't beat the Mountain. You climb it. Good luck.","Hear that rumble? That's me coming.","You'll never catch me. I'm too fast!","Hitting me is like punching a wall.","Bow to the king of the stadium!","Stand back. I am about to ERUPT!","Brrr! My punches will freeze you solid!","All hands on deck! Prepare to be CRUSHED!","You will not see me... until it is too late.","RAWR! Dinosaurs never went extinct. I just got STRONGER.","Ooh ooh AH AH! Beat your chest, then beat you!","Bow down! The ground shakes when the Queen punches!","BEEP BOOP. FIGHTER DETECTED. PREPARE FOR DEFEAT.","I am the last boss. Nobody has ever beaten me."];
 const fillN=(t,n)=>t.replaceAll('{n}',n);
 function portrait(cv,look,lvl){const {c,w,h}=fit(cv);c.clearRect(0,0,w,h);drawFighter(c,w/2,h-6,(h/190)*(0.85+0.2*lvl),look,{bob:0,flip:true})}
 function preFight(foe,meta,story){
-  const boss=meta.type==='boss';
+  const boss=meta.type==='boss'||meta.type==='tour';
   $('#modalBox').innerHTML=`<canvas id="pfCv" style="height:150px;width:120px;margin:0 auto"></canvas>
     <h2>${foe.name}</h2>
     <p style="font-weight:900;color:${boss?'var(--tape)':TIERS.find(t=>t.name===foe.tier).col}">${boss?`Boss ${meta.i+1} of ${FOES.length}`:foe.tier+' street fight'}</p>
@@ -1711,7 +1769,8 @@ function drawZones(c,now,vis){for(const z of ZONES){if(!vis(z.x+z.w/2,z.y+z.h/2,
     c.setLineDash([12,10]);c.strokeStyle='rgba(255,255,255,.6)';c.beginPath();c.roundRect(x+23,y+23,w-46,h-46,(h-46)/2);c.stroke();c.setLineDash([]);
     for(let i=0;i<8;i++){c.fillStyle=i%2?'#fff':'#111';c.fillRect(x+w/2-2+(i%2)*0,y+i*5.75,4,5.75)}
     c.fillStyle='#fff';c.font='400 30px Bungee, Impact, sans-serif';c.textAlign='center';c.fillText('BIKE TRACK',x+w/2,y+h/2+10);
-    c.font='800 13px Nunito, sans-serif';c.fillText('Got a bike? Race around!',x+w/2,y+h/2+32)}
+    c.font='800 13px Nunito, sans-serif';c.fillText('Race at the start line to win coins!',x+w/2,y+h/2+32);
+    c.font='900 11px Nunito, sans-serif';c.fillStyle='#fff';c.fillText('START',x+w/2,y-6)}
   if(z.k==='skate'){c.fillStyle='#b9bec7';c.beginPath();c.roundRect(x,y,w,h,18);c.fill();c.strokeStyle='#8a93a8';c.lineWidth=3;c.stroke();
     c.strokeStyle='rgba(0,0,0,.08)';c.lineWidth=1;for(let i=40;i<w;i+=40)line(c,x+i,y,x+i,y+h);for(let i=40;i<h;i+=40)line(c,x,y+i,x+w,y+i);
     const ramp=(rx,ry,rw,rh,flip)=>{const g=c.createLinearGradient(rx,0,rx+rw,0);g.addColorStop(flip?1:0,'#7d8597');g.addColorStop(flip?0:1,'#d6dae2');c.fillStyle=g;c.beginPath();c.roundRect(rx,ry,rw,rh,6);c.fill();c.strokeStyle=INK;c.lineWidth=1.5;c.stroke()};
@@ -1842,6 +1901,9 @@ function drawSky(c,now,vis){
     if(inPond(cx,cy,90)||nearDecor(cx,cy,70)||PONDS.some(p=>Math.hypot(cx-p.x,cy-p.y)<Math.max(p.rx,p.ry)+110))continue;
     if(Math.hypot(cx-PL.x,cy-PL.y)<150)continue;
     BUILD.push(shop?{x,y,w,h,sign:SHOPS[sh++%SHOPS.length],roof:ROOFS[Math.floor(r()*ROOFS.length)],kind:'shopfront'}:{x,y,w,h,sign:'',roof:ROOFS[Math.floor(r()*ROOFS.length)],kind:'house'})}})();
+(()=>{const ar=BUILD.find(b=>b.sign==='ARCADE');if(ar){ar.name='Arcade';ar.go='arcade'}
+  const bk=BUILD.filter(b=>!b.go&&b.y>1430&&b.y<1700&&b.x>1250&&b.x<2050).sort((a,b)=>Math.hypot(a.x+a.w/2-1790,a.y-1450)-Math.hypot(b.x+b.w/2-1790,b.y-1450))[0];
+  if(bk)Object.assign(bk,{sign:'BIKES',name:'Bike Shop',go:'bikes',kind:'shopfront',roof:'#e63946',w:Math.max(bk.w,125),h:Math.max(bk.h,90)})})();
 const TREES=[],TUFTS=[],FLOWERS=[];
 (()=>{const r=rnd(7);let tries=0;while(TREES.length<470&&tries++<30000){const x=30+r()*(WORLD.w-60),y=30+r()*(WORLD.h-60);
   if(nearPath(x,y)<85)continue;if(inBuild(x,y,60)||inPond(x,y,30)||nearDecor(x,y,30))continue;
@@ -1924,6 +1986,161 @@ function drawTownPerson(c,p,now){
     drawFighter(c,p.x,p.y-3,0.28,p.look,{flip:p.dir<0,victory:Math.sin(p.ph*3)>0.6,bob:0});return}
   if(p.mode==='chat'){const t=p.bob;drawFighter(c,p.x,p.y,0.3,p.look,{flip:p.dir<0,bob:Math.sin(t*2)*1.2,victory:p.watch&&Math.sin(t*0.7)>0.85,happy:Math.sin(t*0.5)>0.5});return}
   drawMapFighter(c,p.x,p.y,p.look,p.dir,p.moving?p.walk:0,now,false,0.3)}
+
+// ================= BIKE RACES at the Bike Track =================
+let RACE=null,nextRival=null;
+const BIKELV=[{name:'Normal Bike',spd:280,ic:'🚲'},{name:'Turbo Bike',spd:330,price:1500,ic:'⚡',txt:'Much faster! Win races more easily'},{name:'Rocket Bike',spd:380,price:4000,ic:'🚀',txt:'The fastest bike in town'}];
+const BIKECOLS=[{id:'red',name:'Red',c:'#e63946',price:0},{id:'blue',name:'Blue',c:'#3a6df0',price:150},{id:'green',name:'Green',c:'#2a9d8f',price:150},{id:'pink',name:'Pink',c:'#ff7a9c',price:150},{id:'purple',name:'Purple',c:'#8338ec',price:250},{id:'black',name:'Black',c:'#3d4250',price:300},{id:'gold',name:'Gold',c:'#ffd23f',price:800}];
+const bikeSpd=()=>(BIKELV[S.bikeLv||0]||BIKELV[0]).spd,bikeCol=()=>(BIKECOLS.find(b=>b.id===S.bikeCol)||BIKECOLS[0]).c;
+const raceLv=()=>Math.min(S.raceWins||0,15),racePrize=()=>40+raceLv()*10,rivalSpd=()=>215+raceLv()*5;
+const TRK=()=>{const z=ZONES[0];return{z,cx:z.x+z.w/2,cy:z.y+z.h/2}};
+function trackD(x,y){const {cx,cy}=TRK(),sx=clamp(x,cx-135,cx+135);return Math.hypot(x-sx,y-cy)}
+function raceAct(near){const {z,cx}=TRK(),d=Math.hypot(PL.x-cx,PL.y-(z.y+30));if(d>95)return;if(!nextRival)nextRival=pick(WNAMES);
+  if(hasUp('bike'))near(d,{txt:'🏁 Start a bike race!',sub:`3 laps vs ${nextRival} · win ${racePrize()} coins`,fn:startRace});
+  else near(d,{txt:'🏁 Bike race',sub:'You need a bike to race (Bike Shop)',locked:true})}
+function startRace(){const {z,cx}=TRK();if(S.onBike===false){S.onBike=true;updBike()}
+  const name=nextRival||pick(WNAMES);nextRival=null;
+  const rx=z.w/2-23,ry=z.h/2-23,L=Math.PI*ry*2+(rx-ry)*4,st=(rx-ry)*2,a0=(st+Math.PI*ry+(rx-ry))*2*Math.PI/L;
+  const rv={mode:'bike',race:true,a:a0,sp:0,look:townLook(),walk:0,x:cx,y:z.y+23,dir:-1};TOWN.push(rv);
+  RACE={ph:'count',t:3,rv,a0,sp:rivalSpd()*2*Math.PI/L,prog:0,ang:null,name,prize:racePrize(),time:0,go:0,off:0};raceHold();sfx('tick')}
+function raceHold(){const {z,cx}=TRK();PL.x=cx+6;PL.y=z.y+40;PL.vx=PL.vy=0;PL.tx=null;PL.dir=-1;PL.face='side'}
+function raceTick(dt){const R=RACE;if(!R)return;const {cx,cy}=TRK();R.go=Math.max(0,R.go-dt);
+  if(!(hasUp('bike')&&S.onBike!==false)){endRace(null,'You got off your bike, so the race is over.');return}
+  if(R.ph==='count'){R.t-=dt;raceHold();const n=Math.ceil(R.t);if(n!==R.lastN){R.lastN=n;if(n>0)sfx('tick')}
+    if(R.t<=0){R.ph='go';R.go=0.9;R.rv.sp=R.sp;R.ang=Math.atan2((PL.y-cy)/165,(PL.x-cx)/300);sfx('level')}return}
+  R.time+=dt;const a=Math.atan2((PL.y-cy)/165,(PL.x-cx)/300);let da=a-R.ang;if(da>Math.PI)da-=2*Math.PI;if(da<-Math.PI)da+=2*Math.PI;R.ang=a;
+  const d=trackD(PL.x,PL.y);R.off=d<104||d>180?R.off+dt:0;if(!R.off)R.prog=Math.max(-1,R.prog-da);
+  if(d>430){endRace(null,'You rode away from the track, so the race is over.');return}
+  const me=R.prog/(2*Math.PI),rv=(R.rv.a-R.a0)/(2*Math.PI);
+  if(me>=3)endRace(true);else if(rv>=3)endRace(false)}
+function endRace(win,why){const R=RACE;RACE=null;const i=TOWN.indexOf(R.rv);if(i>=0)TOWN.splice(i,1);
+  if(win===null){modal(`<h2>Race stopped</h2><p>${why}</p>`,'OK',null);sfx('bad');return}
+  let best='';if(win){S.coins+=R.prize;S.raceWins=(S.raceWins||0)+1;if(!S.raceBest||R.time<S.raceBest){S.raceBest=R.time;best='<p class="menu-good">⏱ New best time!</p>'}updCoins();sfx('level')}else sfx('bad');save();
+  modal(win?`<h2>🏁 You won the race!</h2><p>You beat <b>${R.name}</b> in ${R.time.toFixed(1)} seconds.</p><p style="font-size:22px;font-weight:900;margin:8px 0"><i class="coin"></i> +${R.prize} coins</p>${best}<p class="muted">Races won: ${S.raceWins}. The next rider will be a bit faster!</p>`
+    :`<h2>😅 ${R.name} won!</h2><p>So close! Try again.</p><p class="muted">Tip: ride on the inside of the track - it is shorter. A faster bike from the Bike Shop helps too!</p>`,'OK',null)}
+function drawRaceHud(c,w,h,now){const R=RACE;c.save();c.textAlign='center';
+  const big=(t,col)=>{c.font='400 64px Bungee, Impact, sans-serif';c.lineWidth=9;c.strokeStyle='#1b2130';c.fillStyle=col;c.strokeText(t,w/2,h*0.36);c.fillText(t,w/2,h*0.36)};
+  if(R.ph==='count'){big(String(Math.max(1,Math.ceil(R.t))),'#ffe14d');c.font='900 15px Nunito, sans-serif';c.lineWidth=4;c.strokeStyle='#1b2130';c.fillStyle='#fff';const t2=`Race vs ${R.name} · 3 laps`;c.strokeText(t2,w/2,h*0.36+34);c.fillText(t2,w/2,h*0.36+34);c.restore();return}
+  if(R.go>0)big('GO!','#5fd49c');
+  const me=R.prog/(2*Math.PI),rv=(R.rv.a-R.a0)/(2*Math.PI),lap=clamp(Math.floor(me)+1,1,3),first=me>=rv;
+  const txt=`🏁 Lap ${lap}/3  ·  ${first?'1st 🥇':'2nd'}  ·  ${R.time.toFixed(1)}s`;c.font='900 15px Nunito, sans-serif';const tw=c.measureText(txt).width+28,y=Math.min(150,h*0.2);
+  c.fillStyle='rgba(20,24,38,.9)';c.beginPath();c.roundRect(w/2-tw/2,y-17,tw,34,17);c.fill();c.fillStyle=first?'#5fd49c':'#ffb627';c.fillText(txt,w/2,y+5);
+  if(R.off>0.3){c.font='900 15px Nunito, sans-serif';c.lineWidth=4;c.strokeStyle='#1b2130';c.fillStyle='#ff5d5d';c.strokeText('Stay on the track!',w/2,y+40);c.fillText('Stay on the track!',w/2,y+40)}
+  c.restore()}
+function drawShopPrev(kind){const cv=$('#bikePrev');if(!cv||cv.offsetParent===null)return;const {c,w,h}=fit(cv),now=performance.now(),gy=h-22;c.clearRect(0,0,w,h);
+  {if(!hasUp('bike')){drawMapFighter(c,w/2,gy,playerLook(),1,0,now,false,0.62,{relax:true});c.font='800 14px Nunito, sans-serif';c.fillStyle='#1b2130';c.textAlign='center';c.fillText('No bike yet',w/2,26);return}
+    const keep={dir:PL.dir,face:PL.face,speed:PL.speed,walk:PL.walk,wheel:PL.wheel,moving:PL.moving};Object.assign(PL,{dir:1,face:'side',speed:0,walk:0.6,wheel:0,moving:false});
+    drawRider(c,w/2,gy,0.62,now);Object.assign(PL,keep)}}
+function renderBikes(){let h='';const has=hasUp('bike'),lv=S.bikeLv||0;
+  h+='<div class="slot">Your bike</div>';
+  if(!has)h+=`<div class="card"><span class="ic boostic">🚲</span><span><h3>Bike</h3><p>Ride around 50% faster and race at the Bike Track</p></span><button class="pill" data-bk="1" ${S.coins<500?'disabled':''}><i class="coin"></i>500</button></div>`;
+  else h+=`<div class="card"><span class="ic boostic">${BIKELV[lv].ic}</span><span><h3>${BIKELV[lv].name}</h3><p>Races won: ${S.raceWins||0}${S.raceBest?` · Best time: ${S.raceBest.toFixed(1)}s`:''}</p></span><button class="pill on" disabled>Yours</button></div>`;
+  h+='<div class="slot">Speed upgrades · faster bike = easier races</div>';
+  BIKELV.forEach((b,i)=>{if(!i)return;const own=has&&lv>=i,can=has&&lv===i-1;
+    h+=`<div class="card"><span class="ic boostic">${b.ic}</span><span><h3>${b.name}</h3><p>${b.txt}</p>${!has?'<p style="color:var(--muted);font-weight:800">Buy a bike first</p>':!own&&!can?`<p style="color:var(--muted);font-weight:800">Get the ${BIKELV[i-1].name} first</p>`:''}</span>${own?'<button class="pill on" disabled>Owned</button>':`<button class="pill" data-bklv="${i}" ${!can||S.coins<b.price?'disabled':''}><i class="coin"></i>${b.price}</button>`}</div>`});
+  h+='<div class="slot">Paint · just for looks</div>';
+  for(const p of BIKECOLS){const own=!p.price||(S.bikeCols||[]).includes(p.id),on=(S.bikeCol||'red')===p.id;
+    h+=`<div class="card"><span class="ic" style="background:${p.c}"></span><span><h3>${p.name} paint</h3><p>${p.price?'Paint your bike '+p.name.toLowerCase():'The classic look'}</p></span>${on?'<button class="pill on" disabled>On bike</button>':own?`<button class="pill ghost" data-bkc="${p.id}">Use</button>`:`<button class="pill" data-bkbuy="${p.id}" ${S.coins<p.price?'disabled':''}><i class="coin"></i>${p.price}</button>`}</div>`}
+  $('#bikeList').innerHTML=h;drawShopPrev('bikes')}
+$('#bikeList').addEventListener('click',e=>{const t=e.target.closest('button');if(!t||t.disabled)return;const d=t.dataset;
+  if(d.bk&&!hasUp('bike')&&S.coins>=500){S.coins-=500;S.up.bike=1;S.onBike=true;updBike();sfx('level')}
+  else if(d.bklv){const b=BIKELV[+d.bklv];if(S.coins>=b.price){S.coins-=b.price;S.bikeLv=+d.bklv;sfx('level')}}
+  else if(d.bkbuy){const p=BIKECOLS.find(x=>x.id===d.bkbuy);if(S.coins>=p.price){S.coins-=p.price;if(!S.bikeCols)S.bikeCols=[];S.bikeCols.push(p.id);S.bikeCol=p.id;sfx('coin')}}
+  else if(d.bkc){S.bikeCol=d.bkc;sfx('tick')}else return;
+  updCoins();save();renderBikes()});
+
+// ================= ARCADE =================
+const ARCG=[{id:'mole',name:'Whack-a-Mole',ic:'🔨',cost:20,txt:'Tap the moles before they hide! Gold moles are worth 3. 20 seconds.',prize:'10 hits: 15 · 20 hits: 35 · 30 hits: 70 coins'},
+ {id:'stack',name:'Block Stacker',ic:'🧱',cost:25,txt:'Tap to stop the moving blocks right on top of each other. Reach the top!',prize:'Row 4: 25 · Row 6: 60 · Top: 150 coins'},
+ {id:'claw',name:'Claw Machine',ic:'🕹️',cost:30,txt:'Tap to drop the claw right on top of a prize to grab it.',prize:'Coins, a First Aid kit, or the 💎 jackpot (250 coins)!'}];
+let ARC=null;
+function renderArcade(){ARC=null;$('#arcPick').hidden=false;$('#arcPlay').hidden=true;let h='';
+  for(const g of ARCG){const best=(S.arcBest||{})[g.id];
+    h+=`<div class="card"><span class="ic boostic">${g.ic}</span><span><h3>${g.name}</h3><p>${g.txt}</p><p style="color:var(--tape);font-weight:800;font-size:13px">${g.prize}</p>${best?`<p style="color:var(--muted);font-weight:800;font-size:12px">Your best: ${best}</p>`:''}</span><button class="pill" data-arc="${g.id}" ${S.coins<g.cost?'disabled':''}><i class="coin"></i>${g.cost}</button></div>`}
+  $('#arcList').innerHTML=h}
+$('#arcList').addEventListener('click',e=>{const b=e.target.closest('[data-arc]');if(!b||b.disabled)return;const g=ARCG.find(x=>x.id===b.dataset.arc);if(S.coins<g.cost)return;
+  S.coins-=g.cost;updCoins();save();sfx('coin');const now=performance.now();
+  ARC={g:g.id,t0:now,last:now,score:0,done:false};
+  if(g.id==='mole')Object.assign(ARC,{moles:[],next:now+500,hits:[]});
+  if(g.id==='stack')Object.assign(ARC,{rows:[],cur:{x:0,w:3,dir:1}});
+  if(g.id==='claw'){const t=['c10','c25','c50','med','gem'].sort(()=>Math.random()-0.5);Object.assign(ARC,{ph:'move',cx:0.5,dir:1,cy:0,prizes:t.map((k,i)=>({k,x:0.13+i*0.185,got:false})),grab:null})}
+  $('#arcPick').hidden=true;$('#arcPlay').hidden=false;
+  $('#arcInfo').textContent={mole:'Tap the moles!',stack:IS_PC?'Press SPACE (or click) to stop the blocks':'Tap to stop the blocks',claw:IS_PC?'Press SPACE (or click) to drop the claw':'Tap to drop the claw'}[g.id];
+  window.scrollTo(0,0);requestAnimationFrame(arcLoop)});
+const CLAWP={c10:{ic:'💰',txt:'10 coins',coins:10,tol:0.065},c25:{ic:'🧸',txt:'25 coins',coins:25,tol:0.055},c50:{ic:'🎁',txt:'50 coins',coins:50,tol:0.045},med:{ic:'🩹',txt:'a First Aid kit',coins:0,tol:0.05},gem:{ic:'💎',txt:'the JACKPOT! 250 coins',coins:250,tol:0.028}};
+function arcFinish(){const A=ARC;if(!A||A.done)return;A.done=true;let coins=0,msg='',best=A.score;
+  if(A.g==='mole'){coins=A.score>=30?70:A.score>=20?35:A.score>=10?15:0;msg=`You hit <b>${A.score}</b> points.`}
+  if(A.g==='stack'){const r=A.rows.length;coins=r>=8?150:r>=6?60:r>=4?25:0;best=r;msg=r>=8?'You reached the TOP!':`You stacked <b>${r}</b> rows.`}
+  if(A.g==='claw'){const P=A.grab&&CLAWP[A.grab.k];best=null;if(P){coins=P.coins;if(A.grab.k==='med'){S.pu.medkit=puHave('medkit')+1;updMed&&updMed()}msg=`You grabbed ${P.ic} <b>${P.txt}</b>!`}else msg='The claw missed. So close!'}
+  if(best!=null){S.arcBest=S.arcBest||{};S.arcBest[A.g]=Math.max(S.arcBest[A.g]||0,best)}
+  S.coins+=coins;updCoins();save();sfx(coins||A.grab?'level':'bad');
+  setTimeout(()=>modal(`<h2>${coins||A.grab?'🎉 Nice!':'😅 Game over'}</h2><p>${msg}</p>${coins?`<p style="font-size:22px;font-weight:900;margin:8px 0"><i class="coin"></i> +${coins} coins</p>`:'<p class="muted">No prize this time. Try again!</p>'}`,'OK',()=>renderArcade()),500)}
+function arcTap(x,y){const A=ARC;if(!A||A.done)return;const now=performance.now();
+  if(A.g==='mole'){if(x==null)return;const L=A.lay;if(!L)return;const col=Math.floor((x-L.x0)/L.cw),row=Math.floor((y-L.y0)/L.ch);if(col<0||col>2||row<0||row>2)return;const i=row*3+col;
+    const m=A.moles.find(m=>m.i===i&&!m.hit&&now-m.born>60);if(m){m.hit=now;A.score+=m.gold?3:1;sfx(m.gold?'great':'good');A.hits.push({i,t:now,s:m.gold?'+3':'+1'})}else sfx('tick')}
+  if(A.g==='stack'){const c=A.cur,x0=Math.round(c.x),prev=A.rows[A.rows.length-1];let a=x0,b=x0+c.w;
+    if(prev){a=Math.max(a,prev.x);b=Math.min(b,prev.x+prev.w)}
+    if(b<=a){sfx('bad');A.fall={x:x0,w:c.w,t:now};arcFinish();return}
+    A.rows.push({x:a,w:b-a});sfx(b-a===c.w?'great':'good');
+    if(A.rows.length>=8){arcFinish();return}
+    c.w=b-a;c.x=Math.random()<0.5?0:7-c.w;c.dir=c.x?-1:1}
+  if(A.g==='claw'&&A.ph==='move'){A.ph='drop';sfx('tick')}}
+$('#arcCv').addEventListener('pointerdown',e=>{if(!ARC)return;e.preventDefault();const r=e.currentTarget.getBoundingClientRect();arcTap(e.clientX-r.left,e.clientY-r.top)});
+addEventListener('keydown',e=>{if(screen!=='arcade'||!ARC||!$('#modal').hidden)return;if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!e.repeat)arcTap(null,null)}});
+function arcLoop(now){const A=ARC;if(!A||screen!=='arcade')return;const dt=Math.min(0.05,(now-A.last)/1000);A.last=now;
+  const {c,w,h}=fit($('#arcCv'));c.clearRect(0,0,w,h);c.textAlign='center';
+  const txt=(t,x,y,sz,col,font='Bungee, Impact, sans-serif',wt=400)=>{c.font=`${wt} ${sz}px ${font}`;c.fillStyle=col;c.fillText(t,x,y)};
+  if(A.g==='mole'){const el=(now-A.t0)/1000,left=Math.max(0,20-el);
+    if(!A.done&&left<=0)arcFinish();
+    if(!A.done&&now>=A.next){const max=el>8?2:1,live=A.moles.filter(m=>!m.hit&&now<m.born+m.life);
+      if(live.length<max){const free=[...Array(9).keys()].filter(i=>!A.moles.some(m=>m.i===i&&now<(m.hit?m.hit+250:m.born+m.life))&&i!==A.lastI);const i=pick(free);A.lastI=i;
+        A.moles.push({i,born:now,life:Math.max(600,1050-el*22),gold:Math.random()<0.12})}
+      A.next=now+Math.max(380,700-el*15)}
+    A.moles=A.moles.filter(m=>now<(m.hit?m.hit+250:m.born+m.life));
+    const g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,'#7ec850');g.addColorStop(1,'#4f9a3a');c.fillStyle=g;c.beginPath();c.roundRect(0,0,w,h,16);c.fill();
+    c.fillStyle='rgba(20,24,38,.85)';c.beginPath();c.roundRect(10,10,w-20,38,12);c.fill();
+    c.fillStyle='#ffb627';c.beginPath();c.roundRect(16,40,(w-32)*left/20,4,2);c.fill();
+    c.textAlign='left';txt('Hits: '+A.score,24,34,18,'#fff');c.textAlign='right';txt(Math.ceil(left)+'s',w-24,34,18,'#ffe14d');c.textAlign='center';
+    const L=A.lay={x0:10,y0:62,cw:(w-20)/3,ch:(h-72)/3};
+    for(let i=0;i<9;i++){const cx=L.x0+(i%3+0.5)*L.cw,hy=L.y0+(Math.floor(i/3)+0.72)*L.ch,rx=L.cw*0.34,ry=rx*0.36,r=rx*0.7;
+      c.fillStyle='#3b2a1a';c.beginPath();c.ellipse(cx,hy,rx,ry,0,0,7);c.fill();
+      const m=A.moles.find(m=>m.i===i);
+      if(m){const up=m.hit?Math.max(0,1-(now-m.hit)/250):Math.min(1,(now-m.born)/110,(m.born+m.life-now)/110);
+        c.save();c.beginPath();c.rect(cx-rx,hy-r*3,rx*2,r*3);c.clip();const my=hy+r*1.1-up*r*2;const col=m.gold?'#ffd23f':'#8b5a3c';
+        c.beginPath();c.ellipse(cx,my+r*0.6,r,r*1.15,0,0,7);ink(c,col,2);
+        if(m.hit){c.strokeStyle=INK;c.lineWidth=2;for(const s of[-1,1]){line(c,cx+s*r*0.45-4,my-4,cx+s*r*0.45+4,my+4);line(c,cx+s*r*0.45+4,my-4,cx+s*r*0.45-4,my+4)}}
+        else{c.fillStyle=INK;for(const s of[-1,1]){c.beginPath();c.arc(cx+s*r*0.38,my,r*0.12,0,7);c.fill()}}
+        c.fillStyle='#ff7a9c';c.beginPath();c.ellipse(cx,my+r*0.32,r*0.2,r*0.14,0,0,7);c.fill();
+        c.fillStyle='#fff';c.fillRect(cx-r*0.13,my+r*0.48,r*0.12,r*0.18);c.fillRect(cx+r*0.01,my+r*0.48,r*0.12,r*0.18);
+        if(m.gold&&!m.hit){c.fillStyle='#fff';c.globalAlpha=0.5+Math.sin(now/90)*0.5;c.beginPath();c.arc(cx+r*0.8,my-r*0.6,3,0,7);c.fill();c.globalAlpha=1}
+        c.restore()}
+      c.fillStyle='#5a3d22';c.beginPath();c.ellipse(cx,hy,rx,ry,0,0,Math.PI);c.lineTo(cx-rx,hy);c.fill()}
+    A.hits=A.hits.filter(f=>now-f.t<600);for(const f of A.hits){const k=(now-f.t)/600,cx=L.x0+(f.i%3+0.5)*L.cw,cy=L.y0+(Math.floor(f.i/3)+0.25)*L.ch-k*30;c.globalAlpha=1-k;c.font='400 22px Bungee, Impact, sans-serif';c.lineWidth=4;c.strokeStyle='#1b2130';c.strokeText(f.s,cx,cy);c.fillStyle='#ffe14d';c.fillText(f.s,cx,cy);c.globalAlpha=1}}
+  if(A.g==='stack'){const C=7,RW=8,cs=Math.min((w-30)/C,(h-80)/RW),bx=(w-cs*C)/2,by=h-20,cur=A.cur,row=A.rows.length;
+    if(!A.done){const sp=3.2+row*0.9;cur.x+=cur.dir*sp*dt;if(cur.x<=0){cur.x=0;cur.dir=1}if(cur.x>=C-cur.w){cur.x=C-cur.w;cur.dir=-1}}
+    txt('Row '+Math.min(8,row+1)+' / 8',w/2,36,20,'#fff');
+    for(let r=0;r<RW;r++)for(let x=0;x<C;x++){c.strokeStyle='rgba(255,255,255,.07)';c.lineWidth=1;c.strokeRect(bx+x*cs,by-(r+1)*cs,cs,cs)}
+    [[3,'#5fd49c','25'],[5,'#4fb0ff','60'],[7,'#ffd23f','150']].forEach(([r,col,t])=>{const y=by-(r+1)*cs;c.strokeStyle=col;c.setLineDash([6,5]);c.lineWidth=2;line(c,bx-4,y,bx+C*cs+4,y);c.setLineDash([]);c.textAlign='left';txt('🪙'+t,bx+C*cs+6>w-40?w-44:bx+C*cs+6,y+cs*0.6,12,col,'Nunito, sans-serif',900);c.textAlign='center'});
+    const cols=['#ff5d5d','#ff9f1c','#ffd23f','#5fd49c','#4fb0ff','#8338ec','#c86bff','#ff7a9c'];
+    const blk=(x,r,col)=>{c.beginPath();c.roundRect(bx+x*cs+2,by-(r+1)*cs+2,cs-4,cs-4,6);ink(c,col,2)};
+    A.rows.forEach((R0,r)=>{for(let i=0;i<R0.w;i++)blk(R0.x+i,r,cols[r])});
+    if(!A.done){const x0=Math.round(cur.x);for(let i=0;i<cur.w;i++)blk(x0+i,row,cols[row])}
+    else if(A.fall){const k=(now-A.fall.t)/600;c.globalAlpha=Math.max(0,1-k);for(let i=0;i<A.fall.w;i++){c.beginPath();c.roundRect(bx+(A.fall.x+i)*cs+2,by-(row+1)*cs+2+k*k*200,cs-4,cs-4,6);ink(c,cols[row],2)}c.globalAlpha=1}}
+  if(A.g==='claw'){const bx=16,bw=w-32,top=60,floor=h-30,clawX=bx+A.cx*bw;
+    if(A.ph==='move'){A.cx+=A.dir*0.42*dt;if(A.cx>0.95){A.cx=0.95;A.dir=-1}if(A.cx<0.05){A.cx=0.05;A.dir=1}}
+    else if(A.ph==='drop'){A.cy=Math.min(1,A.cy+dt*1.4);if(A.cy>=1){A.ph='up';let best=null,bd=1;for(const p of A.prizes){const d=Math.abs(p.x-A.cx);if(d<bd){bd=d;best=p}}if(best&&bd<CLAWP[best.k].tol){A.grab=best;best.got=true;sfx('good')}else sfx('bad')}}
+    else if(A.ph==='up'){A.cy=Math.max(0,A.cy-dt*1.1);if(A.cy<=0){A.ph='end';arcFinish()}}
+    c.fillStyle='#2a2340';c.beginPath();c.roundRect(0,0,w,h,16);c.fill();c.fillStyle='rgba(159,211,240,.12)';c.beginPath();c.roundRect(bx,top-14,bw,floor-top+24,10);c.fill();
+    txt('CLAW',w/2,38,22,'#ff7a9c');c.fillStyle='#8a93a8';c.fillRect(bx,top-14,bw,6);
+    c.fillStyle='#3d3557';c.fillRect(bx,floor,bw,10);
+    const tipY=top+A.cy*(floor-top-58);
+    for(const p of A.prizes)if(!p.got){c.font='40px sans-serif';c.fillText(CLAWP[p.k].ic,bx+p.x*bw,floor-6)}
+    c.font='900 12px Nunito, sans-serif';c.fillStyle='#ffe14d';for(const p of A.prizes)c.fillText({c10:'10',c25:'25',c50:'50',med:'First aid',gem:'250!'}[p.k],bx+p.x*bw,floor+24);
+    c.strokeStyle='#c3ccd6';c.lineWidth=3;line(c,clawX,top-8,clawX,tipY);c.fillStyle='#c3ccd6';c.beginPath();c.roundRect(clawX-14,tipY-6,28,12,4);c.fill();
+    const open=A.ph==='drop'?1:A.grab?0.2:0.6;c.lineWidth=4;c.lineCap='round';for(const sd of[-1,1]){c.beginPath();c.moveTo(clawX+sd*10,tipY+4);c.quadraticCurveTo(clawX+sd*(18+open*8),tipY+22,clawX+sd*(6+open*6),tipY+38);c.stroke()}
+    if(A.grab){c.font='40px sans-serif';c.fillText(CLAWP[A.grab.k].ic,clawX,tipY+54)}
+    if(A.ph==='move'){c.fillStyle='rgba(255,255,255,.18)';c.fillRect(clawX-1,tipY+40,2,floor-tipY-50)}}
+  requestAnimationFrame(arcLoop)}
 let curAct=null;
 function setAct(a){const k=a?a.txt+a.sub:'';if(k===(curAct?curAct.k:'')){if(a)curAct.fn=a.fn;return}
   curAct=a?{...a,k}:null;const b=$('#actBtn');b.hidden=!a;if(a&&mapHint){mapHint=false;$('#mapHint').hidden=true}if(a){b.innerHTML=`${a.txt}${a.sub?`<small>${a.sub}</small>`:''}`;b.disabled=!!a.locked;if(!a.locked)sfx('tick')}}
@@ -1941,7 +2158,7 @@ addEventListener('keyup',e=>{KEYS[e.key.toLowerCase()]=false});
 function tickMap(now,dt){
   if(!$('#modal').hidden||SU.open||BM.open||HOME.open)return;
   const kx=(KEYS.arrowright||KEYS.d?1:0)-(KEYS.arrowleft||KEYS.a?1:0),ky=(KEYS.arrowdown||KEYS.s?1:0)-(KEYS.arrowup||KEYS.w?1:0);
-  let vx=0,vy=0;const onBike=hasUp('bike')&&S.onBike!==false,SPD=onBike?280:190;
+  let vx=0,vy=0;const onBike=hasUp('bike')&&S.onBike!==false,SPD=onBike?bikeSpd():190;
   if(kx||ky){const m=Math.hypot(kx,ky);vx=kx/m;vy=ky/m;PL.tx=null;if(mapHint){mapHint=false;$('#mapHint').hidden=true}}
   else if(PL.tx!=null){const dx=PL.tx-PL.x,dy=PL.ty-PL.y,d=Math.hypot(dx,dy);if(d<6){if(!PL.hold)PL.tx=null}else{const slow=onBike?Math.min(1,0.25+d/120):1;vx=dx/d*slow;vy=dy/d*slow}}
   // on the bike you speed up and slow down smoothly, and turn gently - much easier to steer
@@ -1951,6 +2168,7 @@ function tickMap(now,dt){
     if(blocked(PL.x,PL.y)||!blocked(nx,ny))[PL.x,PL.y]=[nx,ny];else if(!blocked(nx,PL.y)){PL.x=nx;PL.vy*=0.5}else if(!blocked(PL.x,ny)){PL.y=ny;PL.vx*=0.5}else{PL.vx*=0.3;PL.vy*=0.3}
     if(Math.abs(vx)>0.1)PL.dir=vx>0?1:-1;PL.walk+=dt*(onBike?PL.speed/22:11);PL.wheel=(PL.wheel||0)+PL.speed*dt/9;{const lk=hasUp('lunch')?0.6:1;S.food=Math.max(0,S.food-dt*0.12*lk);S.drink=Math.max(0,S.drink-dt*0.18*lk)}if(Math.random()<dt)updMeters()}
   for(const t of TREES){const d=Math.hypot(PL.x-t.x,PL.y-t.y),m=t.r*0.6;if(d<m&&d>0){PL.x=t.x+(PL.x-t.x)/d*m;PL.y=t.y+(PL.y-t.y)/d*m}}
+  raceTick(dt);
   swapT+=dt;if(swapT>25){swapT=0;const far=WILDS.findIndex(w=>Math.hypot(PL.x-w.x,PL.y-w.y)>600);if(far>=0)WILDS[far]=makeWild()}
   let chasing=WILDS.some(w=>w.chase>0);
   for(const w of WILDS){if(w.rel==null)w.rel=(w.tier-1)*0.17;const L2=wLvl(w);w.foe.lvl=w.foe.look.arm=w.foe.look.chest=w.foe.look.legs=L2;
@@ -1958,7 +2176,7 @@ function tickMap(now,dt){
     const newTarget=(range)=>{for(let k=0;k<10;k++){const tx=clamp(w.x+(Math.random()-0.5)*range,60,WORLD.w-60),ty=clamp(w.y+(Math.random()-0.5)*range,60,WORLD.h-200);if(!inBuild(tx,ty,20)&&!inPond(tx,ty,20)){w.tx=tx;w.ty=ty;return}}};
     let sp=40;
     if(w.chase>0){w.chase-=dt;w.tx=PL.x;w.ty=PL.y;sp=85;if(d<55){w.tx=w.x;w.ty=w.y}if(w.chase<=0){w.cool=12;w.alert=0;newTarget(400)}}
-    else if(w.mood==='challenger'&&d<170&&w.cool<=0&&!chasing){w.chase=3.5;chasing=true;w.alert=1;sfx('bad')}
+    else if(w.mood==='challenger'&&d<170&&w.cool<=0&&!chasing&&!RACE){w.chase=3.5;chasing=true;w.alert=1;sfx('bad')}
     else if(d<85&&w.mood!=='jogger'){w.tx=w.x;w.ty=w.y;w.dir=PL.x>w.x?1:-1}
     else if(w.mood==='jogger'){sp=70;if(Math.hypot(w.tx-w.x,w.ty-w.y)<8){w.pi=(w.pi+1)%PATH.length;const [px,py]=PATH[w.pi];w.tx=px+(Math.random()-0.5)*30;w.ty=py+(Math.random()-0.5)*30}}
     else if(w.mood==='shadowbox'){w.tx=w.x;w.ty=w.y}
@@ -1967,8 +2185,10 @@ function tickMap(now,dt){
     const dx=w.tx-w.x,dy=w.ty-w.y,dd=Math.hypot(dx,dy);
     if(dd>4){const nx=w.x+dx/dd*sp*dt,ny=w.y+dy/dd*sp*dt;if(!blocked(nx,ny)){w.x=nx;w.y=ny}else newTarget(300);w.walk+=dt*(sp/7);if(Math.abs(dx)>2)w.dir=dx>0?1:-1;w.moving=true}else w.moving=false}
   let act=null;const near=(d,a)=>{if(!act||d<act.d)act=Object.assign({d},a)};
+  if(!RACE){raceAct(near);
   WILDS.forEach((w,wi)=>{const d=Math.hypot(PL.x-w.x,PL.y-w.y);if(d<75)near(d,{txt:`Fight ${w.name}!`,sub:`${TIERS[w.tier].name}${w.quirk?' · '+QUIRKS[w.quirk]:''} · win ${wildFoe(w).coins} coins`,fn:()=>preFight(wildFoe(w),{type:'wild',wi},w.story)})});
-  BUILD.forEach(b=>{if(!b.go)return;const d=Math.hypot(PL.x-(b.x+b.w/2),PL.y-(b.y+b.h+(b.kind==='stadium'?40:14)));if(d<(b.kind==='stadium'?80:70))near(d,{txt:`Enter ${b.name}`,sub:{train:'Train your fingers',shop:'Buy cool gear',stadium:'Pick a boss to fight',mirror:'Check yourself out',cafe:'Eat and drink',hospital:'Heal your fighter'}[b.go],fn:()=>show(b.go)})});
+  BUILD.forEach(b=>{if(!b.go)return;const d=Math.hypot(PL.x-(b.x+b.w/2),PL.y-(b.y+b.h+(b.kind==='stadium'?40:14)));if(d<(b.kind==='stadium'?80:70))near(d,{txt:`Enter ${b.name}`,sub:{train:'Train your fingers',shop:'Buy cool gear',stadium:'Pick a boss to fight',mirror:'Check yourself out',cafe:'Eat and drink',hospital:'Heal your fighter',bikes:'Faster bikes and paint',arcade:'Play games, win prizes'}[b.go],fn:()=>show(b.go)})});
+  }
   setAct(act);
   const {w,h}=mapSize();cam.x=clamp(PL.x-w/2-30,0,Math.max(0,WORLD.w-w));cam.y=clamp(PL.y-h*0.55,0,Math.max(0,WORLD.h-h));
 }
@@ -2149,7 +2369,7 @@ function drawBigMap(now){const cv=$('#bigCv'),{c,w,h}=fit(cv);const sz=Math.min(
     label('Bike Track',(ZONES[0].x+ZONES[0].w/2)*k,(ZONES[0].y+ZONES[0].h/2)*k,'rgba(255,255,255,.85)','#b5503a',fs*0.85);
     label('Skate Park',(ZONES[1].x+ZONES[1].w/2)*k,(ZONES[1].y+ZONES[1].h/2)*k,'rgba(255,255,255,.85)','#5b6470',fs*0.85);
     label('Football',(ZONES[2].x+ZONES[2].w/2)*k,(ZONES[2].y+ZONES[2].h/2)*k,'rgba(255,255,255,.85)','#2f6a2a',fs*0.85);
-    const SHORT={train:'Gym',shop:'Shop',cafe:'Café',mirror:'Mirror',hospital:'Hospital',stadium:'Stadium'};for(const b of BUILD)if(b.go)label(SHORT[b.go]||b.name,(b.x+b.w/2)*k,(b.y+b.h/2)*k-(b.go==='mirror'||b.go==='shop'?fs*0.9:0),'#1b2130','#ffe14d',fs*0.9);
+    const SHORT={train:'Gym',shop:'Shop',cafe:'Café',mirror:'Mirror',hospital:'Hospital',stadium:'Stadium',bikes:'Bikes',arcade:'Arcade'};for(const b of BUILD)if(b.go)label(SHORT[b.go]||b.name,(b.x+b.w/2)*k,(b.y+b.h/2)*k-(b.go==='mirror'||b.go==='shop'?fs*0.9:0),'#1b2130','#ffe14d',fs*0.9);
     x.restore();BM.cache={key,img:o}}
   c.clearRect(0,0,w,h);c.drawImage(BM.cache.img,0,0,w,h);c.save();c.translate(ox,oy);
   for(const wd of WILDS){c.fillStyle=TIERS[wd.tier].col;c.strokeStyle='#1b2130';c.lineWidth=1.5;c.beginPath();c.arc(wd.x*k,wd.y*k,4,0,7);c.fill();c.stroke()}
@@ -2165,11 +2385,11 @@ function drawRider(c,x,y,s,now){const k=s/0.3,d=PL.dir||1,wa=PL.wheel||0,ped=Mat
     c.fillStyle='rgba(0,0,0,.28)';c.beginPath();c.ellipse(x,y+2,9*k,16*k,0,0,7);c.fill();
     const wheelV=(wy,sc)=>{const r=10*k*sc;c.strokeStyle='#1b2130';c.lineWidth=3.5*k;c.beginPath();c.ellipse(x,wy-r,2.6*k,r,0,0,7);c.stroke();
       c.strokeStyle='#9aa3b8';c.lineWidth=1;const sp=Math.sin(wa*2)*r*0.6;line(c,x-2*k,wy-r+sp,x+2*k,wy-r+sp)};
-    const barY=y-30*k,bars=(full)=>{c.strokeStyle='#e63946';c.lineWidth=3*k;line(c,x,barY,x,y-10*k);c.strokeStyle='#1b2130';c.lineWidth=2.8*k;
+    const barY=y-30*k,bars=(full)=>{c.strokeStyle=bikeCol();c.lineWidth=3*k;line(c,x,barY,x,y-10*k);c.strokeStyle='#1b2130';c.lineWidth=2.8*k;
         if(full)line(c,x-17*k,barY,x+17*k,barY);else{line(c,x-7*k,barY,x+7*k,barY);line(c,x-17*k,barY,x-15*k,barY);line(c,x+15*k,barY,x+17*k,barY)}};
     // back wheel (far end) first, then rider, then the near end
     if(up){bars(true);wheelV(y-8*k,0.85)}else{wheelV(y-8*k,0.85)}
-    c.strokeStyle='#e63946';c.lineWidth=3*k;line(c,x,y-12*k,x,y-26*k);
+    c.strokeStyle=bikeCol();c.lineWidth=3*k;line(c,x,y-12*k,x,y-26*k);
     const L=playerLook();drawFront(c,x,y-6*k+bob,s*0.95,L,{pose:'grip',gripX:12*k/(s*0.95),gripY:-(24*k+bob)/(s*0.95)-18,sit:true,back:up,bob:0});
     const pl=Math.sin(PL.walk||0)*4*k;c.fillStyle='#2b2f3a';c.fillRect(x-9*k,y-12*k+pl,5*k,3*k);c.fillRect(x+4*k,y-12*k-pl,5*k,3*k);
     if(up){wheelV(y+4*k,1)}else{wheelV(y+4*k,1);bars(false)}
@@ -2178,7 +2398,7 @@ function drawRider(c,x,y,s,now){const k=s/0.3,d=PL.dir||1,wa=PL.wheel||0,ped=Mat
   c.save();c.translate(x,y);c.scale(d*k,k);
   const wheel=wx=>{c.strokeStyle='#1b2130';c.lineWidth=3;c.beginPath();c.arc(wx,-10,10,0,7);c.stroke();c.strokeStyle='#9aa3b8';c.lineWidth=1;for(let i=0;i<4;i++){const a=wa+i*Math.PI/4;line(c,wx+Math.cos(a)*9,-10+Math.sin(a)*9,wx-Math.cos(a)*9,-10-Math.sin(a)*9)}c.fillStyle='#ccc';c.beginPath();c.arc(wx,-10,2,0,7);c.fill()};
   wheel(-17);wheel(17);
-  c.strokeStyle='#e63946';c.lineWidth=3;c.lineJoin='round';c.beginPath();c.moveTo(-17,-10);c.lineTo(-4,-26);c.lineTo(12,-26);c.lineTo(17,-10);c.moveTo(-4,-26);c.lineTo(0,-10);c.lineTo(-17,-10);c.moveTo(12,-26);c.lineTo(13,-34);c.stroke();
+  c.strokeStyle=bikeCol();c.lineWidth=3;c.lineJoin='round';c.beginPath();c.moveTo(-17,-10);c.lineTo(-4,-26);c.lineTo(12,-26);c.lineTo(17,-10);c.moveTo(-4,-26);c.lineTo(0,-10);c.lineTo(-17,-10);c.moveTo(12,-26);c.lineTo(13,-34);c.stroke();
   c.strokeStyle='#1b2130';c.lineWidth=2.5;line(c,9,-34,17,-34);c.fillStyle='#1b2130';c.beginPath();c.roundRect(-9,-30,11,4,2);c.fill();
   c.strokeStyle='#5b6470';c.lineWidth=2;line(c,0,-10,ped*5,-10+Math.cos(PL.walk||0)*5);c.restore();
   drawFighter(c,x-d*1*k,y-4*k,s,playerLook(),{flip:d<0,hands:[[24,-102,46,-100],[20,-104,42,-102]],kickF:0.35+Math.max(0,ped)*0.45,kickB:0.1+Math.max(0,-ped)*0.35,relax:true,swing:0.9,bob:PL.moving?Math.abs(Math.sin((PL.walk||0)*2))*1:0,noShadow:true})}
@@ -2215,6 +2435,7 @@ function drawMap(now){
     ents.push([wd.y,()=>drawMapFighter(c,wd.x,wd.y,wd.foe.look,wd.dir,wd.moving?wd.walk:0,now,false,0.33+0.08*wd.foe.lvl,ex)])}
   {const near=WILDS.some(wd=>Math.hypot(wd.x-PL.x,wd.y-PL.y)<170||wd.chase>0);if(hasUp('bike')&&S.onBike!==false)ents.push([PL.y,()=>drawRider(c,PL.x,PL.y,ps,now)]);else ents.push([PL.y,()=>drawMapFighter(c,PL.x,PL.y,playerLook(),PL.dir,PL.moving?PL.walk:0,now,false,ps,near?null:{relax:true,swing:PL.moving?Math.sin(PL.walk):Math.sin(now/900)*0.12})])}
   ents.sort((a,b)=>a[0]-b[0]).forEach(e=>e[1]());
+  if(RACE)tag(c,RACE.rv.x,RACE.rv.y-62,RACE.name,'#ff9f1c');
   for(const b of BUTTERFLIES){b.a+=0.02;b.x=(b.x+Math.cos(b.a)*0.9+WORLD.w)%WORLD.w;b.y=(b.y+Math.sin(b.a*1.3)*0.7+WORLD.h)%WORLD.h;if(!vis(b.x,b.y,20))continue;
     const f=Math.abs(Math.sin(now/70+b.a*9));c.fillStyle=b.c;c.beginPath();c.ellipse(b.x-3*f,b.y,4*f+0.5,3,0,0,7);c.ellipse(b.x+3*f,b.y,4*f+0.5,3,0,0,7);c.fill();c.fillStyle='#333';c.fillRect(b.x-0.7,b.y-3,1.4,6)}
   for(const wd of WILDS)if(vis(wd.x,wd.y,100)){const hh=166*(0.33+0.08*wd.foe.lvl);tag(c,wd.x,wd.y-hh-12,wd.name,TIERS[wd.tier].col);
@@ -2222,6 +2443,7 @@ function drawMap(now){
   tag(c,PL.x,PL.y-166*ps-12-(hasUp('bike')&&S.onBike!==false?5*ps/0.3:0),S.name+' · '+rankOf()[1],rankOf()[2]);
   drawSky(c,now,vis);
   c.restore();
+  if(RACE)drawRaceHud(c,w,h,now);
   if(S.marker){const M=S.marker;if(Math.hypot(PL.x-M.x,PL.y-M.y)<80){S.marker=null;save();sfx('level')}
     else{const sx=M.x-cam.x,sy=M.y-cam.y;
       if(sx>-20&&sx<w+20&&sy>-20&&sy<h+20){c.save();c.translate(-cam.x,-cam.y);drawPin(c,M.x,M.y,1.3,now);c.restore()}
@@ -2481,16 +2703,23 @@ function endFight(win){
   if(F.meta.type==='boss'){const i=F.meta.i,rw=15+i*20,first=win&&!S.beaten.includes(i);coins=win?Math.round((first?rw*2:rw)*(hasUp('vip')?1.5:1)):-Math.min(S.coins,Math.max(5,Math.round(rw*0.4)));if(first){S.beaten.push(i);S.best=Math.max(S.best,i+1);S.bossDay=new Date().toDateString();
       extra=S.beaten.length===FOES.length?'<li>You beat every boss. You are the STADIUM CHAMPION!</li>':`<li>${FOES.length-S.beaten.length} bosses left. The next boss is now unlocked!</li>`}
     if(win&&first)extra=`<li style="color:var(--tape)">First win bonus!</li>`+extra}
+  else if(F.meta.type==='tour'){const r=F.meta.r,T=TOUR;coins=0;
+    if(T){const me=S.name.replace(/[<>&]/g,'');
+      if(win){T.wins[r][0]=me;if(r===0)T.wins[1][1]=T.opp[2];
+        if(r<2){T.r++;extra=`<li style="color:var(--tape)">You made it to the ${TROUNDS[T.r]}!</li><li>Next: ${T.opp[T.r]}</li>`}
+        else{T.wins[2][0]=me;coins=tourPrize();S.trophies=(S.trophies||0)+1;extra=`<li style="color:var(--tape);font-size:18px">🏆 TOURNAMENT CHAMPION!</li><li>Trophies: ${S.trophies}</li>`;T.done=true}}
+      else{extra=`<li>You are out of the tournament in the ${TROUNDS[r]}.</li>`;TOUR=null}}}
   else{coins=win?F.foe.coins:-Math.min(S.coins,Math.max(5,Math.round(F.foe.coins*0.4)));WILDS[F.meta.wi]=makeWild()}
   const st=F.meta.story;if(st)extra+=`<li class="muted" style="font-weight:700">${fillN(win?st.win:st.lose,F.foe.name)}</li>`;
-  if(F.meta.type==='boss'&&win)extra+=`<li class="muted" style="font-weight:700">The stadium goes wild!</li>`;
+  if((F.meta.type==='boss'||F.meta.type==='tour')&&win)extra+=`<li class="muted" style="font-weight:700">The stadium goes wild!</li>`;
   S.health=win?Math.max(0.1,Math.min(1,F.php/F.m.hp)):0.05;if(win&&S.health<0.35)extra+='<li style="color:var(--hit)">You are hurt! Visit the Hospital to heal.</li>';
-  if(win&&F.lucky&&puUse('lucky')){coins*=2;extra+='<li style="color:var(--tape)">Lucky Coin: double coins!</li>'}
-  if(win&&hasUp('magnet')){coins=Math.round(coins*1.25);extra+='<li style="color:var(--tape)">Coin Magnet: +25%</li>'}
+  if(win&&coins>0&&F.lucky&&puUse('lucky')){coins*=2;extra+='<li style="color:var(--tape)">Lucky Coin: double coins!</li>'}
+  if(win&&coins>0&&hasUp('magnet')){coins=Math.round(coins*1.25);extra+='<li style="color:var(--tape)">Coin Magnet: +25%</li>'}
   S.fat=Math.max(0,(S.fat||0)-0.03);drain(8,10);addCoins(coins);save();setTimeout(()=>sfx(win?'win':'lose'),300);
-  setTimeout(()=>modal(win?`<h2>You win!</h2><ul><li>${S.name} beat ${F.foe.name}</li><li style="color:var(--tape)">+${coins} coins</li>${extra}</ul>`
-    :`<h2>Knocked out!</h2><ul><li>${F.foe.name} was too strong this time</li><li style="color:var(--hit)">${coins<0?coins+' coins lost':'No coins lost (you had none)'}</li>${extra}</ul><p class="muted">An ambulance is taking you to the Hospital. The doctor will fix you up for free!</p>`,
-    win?(F.meta.type==='boss'?'Back to stadium':'Back to map'):'Go to Hospital (free)',()=>{const t=F.meta.type;F=null;
+  setTimeout(()=>modal(win?`<h2>You win!</h2><ul><li>${S.name} beat ${F.foe.name}</li>${coins?`<li style="color:var(--tape)">+${coins} coins</li>`:''}${extra}</ul>`
+    :`<h2>Knocked out!</h2><ul><li>${F.foe.name} was too strong this time</li><li style="color:var(--hit)">${coins<0?coins+' coins lost':'No coins lost'}</li>${extra}</ul><p class="muted">An ambulance is taking you to the Hospital. The doctor will fix you up for free!</p>`,
+    win?(F.meta.type==='boss'?'Back to stadium':F.meta.type==='tour'?(TOUR&&!TOUR.done?'See the bracket':'Back to stadium'):'Back to map'):'Go to Hospital (free)',()=>{const t=F.meta.type;F=null;
+      if(win&&t==='tour'){if(TOUR&&TOUR.done)TOUR=null;show('stadium');if(TOUR)setTimeout(showBracket,50);return}
       if(win){show(t==='boss'?'stadium':'map');return}
       const hb=BUILD.find(b=>b.go==='hospital');PL.x=hb.x+hb.w/2;PL.y=hb.y+hb.h+18;PL.tx=null;S.px=PL.x;S.py=PL.y;save();
       HOSP.arr={t0:performance.now()+300,started:false};HOSP.healing=false;show('hospital')}),2600);
@@ -2524,7 +2753,7 @@ function drawKO(c,x,gy,s,L,P,bk,w){const t=(performance.now()-F.ko.t0)/1000,tr=k
 function drawFight(dt){
   const cv=$('#fightCv'),{c,w,h}=fit(cv);c.clearRect(0,0,w,h);if(!F)return;
   const now=performance.now();c.save();if(F.shake)c.translate((Math.random()-0.5)*14*F.shake,(Math.random()-0.5)*10*F.shake);
-  const gy=h-24,s=h/255;if(F.meta.type==='boss')stadiumBg(c,w,h,gy,now);else parkBg(c,w,h,gy,now);
+  const gy=h-24,s=h/255;if(F.meta.type==='boss'||F.meta.type==='tour')stadiumBg(c,w,h,gy,now);else parkBg(c,w,h,gy,now);
   const pg=0.8+0.4*growAll(), fg=0.85+0.3*F.lvl;
   const bob=Math.sin(now/220)*1.5;
   const PL0=playerLook(),sP=s*pg,sF=s*fg,dpP=20+PL0.chest*18,dpF=20+F.fl.chest*18;
