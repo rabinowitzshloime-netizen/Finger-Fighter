@@ -269,6 +269,12 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .pckeys{position:absolute;left:8px;right:8px;bottom:6px;text-align:center;font:800 12px Nunito,sans-serif;color:var(--muted,#a3abc0);pointer-events:none}
 body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+#raceCtl{position:fixed;left:0;right:0;bottom:22px;display:flex;justify-content:space-between;padding:0 18px;z-index:30;pointer-events:none}
+#raceCtl button{pointer-events:auto;width:118px;height:118px;border-radius:50%;border:4px solid #1b2130;font-family:var(--display);font-size:24px;color:#1b2130;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;touch-action:none;user-select:none;-webkit-user-select:none;box-shadow:0 6px 0 rgba(0,0,0,.35)}
+#raceCtl small{font-family:Nunito,sans-serif;font-weight:900;font-size:11px}
+#rGo{background:#5fd49c}#rGo.on{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.35);background:#7ff0b8}
+#rBoost{background:#ffb627}#rBoost.empty{background:#8a93a8}#rBoost.on{background:#ff7a1a;transform:translateY(4px)}
+#rMeter{display:block;width:70px;height:8px;border-radius:4px;background:rgba(0,0,0,.3);overflow:hidden}#rMeter u{display:block;height:100%;width:100%;background:#fff}
 </style>
 </head>
 <body>
@@ -300,6 +306,7 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
     <canvas id="miniCv" class="mini" role="button" aria-label="Open the big map"></canvas>
     <div class="maphint" id="mapHint"><span class="touchonly">Tap or hold anywhere to walk. Find someone to fight!</span><span class="pconly">Click to walk, or use the arrow keys / WASD. Press Enter to fight or go in.</span></div>
     <button class="big go act" id="actBtn" hidden>Fight!</button>
+    <div id="raceCtl" hidden><button id="rBoost"><b>BOOST</b><i id="rMeter"><u></u></i><small class="pconly">J or ENTER</small></button><button id="rGo"><b>GO</b><small class="touchonly">hold</small><small class="pconly">hold F or SPACE</small></button></div>
   </section>
 
   <div id="home" class="home" hidden>
@@ -1396,7 +1403,7 @@ function hungry(){return S.food<15||S.drink<15}
 function drain(f,d){if(hasUp('lunch')){f*=0.6;d*=0.6}S.food=Math.max(0,S.food-f);S.drink=Math.max(0,S.drink-d);updMeters()}
 function needTxt(v){const n=Math.ceil(100-v);return n<=0?'full':'need '+n}
 function updMed(){const b=$('#medBtn');if(!b||typeof puHave!=='function')return;const n=puHave('medkit');b.hidden=n<1;$('#medN').textContent='×'+n;const full=(S.health??1)>=0.999;b.disabled=full;b.title=full?'You are already at full health':'Heal 50% health'}
-function updBike(){const b=$('#bikeBtn');if(!b||typeof hasUp!=='function')return;b.hidden=!hasUp('bike');$('#bikeTxt').textContent=S.onBike===false?'RIDE':'GET OFF'}
+function updBike(){const b=$('#bikeBtn');if(!b||typeof hasUp!=='function')return;b.hidden=!hasUp('bike')||($('#raceCtl')&&!$('#raceCtl').hidden);$('#bikeTxt').textContent=S.onBike===false?'RIDE':'GET OFF'}
 function updMeters(){updMed();updBike();const tf=$('#mFoodT'),td=$('#mDrinkT');if(tf)tf.textContent=needTxt(S.food);if(td)td.textContent=needTxt(S.drink);
   document.querySelectorAll('.meter').forEach((m,i)=>{m.title=(i%2?'Drink':'Food')+': '+Math.round(i%2?S.drink:S.food)+' of 100'});
   const nt=$('#needTxt');if(nt){const nf=Math.ceil(100-S.food),nd=Math.ceil(100-S.drink);nt.innerHTML=nf<=0&&nd<=0?'Your food and drink bars are full!':`To fill up you need <b style="color:var(--ok)">${Math.max(0,nf)} more food</b> and <b style="color:var(--spd)">${Math.max(0,nd)} more drink</b>.`}
@@ -1994,7 +2001,6 @@ const BIKECOLS=[{id:'red',name:'Red',c:'#e63946',price:0},{id:'blue',name:'Blue'
 const bikeSpd=()=>(BIKELV[S.bikeLv||0]||BIKELV[0]).spd,bikeCol=()=>(BIKECOLS.find(b=>b.id===S.bikeCol)||BIKECOLS[0]).c;
 const raceLv=()=>Math.min(S.raceWins||0,15),racePrize=()=>40+raceLv()*10,rivalSpd=()=>215+raceLv()*5;
 const TRK=()=>{const z=ZONES[0];return{z,cx:z.x+z.w/2,cy:z.y+z.h/2}};
-function trackD(x,y){const {cx,cy}=TRK(),sx=clamp(x,cx-135,cx+135);return Math.hypot(x-sx,y-cy)}
 function raceAct(near){const {z,cx}=TRK(),d=Math.hypot(PL.x-cx,PL.y-(z.y+30));if(d>95)return;if(!nextRival)nextRival=pick(WNAMES);
   if(hasUp('bike'))near(d,{txt:'🏁 Start a bike race!',sub:`3 laps vs ${nextRival} · win ${racePrize()} coins`,fn:startRace});
   else near(d,{txt:'🏁 Bike race',sub:'You need a bike to race (Bike Shop)',locked:true})}
@@ -2002,30 +2008,43 @@ function startRace(){const {z,cx}=TRK();if(S.onBike===false){S.onBike=true;updBi
   const name=nextRival||pick(WNAMES);nextRival=null;
   const rx=z.w/2-23,ry=z.h/2-23,L=Math.PI*ry*2+(rx-ry)*4,st=(rx-ry)*2,a0=(st+Math.PI*ry+(rx-ry))*2*Math.PI/L;
   const rv={mode:'bike',race:true,a:a0,sp:0,look:townLook(),walk:0,x:cx,y:z.y+23,dir:-1};TOWN.push(rv);
-  RACE={ph:'count',t:3,rv,a0,sp:rivalSpd()*2*Math.PI/L,prog:0,ang:null,name,prize:racePrize(),time:0,go:0,off:0};raceHold();sfx('tick')}
-function raceHold(){const {z,cx}=TRK();PL.x=cx+6;PL.y=z.y+40;PL.vx=PL.vy=0;PL.tx=null;PL.dir=-1;PL.face='side'}
-function raceTick(dt){const R=RACE;if(!R)return;const {cx,cy}=TRK();R.go=Math.max(0,R.go-dt);
+  const prx=z.w/2-36,pry=z.h/2-36,pL=Math.PI*pry*2+(prx-pry)*4,pu0=(prx-pry)*2+Math.PI*pry+(prx-pry);
+  RACE={ph:'count',t:3,rv,a0,sp:rivalSpd()*2*Math.PI/L,name,prize:racePrize(),time:0,go:0,prx,pry,pL,pu0,pu:0,v:0,gas:false,boost:1,bT:0};
+  $('#raceCtl').hidden=false;$('#bikeBtn').hidden=true;$('#actBtn').hidden=true;raceHold();sfx('tick')}
+// a point on the oval track: distance u along it -> x, y and which way it is going
+function ovalAt(u,rx,ry){const {cx,cy}=TRK(),st=(rx-ry)*2,L=Math.PI*ry*2+st*2;u=((u%L)+L)%L;
+  if(u<st)return[cx-(rx-ry)+u,cy+ry,1,0];
+  if(u<st+Math.PI*ry){const q=(u-st)/ry;return[cx+(rx-ry)+Math.sin(q)*ry,cy+Math.cos(q)*ry,Math.cos(q),-Math.sin(q)]}
+  if(u<st*2+Math.PI*ry)return[cx+(rx-ry)-(u-st-Math.PI*ry),cy-ry,-1,0];
+  const q=(u-st*2-Math.PI*ry)/ry;return[cx-(rx-ry)-Math.sin(q)*ry,cy-Math.cos(q)*ry,-Math.cos(q),Math.sin(q)]}
+function racePlace(){const R=RACE,[x,y,tx,ty]=ovalAt(R.pu0+R.pu,R.prx,R.pry);PL.x=x;PL.y=y;PL.tx=null;PL.vx=tx*R.v;PL.vy=ty*R.v;PL.speed=R.v;PL.moving=R.v>3;
+  if(Math.abs(tx)>0.1)PL.dir=tx>0?1:-1;if(R.v<20)PL.face='side'}
+function raceHold(){RACE.v=0;racePlace();PL.dir=-1;PL.face='side'}
+function raceBoost(){const R=RACE;if(!R||R.ph!=='go'||R.boost<1)return;R.boost=0;R.bT=1.3;sfx('great');$('#rBoost').classList.add('on')}
+function raceTick(dt){const R=RACE;if(!R)return;R.go=Math.max(0,R.go-dt);
   if(!(hasUp('bike')&&S.onBike!==false)){endRace(null,'You got off your bike, so the race is over.');return}
   if(R.ph==='count'){R.t-=dt;raceHold();const n=Math.ceil(R.t);if(n!==R.lastN){R.lastN=n;if(n>0)sfx('tick')}
-    if(R.t<=0){R.ph='go';R.go=0.9;R.rv.sp=R.sp;R.ang=Math.atan2((PL.y-cy)/165,(PL.x-cx)/300);sfx('level')}return}
-  R.time+=dt;const a=Math.atan2((PL.y-cy)/165,(PL.x-cx)/300);let da=a-R.ang;if(da>Math.PI)da-=2*Math.PI;if(da<-Math.PI)da+=2*Math.PI;R.ang=a;
-  const d=trackD(PL.x,PL.y);R.off=d<104||d>180?R.off+dt:0;if(!R.off)R.prog=Math.max(-1,R.prog-da);
-  if(d>430){endRace(null,'You rode away from the track, so the race is over.');return}
-  const me=R.prog/(2*Math.PI),rv=(R.rv.a-R.a0)/(2*Math.PI);
+    if(R.t<=0){R.ph='go';R.go=0.9;R.rv.sp=R.sp;sfx('level')}return}
+  R.time+=dt;const top=bikeSpd()*0.9*(R.bT>0?1.45:1);
+  if(R.bT>0){R.bT-=dt;if(R.bT<=0)$('#rBoost').classList.remove('on')}else R.boost=Math.min(1,R.boost+dt/5);
+  if(R.gas||R.bT>0)R.v=Math.min(top,R.v+(R.bT>0?420:240)*dt);else R.v=Math.max(0,R.v-200*dt);if(R.v>top)R.v=Math.max(top,R.v-300*dt);
+  R.pu+=R.v*dt;racePlace();PL.walk+=dt*R.v/22;PL.wheel=(PL.wheel||0)+R.v*dt/9;
+  $('#rMeter u').style.width=Math.round(R.boost*100)+'%';$('#rBoost').classList.toggle('empty',R.boost<1&&R.bT<=0);$('#rGo').classList.toggle('on',!!R.gas);
+  const me=R.pu/R.pL,rv=(R.rv.a-R.a0)/(2*Math.PI);
   if(me>=3)endRace(true);else if(rv>=3)endRace(false)}
-function endRace(win,why){const R=RACE;RACE=null;const i=TOWN.indexOf(R.rv);if(i>=0)TOWN.splice(i,1);
+function endRace(win,why){const R=RACE;RACE=null;$('#raceCtl').hidden=true;$('#rBoost').classList.remove('on');PL.vx=PL.vy=0;updBike();const i=TOWN.indexOf(R.rv);if(i>=0)TOWN.splice(i,1);
   if(win===null){modal(`<h2>Race stopped</h2><p>${why}</p>`,'OK',null);sfx('bad');return}
   let best='';if(win){S.coins+=R.prize;S.raceWins=(S.raceWins||0)+1;if(!S.raceBest||R.time<S.raceBest){S.raceBest=R.time;best='<p class="menu-good">⏱ New best time!</p>'}updCoins();sfx('level')}else sfx('bad');save();
   modal(win?`<h2>🏁 You won the race!</h2><p>You beat <b>${R.name}</b> in ${R.time.toFixed(1)} seconds.</p><p style="font-size:22px;font-weight:900;margin:8px 0"><i class="coin"></i> +${R.prize} coins</p>${best}<p class="muted">Races won: ${S.raceWins}. The next rider will be a bit faster!</p>`
-    :`<h2>😅 ${R.name} won!</h2><p>So close! Try again.</p><p class="muted">Tip: ride on the inside of the track - it is shorter. A faster bike from the Bike Shop helps too!</p>`,'OK',null)}
+    :`<h2>😅 ${R.name} won!</h2><p>So close! Try again.</p><p class="muted">Tip: keep holding GO and use BOOST whenever it is full. A faster bike from the Bike Shop helps too!</p>`,'OK',null)}
 function drawRaceHud(c,w,h,now){const R=RACE;c.save();c.textAlign='center';
   const big=(t,col)=>{c.font='400 64px Bungee, Impact, sans-serif';c.lineWidth=9;c.strokeStyle='#1b2130';c.fillStyle=col;c.strokeText(t,w/2,h*0.36);c.fillText(t,w/2,h*0.36)};
   if(R.ph==='count'){big(String(Math.max(1,Math.ceil(R.t))),'#ffe14d');c.font='900 15px Nunito, sans-serif';c.lineWidth=4;c.strokeStyle='#1b2130';c.fillStyle='#fff';const t2=`Race vs ${R.name} · 3 laps`;c.strokeText(t2,w/2,h*0.36+34);c.fillText(t2,w/2,h*0.36+34);c.restore();return}
   if(R.go>0)big('GO!','#5fd49c');
-  const me=R.prog/(2*Math.PI),rv=(R.rv.a-R.a0)/(2*Math.PI),lap=clamp(Math.floor(me)+1,1,3),first=me>=rv;
+  const me=R.pu/R.pL,rv=(R.rv.a-R.a0)/(2*Math.PI),lap=clamp(Math.floor(me)+1,1,3),first=me>=rv;
   const txt=`🏁 Lap ${lap}/3  ·  ${first?'1st 🥇':'2nd'}  ·  ${R.time.toFixed(1)}s`;c.font='900 15px Nunito, sans-serif';const tw=c.measureText(txt).width+28,y=Math.min(150,h*0.2);
   c.fillStyle='rgba(20,24,38,.9)';c.beginPath();c.roundRect(w/2-tw/2,y-17,tw,34,17);c.fill();c.fillStyle=first?'#5fd49c':'#ffb627';c.fillText(txt,w/2,y+5);
-  if(R.off>0.3){c.font='900 15px Nunito, sans-serif';c.lineWidth=4;c.strokeStyle='#1b2130';c.fillStyle='#ff5d5d';c.strokeText('Stay on the track!',w/2,y+40);c.fillText('Stay on the track!',w/2,y+40)}
+  if(R.v<5&&R.time<4){c.font='900 15px Nunito, sans-serif';c.lineWidth=4;c.strokeStyle='#1b2130';c.fillStyle='#fff';const t3=IS_PC?'Hold F or SPACE to ride!':'Hold GO to ride!';c.strokeText(t3,w/2,y+40);c.fillText(t3,w/2,y+40)}
   c.restore()}
 function drawShopPrev(kind){const cv=$('#bikePrev');if(!cv||cv.offsetParent===null)return;const {c,w,h}=fit(cv),now=performance.now(),gy=h-22;c.clearRect(0,0,w,h);
   {if(!hasUp('bike')){drawMapFighter(c,w/2,gy,playerLook(),1,0,now,false,0.62,{relax:true});c.font='800 14px Nunito, sans-serif';c.fillStyle='#1b2130';c.textAlign='center';c.fillText('No bike yet',w/2,26);return}
@@ -2050,9 +2069,9 @@ $('#bikeList').addEventListener('click',e=>{const t=e.target.closest('button');i
   updCoins();save();renderBikes()});
 
 // ================= ARCADE =================
-const ARCG=[{id:'mole',name:'Whack-a-Mole',ic:'🔨',cost:20,txt:'Tap the moles before they hide! Gold moles are worth 3. 20 seconds.',prize:'10 hits: 15 · 20 hits: 35 · 30 hits: 70 coins'},
+const ARCG=[{id:'mole',name:'Whack-a-Mole',ic:'🔨',cost:20,txt:'Tap the moles before they hide! Gold moles are worth 3. 20 seconds.',prize:'8 hits: 15 · 15 hits: 35 · 25 hits: 70 coins'},
  {id:'stack',name:'Block Stacker',ic:'🧱',cost:25,txt:'Tap to stop the moving blocks right on top of each other. Reach the top!',prize:'Row 4: 25 · Row 6: 60 · Top: 150 coins'},
- {id:'claw',name:'Claw Machine',ic:'🕹️',cost:30,txt:'Tap to drop the claw right on top of a prize to grab it.',prize:'Coins, a First Aid kit, or the 💎 jackpot (250 coins)!'}];
+ {id:'claw',name:'Claw Machine',ic:'🕹️',cost:30,txt:'Drop the claw EXACTLY on top of a prize. It is hard, and prizes can slip out!',prize:'Coins, a First Aid kit, or the 💎 jackpot (250 coins)!'}];
 let ARC=null;
 function renderArcade(){ARC=null;$('#arcPick').hidden=false;$('#arcPlay').hidden=true;let h='';
   for(const g of ARCG){const best=(S.arcBest||{})[g.id];
@@ -2065,13 +2084,13 @@ $('#arcList').addEventListener('click',e=>{const b=e.target.closest('[data-arc]'
   if(g.id==='stack')Object.assign(ARC,{rows:[],cur:{x:0,w:3,dir:1}});
   if(g.id==='claw'){const t=['c10','c25','c50','med','gem'].sort(()=>Math.random()-0.5);Object.assign(ARC,{ph:'move',cx:0.5,dir:1,cy:0,prizes:t.map((k,i)=>({k,x:0.13+i*0.185,got:false})),grab:null})}
   $('#arcPick').hidden=true;$('#arcPlay').hidden=false;
-  $('#arcInfo').textContent={mole:'Tap the moles!',stack:IS_PC?'Press SPACE (or click) to stop the blocks':'Tap to stop the blocks',claw:IS_PC?'Press SPACE (or click) to drop the claw':'Tap to drop the claw'}[g.id];
+  $('#arcInfo').textContent={mole:IS_PC?'Press Q W E / A S D / Z X C (or click) to hit the moles!':'Tap the moles!',stack:IS_PC?'Press SPACE (or click) to stop the blocks':'Tap to stop the blocks',claw:IS_PC?'Press SPACE (or click) to drop the claw':'Tap to drop the claw'}[g.id];
   window.scrollTo(0,0);requestAnimationFrame(arcLoop)});
-const CLAWP={c10:{ic:'💰',txt:'10 coins',coins:10,tol:0.065},c25:{ic:'🧸',txt:'25 coins',coins:25,tol:0.055},c50:{ic:'🎁',txt:'50 coins',coins:50,tol:0.045},med:{ic:'🩹',txt:'a First Aid kit',coins:0,tol:0.05},gem:{ic:'💎',txt:'the JACKPOT! 250 coins',coins:250,tol:0.028}};
+const CLAWP={c10:{ic:'💰',txt:'10 coins',coins:10,tol:0.03},c25:{ic:'🧸',txt:'25 coins',coins:25,tol:0.024},c50:{ic:'🎁',txt:'50 coins',coins:50,tol:0.019},med:{ic:'🩹',txt:'a First Aid kit',coins:0,tol:0.022},gem:{ic:'💎',txt:'the JACKPOT! 250 coins',coins:250,tol:0.01}};
 function arcFinish(){const A=ARC;if(!A||A.done)return;A.done=true;let coins=0,msg='',best=A.score;
-  if(A.g==='mole'){coins=A.score>=30?70:A.score>=20?35:A.score>=10?15:0;msg=`You hit <b>${A.score}</b> points.`}
+  if(A.g==='mole'){coins=A.score>=25?70:A.score>=15?35:A.score>=8?15:0;msg=`You hit <b>${A.score}</b> points.`}
   if(A.g==='stack'){const r=A.rows.length;coins=r>=8?150:r>=6?60:r>=4?25:0;best=r;msg=r>=8?'You reached the TOP!':`You stacked <b>${r}</b> rows.`}
-  if(A.g==='claw'){const P=A.grab&&CLAWP[A.grab.k];best=null;if(P){coins=P.coins;if(A.grab.k==='med'){S.pu.medkit=puHave('medkit')+1;updMed&&updMed()}msg=`You grabbed ${P.ic} <b>${P.txt}</b>!`}else msg='The claw missed. So close!'}
+  if(A.g==='claw'){const P=A.grab&&CLAWP[A.grab.k];best=null;if(P){coins=P.coins;if(A.grab.k==='med'){S.pu.medkit=puHave('medkit')+1;updMed&&updMed()}msg=`You grabbed ${P.ic} <b>${P.txt}</b>!`}else msg=A.slipped?'Oh no! The prize slipped out of the claw!':'The claw missed. So close!'}
   if(best!=null){S.arcBest=S.arcBest||{};S.arcBest[A.g]=Math.max(S.arcBest[A.g]||0,best)}
   S.coins+=coins;updCoins();save();sfx(coins||A.grab?'level':'bad');
   setTimeout(()=>modal(`<h2>${coins||A.grab?'🎉 Nice!':'😅 Game over'}</h2><p>${msg}</p>${coins?`<p style="font-size:22px;font-weight:900;margin:8px 0"><i class="coin"></i> +${coins} coins</p>`:'<p class="muted">No prize this time. Try again!</p>'}`,'OK',()=>renderArcade()),500)}
@@ -2086,7 +2105,9 @@ function arcTap(x,y){const A=ARC;if(!A||A.done)return;const now=performance.now(
     c.w=b-a;c.x=Math.random()<0.5?0:7-c.w;c.dir=c.x?-1:1}
   if(A.g==='claw'&&A.ph==='move'){A.ph='drop';sfx('tick')}}
 $('#arcCv').addEventListener('pointerdown',e=>{if(!ARC)return;e.preventDefault();const r=e.currentTarget.getBoundingClientRect();arcTap(e.clientX-r.left,e.clientY-r.top)});
-addEventListener('keydown',e=>{if(screen!=='arcade'||!ARC||!$('#modal').hidden)return;if(e.key===' '||e.key==='Enter'){e.preventDefault();if(!e.repeat)arcTap(null,null)}});
+addEventListener('keydown',e=>{if(screen!=='arcade'||!ARC||!$('#modal').hidden||e.repeat)return;const k=e.key.toLowerCase();
+  if(ARC.g==='mole'){const i='qweasdzxc'.indexOf(k),j='789456123'.indexOf(k),n=i>=0?i:j;if(n>=0&&k.length===1&&ARC.lay){e.preventDefault();const L=ARC.lay;arcTap(L.x0+(n%3+0.5)*L.cw,L.y0+(Math.floor(n/3)+0.5)*L.ch)}return}
+  if(k===' '||k==='enter'){e.preventDefault();arcTap(null,null)}});
 function arcLoop(now){const A=ARC;if(!A||screen!=='arcade')return;const dt=Math.min(0.05,(now-A.last)/1000);A.last=now;
   const {c,w,h}=fit($('#arcCv'));c.clearRect(0,0,w,h);c.textAlign='center';
   const txt=(t,x,y,sz,col,font='Bungee, Impact, sans-serif',wt=400)=>{c.font=`${wt} ${sz}px ${font}`;c.fillStyle=col;c.fillText(t,x,y)};
@@ -2094,8 +2115,8 @@ function arcLoop(now){const A=ARC;if(!A||screen!=='arcade')return;const dt=Math.
     if(!A.done&&left<=0)arcFinish();
     if(!A.done&&now>=A.next){const max=el>8?2:1,live=A.moles.filter(m=>!m.hit&&now<m.born+m.life);
       if(live.length<max){const free=[...Array(9).keys()].filter(i=>!A.moles.some(m=>m.i===i&&now<(m.hit?m.hit+250:m.born+m.life))&&i!==A.lastI);const i=pick(free);A.lastI=i;
-        A.moles.push({i,born:now,life:Math.max(600,1050-el*22),gold:Math.random()<0.12})}
-      A.next=now+Math.max(380,700-el*15)}
+        A.moles.push({i,born:now,life:Math.max(950,1500-el*20),gold:Math.random()<0.18})}
+      A.next=now+Math.max(420,650-el*10)}
     A.moles=A.moles.filter(m=>now<(m.hit?m.hit+250:m.born+m.life));
     const g=c.createLinearGradient(0,0,0,h);g.addColorStop(0,'#7ec850');g.addColorStop(1,'#4f9a3a');c.fillStyle=g;c.beginPath();c.roundRect(0,0,w,h,16);c.fill();
     c.fillStyle='rgba(20,24,38,.85)';c.beginPath();c.roundRect(10,10,w-20,38,12);c.fill();
@@ -2114,7 +2135,8 @@ function arcLoop(now){const A=ARC;if(!A||screen!=='arcade')return;const dt=Math.
         c.fillStyle='#fff';c.fillRect(cx-r*0.13,my+r*0.48,r*0.12,r*0.18);c.fillRect(cx+r*0.01,my+r*0.48,r*0.12,r*0.18);
         if(m.gold&&!m.hit){c.fillStyle='#fff';c.globalAlpha=0.5+Math.sin(now/90)*0.5;c.beginPath();c.arc(cx+r*0.8,my-r*0.6,3,0,7);c.fill();c.globalAlpha=1}
         c.restore()}
-      c.fillStyle='#5a3d22';c.beginPath();c.ellipse(cx,hy,rx,ry,0,0,Math.PI);c.lineTo(cx-rx,hy);c.fill()}
+      c.fillStyle='#5a3d22';c.beginPath();c.ellipse(cx,hy,rx,ry,0,0,Math.PI);c.lineTo(cx-rx,hy);c.fill();
+      if(IS_PC){c.font='400 16px Bungee, Impact, sans-serif';c.fillStyle='rgba(255,255,255,.85)';c.fillText('QWEASDZXC'[i],cx,hy+ry+20)}}
     A.hits=A.hits.filter(f=>now-f.t<600);for(const f of A.hits){const k=(now-f.t)/600,cx=L.x0+(f.i%3+0.5)*L.cw,cy=L.y0+(Math.floor(f.i/3)+0.25)*L.ch-k*30;c.globalAlpha=1-k;c.font='400 22px Bungee, Impact, sans-serif';c.lineWidth=4;c.strokeStyle='#1b2130';c.strokeText(f.s,cx,cy);c.fillStyle='#ffe14d';c.fillText(f.s,cx,cy);c.globalAlpha=1}}
   if(A.g==='stack'){const C=7,RW=8,cs=Math.min((w-30)/C,(h-80)/RW),bx=(w-cs*C)/2,by=h-20,cur=A.cur,row=A.rows.length;
     if(!A.done){const sp=3.2+row*0.9;cur.x+=cur.dir*sp*dt;if(cur.x<=0){cur.x=0;cur.dir=1}if(cur.x>=C-cur.w){cur.x=C-cur.w;cur.dir=-1}}
@@ -2127,9 +2149,9 @@ function arcLoop(now){const A=ARC;if(!A||screen!=='arcade')return;const dt=Math.
     if(!A.done){const x0=Math.round(cur.x);for(let i=0;i<cur.w;i++)blk(x0+i,row,cols[row])}
     else if(A.fall){const k=(now-A.fall.t)/600;c.globalAlpha=Math.max(0,1-k);for(let i=0;i<A.fall.w;i++){c.beginPath();c.roundRect(bx+(A.fall.x+i)*cs+2,by-(row+1)*cs+2+k*k*200,cs-4,cs-4,6);ink(c,cols[row],2)}c.globalAlpha=1}}
   if(A.g==='claw'){const bx=16,bw=w-32,top=60,floor=h-30,clawX=bx+A.cx*bw;
-    if(A.ph==='move'){A.cx+=A.dir*0.42*dt;if(A.cx>0.95){A.cx=0.95;A.dir=-1}if(A.cx<0.05){A.cx=0.05;A.dir=1}}
-    else if(A.ph==='drop'){A.cy=Math.min(1,A.cy+dt*1.4);if(A.cy>=1){A.ph='up';let best=null,bd=1;for(const p of A.prizes){const d=Math.abs(p.x-A.cx);if(d<bd){bd=d;best=p}}if(best&&bd<CLAWP[best.k].tol){A.grab=best;best.got=true;sfx('good')}else sfx('bad')}}
-    else if(A.ph==='up'){A.cy=Math.max(0,A.cy-dt*1.1);if(A.cy<=0){A.ph='end';arcFinish()}}
+    if(A.ph==='move'){A.sp=Math.min(0.95,(A.sp||0.6)+dt*0.04);A.cx+=A.dir*A.sp*dt;if(A.cx>0.95){A.cx=0.95;A.dir=-1}if(A.cx<0.05){A.cx=0.05;A.dir=1}}
+    else if(A.ph==='drop'){A.cy=Math.min(1,A.cy+dt*1.4);if(A.cy>=1){A.ph='up';let best=null,bd=1;for(const p of A.prizes){const d=Math.abs(p.x-A.cx);if(d<bd){bd=d;best=p}}if(best&&bd<CLAWP[best.k].tol){A.grab=best;best.got=true;A.slip=Math.random()<({c10:0.15,c25:0.25,c50:0.35,med:0.25,gem:0.5}[best.k])?0.35+Math.random()*0.4:-1;sfx('good')}else sfx('bad')}}
+    else if(A.ph==='up'){A.cy=Math.max(0,A.cy-dt*1.1);if(A.grab&&A.slip>0&&A.cy<A.slip){A.grab.got=false;A.grab=null;A.slipped=true;sfx('bad')}if(A.cy<=0){A.ph='end';arcFinish()}}
     c.fillStyle='#2a2340';c.beginPath();c.roundRect(0,0,w,h,16);c.fill();c.fillStyle='rgba(159,211,240,.12)';c.beginPath();c.roundRect(bx,top-14,bw,floor-top+24,10);c.fill();
     txt('CLAW',w/2,38,22,'#ff7a9c');c.fillStyle='#8a93a8';c.fillRect(bx,top-14,bw,6);
     c.fillStyle='#3d3557';c.fillRect(bx,floor,bw,10);
@@ -2141,6 +2163,11 @@ function arcLoop(now){const A=ARC;if(!A||screen!=='arcade')return;const dt=Math.
     if(A.grab){c.font='40px sans-serif';c.fillText(CLAWP[A.grab.k].ic,clawX,tipY+54)}
     if(A.ph==='move'){c.fillStyle='rgba(255,255,255,.18)';c.fillRect(clawX-1,tipY+40,2,floor-tipY-50)}}
   requestAnimationFrame(arcLoop)}
+{const g=$('#rGo'),on=v=>e=>{e.preventDefault();if(RACE)RACE.gas=v};g.addEventListener('pointerdown',on(true));['pointerup','pointerleave','pointercancel'].forEach(t=>g.addEventListener(t,on(false)));
+  $('#rBoost').addEventListener('pointerdown',e=>{e.preventDefault();raceBoost()});
+  const GAS=[' ','f','w','arrowup','arrowright'],BST=['j','enter','b','shift'];
+  addEventListener('keydown',e=>{if(!RACE||screen!=='map'||!$('#modal').hidden)return;const k=e.key.toLowerCase();if(GAS.includes(k)){e.preventDefault();e.stopImmediatePropagation();RACE.gas=true}else if(BST.includes(k)){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)raceBoost()}},true);
+  addEventListener('keyup',e=>{if(!RACE)return;if(GAS.includes(e.key.toLowerCase()))RACE.gas=false},true)}
 let curAct=null;
 function setAct(a){const k=a?a.txt+a.sub:'';if(k===(curAct?curAct.k:'')){if(a)curAct.fn=a.fn;return}
   curAct=a?{...a,k}:null;const b=$('#actBtn');b.hidden=!a;if(a&&mapHint){mapHint=false;$('#mapHint').hidden=true}if(a){b.innerHTML=`${a.txt}${a.sub?`<small>${a.sub}</small>`:''}`;b.disabled=!!a.locked;if(!a.locked)sfx('tick')}}
