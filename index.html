@@ -248,6 +248,7 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .hrow{display:grid;grid-template-columns:1fr 1fr;gap:10px}.hrow .pill{justify-content:center;padding:11px;background:rgba(20,26,40,.85);color:var(--chalk);border:1px solid var(--line)}
 .hnote{margin:12px 0 0;font-weight:800;font-size:12px;color:#8e98b3}
 .stat .xpn{grid-column:2;margin-top:-4px;color:var(--muted);font-weight:800;font-size:11px}.coachn{margin:4px 0 0;font-weight:800;font-size:12px;color:var(--tape)}
+.trains{display:inline-block;margin:3px 0 2px;padding:2px 9px;border-radius:999px;color:#1b2130;font-weight:900;font-size:12px}
 .side .tr{background:var(--tape);color:var(--tape-ink);box-shadow:0 4px 0 #b37700}
 .act{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom,0px) + 22px);z-index:2;min-width:230px;max-width:calc(100% - 120px)}
 .act:active{transform:translateX(-50%) translateY(3px)}
@@ -912,7 +913,7 @@ function drawWorkIcon(c,key,w,h){c.save();c.scale(w/52,h/52);c.lineCap='round';c
   c.restore()}
 function statsHtml(){return Object.keys(STATS).map(k=>{const s=S[k],need=XP(s.lv),have=Math.floor(s.xp);return`<div class="stat"><span>${STATS[k].name}</span><span class="bar" title="${have} of ${need} XP"><i style="width:${Math.round(s.xp/need*100)}%;background:${STATS[k].col}"></i></span><span class="lv">Lv ${s.lv}</span><small class="xpn">${have} / ${need} XP</small></div>`}).join('')+(hasUp('coach')?`<p class="coachn">📋 Personal Coach Lv ${coachLv()}: +${coachLv()*25}% XP</p>`:'')}
 function renderTrain(){$('#gymStats').innerHTML=statsHtml();
-  $('#workList').innerHTML=WORK.map(w=>`<button class="card" data-w="${w.key}"><canvas class="ic wi" data-k="${w.key}" style="background:${w.ic}" width="52" height="52"></canvas><span><h3>${w.name}</h3><p>${w.what}</p></span><span class="tag"><span class="stars">${starsHtml(S.bestStars[w.key]||0)}</span><span style="color:${w.ic}">${STATS[w.stat].name.slice(0,3).toUpperCase()} Lv ${S[w.stat].lv}</span></span></button>`).join('');
+  $('#workList').innerHTML=WORK.map(w=>`<button class="card" data-w="${w.key}"><canvas class="ic wi" data-k="${w.key}" style="background:${w.ic}" width="52" height="52"></canvas><span><h3>${w.name}</h3><span class="trains" style="background:${STATS[w.stat].col}">${{str:'💪',spd:'⚡',sta:'❤️'}[w.stat]} Trains ${STATS[w.stat].name}</span><p>${w.what.replace(/\s*Builds (Strength|Speed|Stamina)\.?/,'')}</p></span><span class="tag"><span class="stars">${starsHtml(S.bestStars[w.key]||0)}</span><span style="color:${STATS[w.stat].col}">Lv ${S[w.stat].lv}</span></span></button>`).join('');
   $('#workList').querySelectorAll('.wi').forEach(cv=>{const {c,w,h}=fit(cv);drawWorkIcon(c,cv.dataset.k,w,h)});
 }
 $('#workList').addEventListener('click',e=>{const b=e.target.closest('[data-w]');if(b)startWorkout(WORK.find(w=>w.key===b.dataset.w))});
