@@ -1191,7 +1191,7 @@ function drawCoach(c,w,h,now,opt){if(!W)return;opt=opt||{};const left=W.run?W.w.
   if(!W.cHalf&&left<=W.w.dur/2){W.cHalf=true;coachSay('half',now)}
   if(!W.cEnd&&left<=5){W.cEnd=true;coachSay('end',now)}
   if(W.lastAct&&now-W.lastAct>2600&&(!W.cSay||now-W.cSay.at>3500))coachSay('idle',now);
-  const cs=opt.cs||h/275,cx=opt.cx||Math.max(40,w*0.12),cy=opt.cy||h-8,talking=W.cSay&&now-W.cSay.at<2200,kind=talking?W.cSay.kind:'';
+  const cs=opt.cs||h/200,cx=opt.cx||Math.max(52,w*0.14),cy=opt.cy||h-8,talking=W.cSay&&now-W.cSay.at<2200,kind=talking?W.cSay.kind:'';
   W.cX=cx;
   const pose=kind==='praise'||kind==='start'?'victory':kind==='half'||kind==='end'||kind==='idle'?'flex':'relax';
   c.save();c.globalAlpha=0.95;drawFront(c,cx,cy,cs,COACHLOOK,{pose,bob:talking?Math.abs(Math.sin(now/120))*-3:Math.sin(now/500)*1.5,happy:kind==='praise'});
@@ -1200,8 +1200,8 @@ function drawCoach(c,w,h,now,opt){if(!W)return;opt=opt||{};const left=W.run?W.w.
   c.restore();
   if(!opt.small){c.font='900 10px Nunito, sans-serif';c.textAlign='center';c.fillStyle='#ffb627';c.fillText('COACH',cx,Math.min(h-2,cy+2))}}
 function drawCoachBubble(c,w,h,now){if(!W||!hasUp('coach'))return;const talking=W.cSay&&now-W.cSay.at<2200,cx=W.cX||Math.max(40,w*0.12);
-  if(talking){c.font='900 13px Nunito, sans-serif';const t=W.cSay.t,tw=Math.min(w-12,c.measureText(t).width+18),bx=Math.max(6,Math.min(w-tw-6,cx-30)),by=W.w.key==='curl'?30:8;
-    c.fillStyle='#ffb627';c.beginPath();c.roundRect(bx,by,tw,26,10);c.fill();c.beginPath();c.moveTo(cx-4,by+26);c.lineTo(cx-8,by+36);c.lineTo(cx+8,by+26);c.fill();
+  if(talking){c.font='900 13px Nunito, sans-serif';const t=W.cSay.t,tw=Math.min(w-12,c.measureText(t).width+18),bx=W.w.key==='swim'?6:Math.max(6,Math.min(w-tw-6,cx+48)),by=W.w.key==='swim'?h*0.38:h-34;
+    c.fillStyle='#ffb627';c.beginPath();c.roundRect(bx,by,tw,26,10);c.fill();c.beginPath();if(W.w.key==='swim'){c.moveTo(bx+10,by+26);c.lineTo(bx-4,by+40);c.lineTo(bx+24,by+26)}else{c.moveTo(bx,by+4);c.lineTo(bx-12,by-4);c.lineTo(bx,by+18)}c.fill();
     c.fillStyle='#1b2130';c.textAlign='left';c.save();c.beginPath();c.rect(bx,by,tw,26);c.clip();c.fillText(t,bx+9,by+17);c.restore()}}
 function say(t){if(W)W.say={t,at:performance.now()}}
 function drawWorkoutFighter(now,dt){
@@ -1218,7 +1218,7 @@ function drawWorkoutFighter(now,dt){
     W.splash=(W.splash||[]).filter(sp=>now-sp.t<500);for(const sp of W.splash){const k=(now-sp.t)/500;c.fillStyle=`rgba(255,255,255,${1-k})`;for(let i=0;i<6;i++){c.beginPath();c.arc(px+130*s+Math.cos(i)*k*26,py-k*18-Math.abs(Math.sin(i*2))*k*14,3,0,7);c.fill()}}
     c.fillStyle='#1b2130';c.font='400 14px Bungee, Impact, sans-serif';c.textAlign='right';c.fillText('LAP '+lap,w-10,h*0.2);
     if(W.run&&W.combo>=5){c.fillStyle='#ffb627';c.textAlign='left';c.fillText(W.combo+' COMBO',10,h*0.2)}
-    if(hasUp('coach')){drawCoach(c,w,h,now,{cs:h/560,cx:w*0.7,cy:h*0.25,small:true});drawCoachBubble(c,w,h,now)}
+    if(hasUp('coach')){drawCoach(c,w,h,now,{cs:h/430,cx:w*0.62,cy:h*0.27,small:true});drawCoachBubble(c,w,h,now)}
     return}
   if(key==='stretch'){const tgt=P.flex?0.45+0.09*W.lvl:0;P.sp=(P.sp||0)+(tgt-(P.sp||0))*Math.min(1,dt*8)}
   let rope=null,jump=0;if(key==='beat'){P.ropeT=Math.min(1,(P.ropeT??1)+dt/0.38);rope=P.ropeT*Math.PI*2;jump=Math.sin(P.ropeT*Math.PI)*16}
@@ -1226,7 +1226,7 @@ function drawWorkoutFighter(now,dt){
   const L=playerLook(),pump=Math.min(0.18,W.score*(key==='stretch'?0.01:0.004));
   if(W.w.stat==='str')L.arm=Math.min(1.2,L.arm+pump);if(W.w.stat==='spd')L.legs=Math.min(1.2,L.legs+pump);if(W.w.stat==='sta')L.chest=Math.min(1.2,L.chest+pump);
   const g=0.8+0.4*growAll(),s=(h/212)*g,x=w/2-(key==='bag'?22:0),gy=h-10;
-  if(hasUp('coach'))drawCoach(c,w,h,now);
+  if(hasUp('coach'))drawCoach(c,w,h,now,{cs:Math.min(h/178,Math.max(h/200,s))});
   // speed bag rig behind the fist
   if(key==='bag'){P.bagA=(P.bagA||0)+(P.bagV||0)*dt;P.bagV=((P.bagV||0)-(P.bagA||0)*60*dt)*(1-dt*4);
     const px=x+60*s,py=gy-170*s;c.fillStyle='#3a4560';c.fillRect(px-40*s,py-8*s,80*s,7*s);
