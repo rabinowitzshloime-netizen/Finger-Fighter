@@ -1183,9 +1183,10 @@ const COACH_LINES={start:["Let's go, champ! Show me what you've got!","Fingers r
   end:["Last 5 seconds! EVERYTHING you've got!","Finish strong! Come on!"],
   idle:["Don't stop! Keep moving!","Hey! No resting yet!","Come on, I believe in you!"]};
 function coachSay(kind,now){if(!W)return;const L=COACH_LINES[kind];W.cSay={t:L[Math.floor(Math.random()*L.length)],at:now,kind}}
-function drawCoach(c,w,h,now,opt){if(!W||!W.run)return;opt=opt||{};const left=W.w.dur-(now-W.t0)/1000;
-  if(!W.cStart){W.cStart=true;coachSay('start',now)}
-  if(W.combo>0&&W.combo%5===0&&W.combo!==W.cCombo){W.cCombo=W.combo;coachSay('praise',now)}
+function drawCoach(c,w,h,now,opt){if(!W)return;opt=opt||{};const left=W.run?W.w.dur-(now-W.t0)/1000:W.w.dur;
+  if(!W.run){if(!W.cWait||now-W.cWait.at>4000){W.cWait={at:now};W.cSay={t:pick(["Press START when you're ready, champ!","I'm here to help you train!","Let's make you STRONG!"]),at:now,kind:'start'}}}
+  else if(!W.cStart){W.cStart=true;coachSay('start',now)}
+  if(W.run&&W.combo>0&&W.combo%5===0&&W.combo!==W.cCombo){W.cCombo=W.combo;coachSay('praise',now)}
   if((W.cPrev||0)>=3&&W.combo===0)coachSay('miss',now);W.cPrev=W.combo;
   if(!W.cHalf&&left<=W.w.dur/2){W.cHalf=true;coachSay('half',now)}
   if(!W.cEnd&&left<=5){W.cEnd=true;coachSay('end',now)}
@@ -1198,7 +1199,7 @@ function drawCoach(c,w,h,now,opt){if(!W||!W.run)return;opt=opt||{};const left=W.
   c.strokeStyle='#f4efe4';c.lineWidth=1.5;const ny=cy-118*cs;c.beginPath();c.moveTo(cx-8*cs,ny);c.quadraticCurveTo(cx,ny+22*cs,cx+8*cs,ny);c.stroke();c.fillStyle='#c0c6d1';c.beginPath();c.roundRect(cx-4*cs,ny+16*cs,9*cs,6*cs,2);c.fill();
   c.restore();
   if(!opt.small){c.font='900 10px Nunito, sans-serif';c.textAlign='center';c.fillStyle='#ffb627';c.fillText('COACH',cx,Math.min(h-2,cy+2))}}
-function drawCoachBubble(c,w,h,now){if(!W||!W.run||!hasUp('coach'))return;const talking=W.cSay&&now-W.cSay.at<2200,cx=W.cX||Math.max(40,w*0.12);
+function drawCoachBubble(c,w,h,now){if(!W||!hasUp('coach'))return;const talking=W.cSay&&now-W.cSay.at<2200,cx=W.cX||Math.max(40,w*0.12);
   if(talking){c.font='900 13px Nunito, sans-serif';const t=W.cSay.t,tw=Math.min(w-12,c.measureText(t).width+18),bx=Math.max(6,Math.min(w-tw-6,cx-30)),by=W.w.key==='curl'?30:8;
     c.fillStyle='#ffb627';c.beginPath();c.roundRect(bx,by,tw,26,10);c.fill();c.beginPath();c.moveTo(cx-4,by+26);c.lineTo(cx-8,by+36);c.lineTo(cx+8,by+26);c.fill();
     c.fillStyle='#1b2130';c.textAlign='left';c.save();c.beginPath();c.rect(bx,by,tw,26);c.clip();c.fillText(t,bx+9,by+17);c.restore()}}
