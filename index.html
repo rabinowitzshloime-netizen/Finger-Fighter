@@ -393,6 +393,9 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
     <p class="muted">Real finger exercises. Get 3 stars on each one for extra coins.</p>
     <div class="stats" id="gymStats"></div>
     <div class="list" id="workList"></div>
+    <div class="slot" style="margin-top:14px">Gym equipment · upgrade for more XP</div>
+    <p class="muted" style="margin:0 0 8px">Better equipment gives more XP every workout. Heavier stuff needs a higher level first!</p>
+    <div class="list" id="gearList"></div>
   </section>
 
   <section id="workout" hidden>
@@ -568,7 +571,7 @@ const WORK=[
 ];
 
 // ---------- save ----------
-const DEF={name:'Buddy',raceWins:0,raceBest:0,bikeLv:0,bikeCols:[],bikeCol:'red',str:{lv:1,xp:0},spd:{lv:1,xp:0},sta:{lv:1,xp:0},coins:0,owned:[],equip:{},food:100,drink:100,fat:0,health:1,gender:'boy',best:0,day:'',moves:0,secs:0,bestStars:{},streak:0,lastActive:'',sound:true,beaten:[],skin:'#e0a878',hairStyle:'short',hairCol:'#2b1d14',up:{},pu:{}};
+const DEF={name:'Buddy',gymGear:{},raceWins:0,raceBest:0,bikeLv:0,bikeCols:[],bikeCol:'red',str:{lv:1,xp:0},spd:{lv:1,xp:0},sta:{lv:1,xp:0},coins:0,owned:[],equip:{},food:100,drink:100,fat:0,health:1,gender:'boy',best:0,day:'',moves:0,secs:0,bestStars:{},streak:0,lastActive:'',sound:true,beaten:[],skin:'#e0a878',hairStyle:'short',hairCol:'#2b1d14',up:{},pu:{}};
 let S=null;
 try{S=JSON.parse(localStorage.getItem('ff-save'))}catch(e){}
 const HAD_SAVE=!!S;
@@ -794,7 +797,7 @@ function drawFighter(c,x,gy,s,L,P){
   if(P.sweat){c.fillStyle='#8fd3ff';const k=(performance.now()/600)%1;c.globalAlpha=1-k;c.beginPath();c.moveTo(-10,hy-6+k*20);c.quadraticCurveTo(-7,hy-1+k*20,-10,hy+1+k*20);c.quadraticCurveTo(-13,hy-1+k*20,-10,hy-6+k*20);c.fill();c.globalAlpha=1}
   // ----- near arm on top
   armDraw(near,skin,L.gloves,1);
-  if(P.curl!=null){const [,,fx,fy]=near;c.beginPath();c.arc(fx,fy,10,0,7);ink(c,'#3a4560',2);c.beginPath();c.arc(fx,fy,5,0,7);ink(c,'#9aa3b8',1.5)}
+  if(P.curl!=null){const [,,fx,fy]=near,t=P.dbT||0,r=10+t*2.5;c.beginPath();c.arc(fx,fy,r,0,7);ink(c,['#3a4560','#2f7a52','#2a55b8','#6a3fd1','#c9a227'][t],2);c.beginPath();c.arc(fx,fy,r*0.5,0,7);ink(c,t===4?'#ffe14d':'#9aa3b8',1.5)}
   c.beginPath();c.arc(0,shY+5,at*0.62,0,7);ink(c,TEE[L.top]||skin);
   if(P.flex&&L.arm>0.2){c.strokeStyle='rgba(255,255,255,.6)';c.lineWidth=1.5;const t=performance.now()/200;for(let i=0;i<3;i++){const a=t+i*2;line(c,fr+18+Math.cos(a)*14,shY-40+Math.sin(a)*6,fr+18+Math.cos(a)*18,shY-40+Math.sin(a)*8)}}
   c.restore();
@@ -951,7 +954,29 @@ function drawWorkIcon(c,key,w,h){c.save();c.scale(w/52,h/52);c.lineCap='round';c
     c.beginPath();for(let x=0;x<=52;x+=4)x?c.lineTo(x,42+Math.sin(x/4+1)*2):c.moveTo(x,42);c.stroke()}
   c.restore()}
 function statsHtml(){return Object.keys(STATS).map(k=>{const s=S[k],need=XP(s.lv),have=Math.floor(s.xp);return`<div class="stat"><span>${STATS[k].name}</span><span class="bar" title="${have} of ${need} XP"><i style="width:${Math.round(s.xp/need*100)}%;background:${STATS[k].col}"></i></span><span class="lv">Lv ${s.lv}</span><small class="xpn">${have} / ${need} XP</small></div>`}).join('')+(hasUp('coach')?`<p class="coachn">📋 Personal Coach Lv ${coachLv()}: +${coachLv()*25}% XP</p>`:'')}
-function renderTrain(){$('#gymStats').innerHTML=statsHtml();
+
+// ---------- gym equipment: upgrade it for more XP (needs a high enough level) ----------
+const GTIER=[{mult:1,price:0,lv:1,c:'#9aa3b8'},{mult:1.3,price:200,lv:3,c:'#5fd49c'},{mult:1.6,price:600,lv:6,c:'#4fb0ff'},{mult:2,price:1500,lv:10,c:'#c86bff'},{mult:2.5,price:3500,lv:15,c:'#ffd23f'}];
+const GNAMES={bag:['Leather Bag','Pro Speed Bag','Steel Speed Bag','Lightning Bag','Golden Bag'],
+  curl:['2 kg Dumbbell','5 kg Dumbbell','10 kg Dumbbell','20 kg Dumbbell','50 kg Golden Dumbbell'],
+  lift:['1 kg Finger Weights','3 kg Finger Weights','6 kg Finger Weights','10 kg Finger Weights','20 kg Titanium Weights'],
+  stretch:['Green Band','Blue Band','Black Band','Steel Spring','Titan Spring'],
+  beat:['Basic Rope','Speed Rope','Weighted Rope','Light-up Rope','Golden Rope'],
+  swim:['Arm Floats','Flippers','Pro Fins','Power Paddles','Jet Fins']};
+const GICON={bag:'🥊',curl:'🏋️',lift:'⚖️',stretch:'🟢',beat:'🪢',swim:'🏊'};
+const gearLv=k=>Math.min((S.gymGear||{})[k]||0,GTIER.length-1),gearMult=k=>GTIER[gearLv(k)].mult;
+function renderGear(){let h='';
+  for(const w of WORK){const g=gearLv(w.key),T=GTIER[g],nx=GTIER[g+1],st=STATS[w.stat],lv=S[w.stat].lv;
+    let btn;if(!nx)btn='<button class="pill on" disabled>MAX</button>';
+    else if(lv<nx.lv)btn=`<button class="pill" disabled style="font-size:11px;line-height:1.1">🔒 ${st.name}<br>Lv ${nx.lv}</button>`;
+    else btn=`<button class="pill" data-gear="${w.key}" ${S.coins<nx.price?'disabled':''}><i class="coin"></i>${nx.price}</button>`;
+    const dots=GTIER.map((t,i)=>`<i style="display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:3px;background:${i<=g?t.c:'rgba(255,255,255,.15)'}"></i>`).join('');
+    h+=`<div class="card"><span class="ic boostic" style="background:#2a2340">${GICON[w.key]}</span><span><h3>${GNAMES[w.key][g]} <span class="have" style="background:${T.c}">×${T.mult} XP</span></h3><p>For ${w.name} · ${dots}</p>${nx?`<p style="color:var(--muted);font-weight:800;font-size:12px">Next: ${GNAMES[w.key][g+1]} (×${nx.mult} XP) · needs ${st.name} Lv ${nx.lv}${lv<nx.lv?` - you are Lv ${lv}`:''}</p>`:'<p class="menu-good">Best equipment in the gym!</p>'}</span>${btn}</div>`}
+  $('#gearList').innerHTML=h}
+$('#gearList').addEventListener('click',e=>{const b=e.target.closest('[data-gear]');if(!b||b.disabled)return;const k=b.dataset.gear,g=gearLv(k),nx=GTIER[g+1],w=WORK.find(x=>x.key===k);
+  if(!nx||S[w.stat].lv<nx.lv||S.coins<nx.price)return;S.coins-=nx.price;if(!S.gymGear)S.gymGear={};S.gymGear[k]=g+1;updCoins();save();sfx('level');renderGear();
+  modal(`<h2>${GICON[k]} New equipment!</h2><p>You got the <b style="color:${nx.c}">${GNAMES[k][g+1]}</b>.</p><p>${w.name} now gives <b>×${nx.mult} XP</b>!</p>`,'Awesome!',null)});
+function renderTrain(){$('#gymStats').innerHTML=statsHtml();renderGear();
   $('#workList').innerHTML=WORK.map(w=>`<button class="card" data-w="${w.key}"><canvas class="ic wi" data-k="${w.key}" style="background:${w.ic}" width="52" height="52"></canvas><span><h3>${w.name}</h3><span class="trains" style="background:${STATS[w.stat].col}">${{str:'💪',spd:'⚡',sta:'❤️'}[w.stat]} Trains ${STATS[w.stat].name}</span><p>${w.what.replace(/\s*Builds (Strength|Speed|Stamina)\.?/,'')}</p></span><span class="tag"><span class="stars">${starsHtml(S.bestStars[w.key]||0)}</span><span style="color:${STATS[w.stat].col}">Lv ${S[w.stat].lv}</span></span></button>`).join('');
   $('#workList').querySelectorAll('.wi').forEach(cv=>{const {c,w,h}=fit(cv);drawWorkIcon(c,cv.dataset.k,w,h)});
 }
@@ -1306,9 +1331,10 @@ function drawWorkoutFighter(now,dt){
   if(key==='stretch')drawFront(c,x,gy,s,L,{pose:'spread',spread:P.sp||0,bob:0,sweat:W.run&&(now-W.t0)>6000});
   else if(key==='beat')drawFront(c,x+(P.trip||0)*6,gy,s,L,{pose:'rope',rope,jump,bob:0,sweat:W.run&&(now-W.t0)>6000});
   else drawFighter(c,x,gy,s,L,{bob:W.run?Math.sin(now/180)*1.5:Math.sin(now/400),punch:P.punch,backPunch:P.backPunch,kickF:P.kickF,kickB:P.kickB,
-    curl:key==='curl'?(P.curl||0):null,spread:key==='stretch'?P.sp:0,flex:false,shake:P.shake,happy:P.happy>0||W.combo>=10,
+    curl:key==='curl'?(P.curl||0):null,dbT:key==='curl'?gearLv('curl'):0,spread:key==='stretch'?P.sp:0,flex:false,shake:P.shake,happy:P.happy>0||W.combo>=10,
     hurt:P.trip,rope,jump,sweat:W.run&&(now-W.t0)>6000,flip:key==='curl'&&!!W.swapped});
   // curls: which arm is working, and the big "switch hands" moment half way
+  {const g=gearLv(key);c.font='900 12px Nunito, sans-serif';c.textAlign='right';c.fillStyle=GTIER[g].c;c.fillText(GICON[key]+' '+GNAMES[key][g]+(g?' · ×'+GTIER[g].mult+' XP':''),w-10,h-10);c.textAlign='center'}
   if(key==='curl'&&W.run){c.font='900 13px Nunito, sans-serif';c.textAlign='left';c.fillStyle='#ffb627';c.fillText((W.swapped?'💪 LEFT ARM':'💪 RIGHT ARM')+(W.swapped?'':' · swaps at half time'),12,22);c.textAlign='center';
     if(W.swapT&&now-W.swapT<2200){const k=(now-W.swapT)/2200;c.globalAlpha=k<0.8?1:1-(k-0.8)/0.2;const by=h-56;c.fillStyle='rgba(20,24,38,.88)';c.beginPath();c.roundRect(w/2-130,by,260,48,12);c.fill();c.strokeStyle='#ffb627';c.lineWidth=2;c.stroke();
       c.font='400 22px Bungee, Impact, sans-serif';c.fillStyle='#ffb627';c.fillText('OTHER ARM!',w/2,by+26);c.font='800 12px Nunito, sans-serif';c.fillStyle='#fff';c.fillText('Your fighter switches arms - keep going!',w/2,by+42);c.globalAlpha=1}}
@@ -1331,10 +1357,10 @@ function endWorkout(){
   const sc=w.key==='stretch'?Math.round(W.score*10)/10:Math.floor(W.score);
   const stars=w.stars.filter(t=>sc>=t).length,prev=S.bestStars[w.key]||0,newBest=stars>prev;
   if(newBest)S.bestStars[w.key]=stars;
-  const rankBefore=rankOf()[1],weak=hungry(),lookBefore=playerLook(),gBefore=growAll(),xpBoost=(hasUp('coach')?1+0.25*coachLv():1)*(puUse('xp2')?2:1),xp=Math.round(w.xp(sc)*(weak?0.5:1)*xpBoost),before=S[w.stat].lv,up=addXp(w.stat,xp),coins=stars*4+(newBest?(stars-prev)*10:0);
+  const rankBefore=rankOf()[1],weak=hungry(),lookBefore=playerLook(),gBefore=growAll(),xpBoost=(hasUp('coach')?1+0.25*coachLv():1)*(puUse('xp2')?2:1)*gearMult(w.key),xp=Math.round(w.xp(sc)*(weak?0.5:1)*xpBoost),before=S[w.stat].lv,up=addXp(w.stat,xp),coins=stars*4+(newBest?(stars-prev)*10:0);
   S.fat=Math.max(0,(S.fat||0)-0.04);drain(10,14);addSecs(w.dur);if(coins)addCoins(coins);save();setTimeout(()=>sfx(up?'level':stars?'coin':'good'),100);
   const nextGoal=w.stars.find(t=>sc<t);
-  modal(`<div class="bigstars">${starsHtml(stars)}</div><h2>${up?'Level up!':stars===3?'Perfect workout!':'Nice workout!'}</h2><ul><li>${sc} ${w.unit}</li><li style="color:${STATS[w.stat].col}">+${xp} ${STATS[w.stat].name} XP${weak?' (half, too hungry!)':''}${xpBoost>1?' (boosted!)':''}</li>${rankOf()[1]!==rankBefore?`<li style="color:${rankOf()[2]};font-size:18px">🎖️ NEW RANK: ${rankOf()[1]}!</li>`:''}${S.food<30||S.drink<30?'<li style="color:var(--hit)">Your fighter needs food and drink. Visit the Café!</li>':''}${coins?`<li style="color:var(--tape)">+${coins} coins${newBest?' (new best!)':''}</li>`:''}${up?`<li>${STATS[w.stat].name} Lv ${before} → ${S[w.stat].lv}</li>`:''}</ul>${up?'<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:6px"><div><canvas id="gB" style="height:130px"></canvas><small class="muted">Before</small></div><b style="font-size:28px;color:var(--tape);padding-bottom:40px">→</b><div><canvas id="gA" style="height:130px"></canvas><small style="color:var(--tape);font-weight:900">Now!</small></div></div><p style="font-weight:900;color:var(--tape)">'+{str:'Bigger arms!',spd:'Stronger legs!',sta:'Bigger chest!'}[w.stat]+'</p>':''}<div><p class="muted">${nextGoal?`Get ${nextGoal} ${w.unit} for the next star.`:S.name+' is getting huge!'}</p>`,
+  modal(`<div class="bigstars">${starsHtml(stars)}</div><h2>${up?'Level up!':stars===3?'Perfect workout!':'Nice workout!'}</h2><ul><li>${sc} ${w.unit}</li><li style="color:${STATS[w.stat].col}">+${xp} ${STATS[w.stat].name} XP${weak?' (half, too hungry!)':''}${xpBoost>1?' (boosted!)':''}${gearMult(w.key)>1?`<br><small style="color:var(--muted)">${GNAMES[w.key][gearLv(w.key)]}: ×${gearMult(w.key)} XP</small>`:''}</li>${rankOf()[1]!==rankBefore?`<li style="color:${rankOf()[2]};font-size:18px">🎖️ NEW RANK: ${rankOf()[1]}!</li>`:''}${S.food<30||S.drink<30?'<li style="color:var(--hit)">Your fighter needs food and drink. Visit the Café!</li>':''}${coins?`<li style="color:var(--tape)">+${coins} coins${newBest?' (new best!)':''}</li>`:''}${up?`<li>${STATS[w.stat].name} Lv ${before} → ${S[w.stat].lv}</li>`:''}</ul>${up?'<div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:end;gap:6px"><div><canvas id="gB" style="height:130px"></canvas><small class="muted">Before</small></div><b style="font-size:28px;color:var(--tape);padding-bottom:40px">→</b><div><canvas id="gA" style="height:130px"></canvas><small style="color:var(--tape);font-weight:900">Now!</small></div></div><p style="font-weight:900;color:var(--tape)">'+{str:'Bigger arms!',spd:'Stronger legs!',sta:'Bigger chest!'}[w.stat]+'</p>':''}<div><p class="muted">${nextGoal?`Get ${nextGoal} ${w.unit} for the next star.`:S.name+' is getting huge!'}</p>`,
     'Back to gym',()=>{W=null;show('train')});
   if(up){const gM=Math.max(gBefore,growAll()),d=(cv,L,g)=>{const {c,w:cw,h:ch}=fit(cv);const fs=Math.min((ch-8)/(215*(0.8+0.4*gM)),cw/(130*(0.8+0.4*gM)));drawFighter(c,cw/2,ch-4,fs*(0.8+0.4*g),L,{flex:true,happy:true})};d($('#gB'),lookBefore,gBefore);d($('#gA'),playerLook(),growAll())}
 }
@@ -2056,18 +2082,19 @@ function drawRaceHud(c,w,h,now){const R=RACE;c.save();c.textAlign='center';
 function drawShopPrev(kind){const cv=$('#bikePrev');if(!cv||cv.offsetParent===null)return;const {c,w,h}=fit(cv),now=performance.now(),gy=h-22;c.clearRect(0,0,w,h);
   {if(!hasUp('bike')){drawMapFighter(c,w/2,gy,playerLook(),1,0,now,false,0.62,{relax:true});c.font='800 14px Nunito, sans-serif';c.fillStyle='#1b2130';c.textAlign='center';c.fillText('No bike yet',w/2,26);return}
     const keep={dir:PL.dir,face:PL.face,speed:PL.speed,walk:PL.walk,wheel:PL.wheel,moving:PL.moving};Object.assign(PL,{dir:1,face:'side',speed:0,walk:0.6,wheel:0,moving:false});
-    drawRider(c,w/2,gy,0.62,now);Object.assign(PL,keep)}}
+    RIDER_LV=S.bikeLv||0;drawRider(c,w/2,gy,0.62,now);RIDER_LV=null;Object.assign(PL,keep)}}
 function renderBikes(){let h='';const has=hasUp('bike'),lv=S.bikeLv||0;
   h+='<div class="slot">Your bike</div>';
   if(!has)h+=`<div class="card"><span class="ic boostic">🚲</span><span><h3>Bike</h3><p>Ride around 50% faster and race at the Bike Track</p></span><button class="pill" data-bk="1" ${S.coins<500?'disabled':''}><i class="coin"></i>500</button></div>`;
-  else h+=`<div class="card"><span class="ic boostic">${BIKELV[lv].ic}</span><span><h3>${BIKELV[lv].name}</h3><p>Races won: ${S.raceWins||0}${S.raceBest?` · Best time: ${S.raceBest.toFixed(1)}s`:''}</p></span><button class="pill on" disabled>Yours</button></div>`;
+  else h+=`<div class="card"><canvas class="ic" data-bkpv="${lv}" style="background:#2a2340"></canvas><span><h3>${BIKELV[lv].name}</h3><p>Races won: ${S.raceWins||0}${S.raceBest?` · Best time: ${S.raceBest.toFixed(1)}s`:''}</p></span><button class="pill on" disabled>Yours</button></div>`;
   h+='<div class="slot">Speed upgrades · faster bike = easier races</div>';
   BIKELV.forEach((b,i)=>{if(!i)return;const own=has&&lv>=i,can=has&&lv===i-1;
-    h+=`<div class="card"><span class="ic boostic">${b.ic}</span><span><h3>${b.name}</h3><p>${b.txt}</p>${!has?'<p style="color:var(--muted);font-weight:800">Buy a bike first</p>':!own&&!can?`<p style="color:var(--muted);font-weight:800">Get the ${BIKELV[i-1].name} first</p>`:''}</span>${own?'<button class="pill on" disabled>Owned</button>':`<button class="pill" data-bklv="${i}" ${!can||S.coins<b.price?'disabled':''}><i class="coin"></i>${b.price}</button>`}</div>`});
+    h+=`<div class="card"><canvas class="ic" data-bkpv="${i}" style="background:#2a2340"></canvas><span><h3>${b.name}</h3><p>${b.txt}</p>${!has?'<p style="color:var(--muted);font-weight:800">Buy a bike first</p>':!own&&!can?`<p style="color:var(--muted);font-weight:800">Get the ${BIKELV[i-1].name} first</p>`:''}</span>${own?'<button class="pill on" disabled>Owned</button>':`<button class="pill" data-bklv="${i}" ${!can||S.coins<b.price?'disabled':''}><i class="coin"></i>${b.price}</button>`}</div>`});
   h+='<div class="slot">Paint · just for looks</div>';
   for(const p of BIKECOLS){const own=!p.price||(S.bikeCols||[]).includes(p.id),on=(S.bikeCol||'red')===p.id;
     h+=`<div class="card"><span class="ic" style="background:${p.c}"></span><span><h3>${p.name} paint</h3><p>${p.price?'Paint your bike '+p.name.toLowerCase():'The classic look'}</p></span>${on?'<button class="pill on" disabled>On bike</button>':own?`<button class="pill ghost" data-bkc="${p.id}">Use</button>`:`<button class="pill" data-bkbuy="${p.id}" ${S.coins<p.price?'disabled':''}><i class="coin"></i>${p.price}</button>`}</div>`}
-  $('#bikeList').innerHTML=h;drawShopPrev('bikes')}
+  $('#bikeList').innerHTML=h;drawShopPrev('bikes');
+  document.querySelectorAll('#bikeList canvas[data-bkpv]').forEach(cv=>{const {c,w,h}=fit(cv);const keep={dir:PL.dir,face:PL.face,speed:PL.speed,walk:PL.walk,wheel:PL.wheel,moving:PL.moving};Object.assign(PL,{dir:1,face:'side',speed:0,walk:0.6,wheel:0,moving:false});RIDER_LV=+cv.dataset.bkpv;drawRider(c,w/2+(RIDER_LV===2?4:0),h-6,0.17,performance.now());RIDER_LV=null;Object.assign(PL,keep)})}
 $('#bikeList').addEventListener('click',e=>{const t=e.target.closest('button');if(!t||t.disabled)return;const d=t.dataset;
   if(d.bk&&!hasUp('bike')&&S.coins>=500){S.coins-=500;S.up.bike=1;S.onBike=true;updBike();sfx('level')}
   else if(d.bklv){const b=BIKELV[+d.bklv];if(S.coins>=b.price){S.coins-=b.price;S.bikeLv=+d.bklv;sfx('level')}}
@@ -2456,13 +2483,14 @@ function drawBigMap(now){const cv=$('#bigCv'),{c,w,h}=fit(cv);const sz=Math.min(
   c.fillStyle='#5fd49c';c.strokeStyle='#fff';c.lineWidth=2.5;c.beginPath();c.arc(px,py,6.5,0,7);c.fill();c.stroke();
   c.font='900 12px Nunito, sans-serif';const tw=c.measureText('YOU').width+10;c.fillStyle='#fff';c.beginPath();c.roundRect(px-tw/2,py+11,tw,16,6);c.fill();c.fillStyle='#1b2130';c.textAlign='center';c.fillText('YOU',px,py+23);
   c.restore()}
-function drawRider(c,x,y,s,now){const k=s/0.3,d=PL.dir||1,wa=PL.wheel||0,ped=Math.sin(PL.walk||0);
+let RIDER_LV=null;
+function drawRider(c,x,y,s,now){const k=s/0.3,d=PL.dir||1,wa=PL.wheel||0,ped=Math.sin(PL.walk||0),blv=RIDER_LV!=null?RIDER_LV:(S.bikeLv||0),fire=PL.moving||RIDER_LV!=null;
   // which way is the bike facing? side, towards you (down) or away from you (up)
   if(PL.speed>20){const ax=Math.abs(PL.vx),ay=Math.abs(PL.vy);if(ay>ax*1.3)PL.face=PL.vy>0?'down':'up';else if(ax>ay*1.3)PL.face='side'}
   if(PL.face==='down'||PL.face==='up'){const up=PL.face==='up',bob=PL.moving?Math.sin((PL.walk||0)*2)*0.8:0;
     c.fillStyle='rgba(0,0,0,.28)';c.beginPath();c.ellipse(x,y+2,9*k,16*k,0,0,7);c.fill();
     const wheelV=(wy,sc)=>{const r=10*k*sc;c.strokeStyle='#1b2130';c.lineWidth=3.5*k;c.beginPath();c.ellipse(x,wy-r,2.6*k,r,0,0,7);c.stroke();
-      c.strokeStyle='#9aa3b8';c.lineWidth=1;const sp=Math.sin(wa*2)*r*0.6;line(c,x-2*k,wy-r+sp,x+2*k,wy-r+sp)};
+      c.strokeStyle=blv===1?'#ffe14d':blv===2?'#ff5d3a':'#9aa3b8';c.lineWidth=blv?2:1;const sp=Math.sin(wa*2)*r*0.6;line(c,x-2*k,wy-r+sp,x+2*k,wy-r+sp)};
     const barY=y-30*k,bars=(full)=>{c.strokeStyle=bikeCol();c.lineWidth=3*k;line(c,x,barY,x,y-10*k);c.strokeStyle='#1b2130';c.lineWidth=2.8*k;
         if(full)line(c,x-17*k,barY,x+17*k,barY);else{line(c,x-7*k,barY,x+7*k,barY);line(c,x-17*k,barY,x-15*k,barY);line(c,x+15*k,barY,x+17*k,barY)}};
     // back wheel (far end) first, then rider, then the near end
@@ -2471,13 +2499,28 @@ function drawRider(c,x,y,s,now){const k=s/0.3,d=PL.dir||1,wa=PL.wheel||0,ped=Mat
     const L=playerLook();drawFront(c,x,y-6*k+bob,s*0.95,L,{pose:'grip',gripX:12*k/(s*0.95),gripY:-(24*k+bob)/(s*0.95)-18,sit:true,back:up,bob:0});
     const pl=Math.sin(PL.walk||0)*4*k;c.fillStyle='#2b2f3a';c.fillRect(x-9*k,y-12*k+pl,5*k,3*k);c.fillRect(x+4*k,y-12*k-pl,5*k,3*k);
     if(up){wheelV(y+4*k,1)}else{wheelV(y+4*k,1);bars(false)}
+    if(!up&&blv===1){c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=1.2*k;c.beginPath();c.ellipse(x,y-20*k,4.5*k,5.5*k,0,0,7);c.fill();c.stroke();c.fillStyle='#1b2130';c.font=`900 ${Math.round(7*k)}px Nunito, sans-serif`;c.textAlign='center';c.fillText('1',x,y-17.5*k)}
+    if(!up&&blv===2){c.beginPath();c.moveTo(x-5*k,y-24*k);c.lineTo(x+5*k,y-24*k);c.lineTo(x,y-14*k);c.closePath();ink(c,'#e63946',1.2*k);if(fire){c.fillStyle='rgba(255,159,28,.85)';for(const sd of[-1,1]){c.beginPath();c.arc(x+sd*11*k,y-30*k+Math.sin(now/40)*k,2.5*k,0,7);c.fill()}}}
+    if(blv===2&&up){c.fillStyle='#c3ccd6';c.strokeStyle='#1b2130';c.lineWidth=1.5*k;c.beginPath();c.arc(x,y-22*k,5*k,0,7);c.fill();c.stroke();c.fillStyle='#1b2130';c.beginPath();c.arc(x,y-22*k,2.6*k,0,7);c.fill();
+      if(fire){const f=1+Math.sin(now/40)*0.25;c.fillStyle='rgba(255,159,28,.85)';c.beginPath();c.arc(x,y-22*k,4.5*k*f,0,7);c.fill();c.fillStyle='#ffe14d';c.beginPath();c.arc(x,y-22*k,2.4*k*f,0,7);c.fill()}}
     return}
   c.fillStyle='rgba(0,0,0,.28)';c.beginPath();c.ellipse(x,y+2,26*k,5*k,0,0,7);c.fill();
   c.save();c.translate(x,y);c.scale(d*k,k);
   const wheel=wx=>{c.strokeStyle='#1b2130';c.lineWidth=3;c.beginPath();c.arc(wx,-10,10,0,7);c.stroke();c.strokeStyle='#9aa3b8';c.lineWidth=1;for(let i=0;i<4;i++){const a=wa+i*Math.PI/4;line(c,wx+Math.cos(a)*9,-10+Math.sin(a)*9,wx-Math.cos(a)*9,-10-Math.sin(a)*9)}c.fillStyle='#ccc';c.beginPath();c.arc(wx,-10,2,0,7);c.fill()};
-  wheel(-17);wheel(17);
+  if(blv===2){for(const wx of[-17,17]){c.fillStyle='#3d4250';c.strokeStyle='#1b2130';c.lineWidth=3;c.beginPath();c.arc(wx,-10,10,0,7);c.fill();c.stroke();c.fillStyle='#ff5d3a';c.beginPath();c.arc(wx,-10,5,0,7);c.fill();c.strokeStyle='#ffe14d';c.lineWidth=1.5;line(c,wx+Math.cos(wa)*4.5,-10+Math.sin(wa)*4.5,wx-Math.cos(wa)*4.5,-10-Math.sin(wa)*4.5)}}
+  else if(blv===1){for(const wx of[-17,17]){wheel(wx);c.strokeStyle='#1b2130';c.lineWidth=5;c.beginPath();c.arc(wx,-10,10.5,0,7);c.stroke();c.strokeStyle='#ffe14d';c.lineWidth=1.6;c.beginPath();c.arc(wx,-10,7.5,0,7);c.stroke()}}
+  else{wheel(-17);wheel(17)}
+  if(blv===2){// rocket booster behind the seat
+    if(fire){const f=Math.sin(now/35)*3;c.fillStyle='rgba(255,93,58,.9)';c.beginPath();c.moveTo(-31,-35);c.quadraticCurveTo(-46-f,-31,-52-f*2,-30.5);c.quadraticCurveTo(-46-f,-29,-31,-26);c.fill();c.fillStyle='#ffe14d';c.beginPath();c.moveTo(-31,-33);c.quadraticCurveTo(-40,-31,-43-f,-30.5);c.quadraticCurveTo(-40,-30,-31,-28);c.fill()}
+    c.fillStyle='#e63946';c.beginPath();c.moveTo(-26,-35);c.lineTo(-31,-40);c.lineTo(-22,-35);c.closePath();c.fill();c.beginPath();c.moveTo(-26,-26);c.lineTo(-31,-21);c.lineTo(-22,-26);c.closePath();c.fill();
+    c.fillStyle='#c3ccd6';c.strokeStyle='#1b2130';c.lineWidth=1.4;c.beginPath();c.roundRect(-30,-35,22,9,4);c.fill();c.stroke();c.fillStyle='#1b2130';c.fillRect(-32,-34,3,7);c.fillStyle='#ff5d3a';c.fillRect(-20,-35,3,9);
+    // pointy nose at the front
+    c.beginPath();c.moveTo(15,-36);c.lineTo(26,-30);c.lineTo(15,-25);c.closePath();ink(c,'#e63946',1.4)}
+  if(blv===1){if(fire){c.strokeStyle='rgba(255,255,255,.75)';c.lineWidth=1.5;for(let i=0;i<3;i++){const o=((now/60)+i*7)%14;line(c,-30-o,-24+i*6,-38-o,-24+i*6)}}}
   c.strokeStyle=bikeCol();c.lineWidth=3;c.lineJoin='round';c.beginPath();c.moveTo(-17,-10);c.lineTo(-4,-26);c.lineTo(12,-26);c.lineTo(17,-10);c.moveTo(-4,-26);c.lineTo(0,-10);c.lineTo(-17,-10);c.moveTo(12,-26);c.lineTo(13,-34);c.stroke();
-  c.strokeStyle='#1b2130';c.lineWidth=2.5;line(c,9,-34,17,-34);c.fillStyle='#1b2130';c.beginPath();c.roundRect(-9,-30,11,4,2);c.fill();
+  c.strokeStyle='#1b2130';c.lineWidth=2.5;if(blv===1){c.beginPath();c.moveTo(9,-34);c.lineTo(17,-34);c.quadraticCurveTo(21,-33,18,-29);c.stroke()}else line(c,9,-34,17,-34);c.fillStyle='#1b2130';c.beginPath();c.roundRect(-9,-30,11,4,2);c.fill();
+  if(blv===1){c.fillStyle='#ffe14d';c.strokeStyle='#1b2130';c.lineWidth=1;c.beginPath();c.moveTo(6,-29);c.lineTo(1,-25.5);c.lineTo(4,-25.5);c.lineTo(0,-21);c.lineTo(8,-26);c.lineTo(5,-26);c.closePath();c.fill();c.stroke();
+    c.fillStyle='#fff';c.beginPath();c.ellipse(16,-28,3.5,4.5,0,0,7);c.fill();c.stroke();c.fillStyle='#1b2130';c.font='900 6px Nunito, sans-serif';c.textAlign='center';c.fillText('1',16,-26)}
   c.strokeStyle='#5b6470';c.lineWidth=2;line(c,0,-10,ped*5,-10+Math.cos(PL.walk||0)*5);c.restore();
   drawFighter(c,x-d*1*k,y-4*k,s,playerLook(),{flip:d<0,hands:[[24,-102,46,-100],[20,-104,42,-102]],kickF:0.35+Math.max(0,ped)*0.45,kickB:0.1+Math.max(0,-ped)*0.35,relax:true,swing:0.9,bob:PL.moving?Math.abs(Math.sin((PL.walk||0)*2))*1:0,noShadow:true})}
 function drawMap(now){
