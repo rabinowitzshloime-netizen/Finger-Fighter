@@ -275,6 +275,7 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
 #rGo{background:#5fd49c}#rGo.on{transform:translateY(4px);box-shadow:0 2px 0 rgba(0,0,0,.35);background:#7ff0b8}
 #rBoost{background:#ffb627}#rBoost.empty{background:#8a93a8}#rBoost.on{background:#ff7a1a;transform:translateY(4px)}
 #rMeter{display:block;width:70px;height:8px;border-radius:4px;background:rgba(0,0,0,.3);overflow:hidden}#rMeter u{display:block;height:100%;width:100%;background:#fff}
+.shelf{display:block;width:100%;height:96px;border-radius:12px;background:linear-gradient(#3b2a1d,#2a1d14);border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -446,6 +447,7 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
     <div class="chips" id="mirPoses"><button data-pose="relax">Relax</button><button data-pose="flex">Flex</button><button data-pose="victory">Victory</button><button data-pose="punch">Punch</button></div>
     <p class="muted" id="mirSay" style="text-align:center;font-weight:800"></p>
     <div class="plaque" id="mirStats"></div>
+    <div id="mirTrophyBox" hidden><div class="slot">Your trophies</div><canvas id="mirTrophyCv" class="shelf"></canvas></div>
   </section>
 
   <section id="stadium" hidden>
@@ -453,6 +455,7 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
     <h2>The Stadium</h2>
     <p class="muted">Bosses come one at a time. Beat a boss to unlock the next one. The crowd is waiting!</p>
     <button class="card tourcard" id="tourBtn"><span class="ic boostic" style="font-size:30px">🏆</span><span><h3>Tournament</h3><p id="tourTxt">Win 3 fights in a row to become champion!</p></span><span class="tag" id="tourTag"></span></button>
+    <div id="trophyBox" hidden><div class="slot">Your trophies</div><canvas id="trophyCv" class="shelf"></canvas><p class="muted" id="trophyTxt" style="text-align:center;font-weight:800;margin:4px 0 10px"></p></div>
     <p id="champ" style="font-weight:900;color:var(--tape)"></p>
     <div class="list" id="bossList"></div>
   </section>
@@ -956,10 +959,12 @@ $('#workList').addEventListener('click',e=>{const b=e.target.closest('[data-w]')
 
 // ---------- tournament: 8 fighters, 3 rounds in a row, health carries over ----------
 let TOUR=null;const TROUNDS=['Quarter-final','Semi-final','FINAL'];
-const tourFee=()=>50+powerLv()*5,tourPrize=()=>Math.round((300+powerLv()*40)*(hasUp('vip')?1.5:1));
-function renderTour(){$('#tourTxt').textContent=TOUR?`You're in the ${TROUNDS[TOUR.r]}! Tap to see the bracket.`:`8 fighters. Win 3 fights in a row - no healing in between! Prize: ${tourPrize()} coins + a trophy.`;
+const tourLv=()=>Math.min(S.trophies||0,12),tourFee=()=>50+powerLv()*5+tourLv()*10,tourPrize=()=>Math.round((300+powerLv()*40)*(1+tourLv()*0.2)*(hasUp('vip')?1.5:1));
+function renderTour(){$('#tourTxt').textContent=TOUR?`You're in the ${TROUNDS[TOUR.r]}! Tap to see the bracket.`:`8 fighters. Win 3 fights in a row - no healing in between! Prize: ${tourPrize()} coins + the ${TROPHY[Math.min(S.trophies||0,TROPHY.length-1)].name}.${S.trophies?' Gets harder every time you win!':''}`;
   $('#tourTag').innerHTML=TOUR?'<span style="color:var(--tape)">Continue</span>':`<span>Entry</span><span style="color:var(--tape)"><i class="coin"></i>${tourFee()}</span>`+(S.trophies?`<span>🏆×${S.trophies}</span>`:'')}
-function tourFoe(r){const w=makeWild();w.tier=[1,2,3][r];w.rel=[0.05,0.22,0.4][r];w.name=TOUR.opp[r];w.quirk=r?pick(Object.keys(QUIRKS)):null;w.foe.name=w.name;const f=wildFoe(w);f.name=w.name;return f}
+function tourFoe(r){const lv=tourLv(),w=makeWild();w.tier=Math.min(4,[1,2,3][r]+Math.floor(lv/3));w.rel=[0.05,0.22,0.4][r]+lv*0.035;w.name=TOUR.opp[r];w.quirk=r||lv>=2?pick(Object.keys(QUIRKS)):null;w.foe.name=w.name;const f=wildFoe(w);f.name=w.name;
+  // every trophy you win makes the next tournament a bit harder
+  f.hp=Math.round(f.hp*(1+lv*0.08));f.dmg=Math.round(f.dmg*(1+lv*0.06)*10)/10;return f}
 function bracketHtml(){const T=TOUR,me=S.name.replace(/[<>&]/g,''),N=T.field;
   const m=(a,b,win)=>`<div class="m"><div class="${win===a?'w':win?'l':''} ${a===me?'me':''}">${a}</div><div class="${win===b?'w':win?'l':''} ${b===me?'me':''}">${b}</div></div>`;
   const W=T.wins;return `<div class="bracket"><div class="col"><h4>Quarter-finals</h4>${[0,1,2,3].map(i=>m(N[i*2],N[i*2+1],W[0][i])).join('')}</div>
@@ -979,7 +984,7 @@ function showBracket(){const T=TOUR;$('#modalBox').innerHTML=`<h2>🏆 Tournamen
   $('#tGo').onclick=()=>{$('#modal').hidden=true;const f=tourFoe(T.r);startFight(f,{type:'tour',r:T.r})};
   $('#tQuit').onclick=()=>{TOUR=null;$('#modal').hidden=true;sfx('tick');renderStadium()}}
 $('#tourBtn').onclick=()=>{sfx('tick');if(TOUR)showBracket();else startTour()};
-function renderStadium(){renderTour();
+function renderStadium(){renderTour();setTimeout(()=>{const n=S.trophies||0;$('#trophyBox').hidden=!n;drawShelf($('#trophyCv'));if(n)$('#trophyTxt').textContent=`${n} ${n>1?'trophies':'trophy'} · Best: ${TROPHY[Math.min(n,TROPHY.length)-1].name}`},0);
   $('#champ').textContent=`Bosses beaten: ${S.beaten.length} of ${FOES.length}`+(S.beaten.length===FOES.length?' · CHAMPION!':'');
   const cur=FOES.findIndex((_,i)=>!S.beaten.includes(i)),ready=cur>=0;
   $('#bossList').innerHTML=FOES.map((f,i)=>{const b=bossFoe(i),done=S.beaten.includes(i),rw=15+i*20,open=i===cur&&ready;
@@ -2170,6 +2175,50 @@ function arcLoop(now){const A=ARC;if(!A||screen!=='arcade')return;const dt=Math.
   const GAS=[' ','f','w','arrowup','arrowright'],BST=['j','enter','b','shift'];
   addEventListener('keydown',e=>{if(!RACE||screen!=='map'||!$('#modal').hidden)return;const k=e.key.toLowerCase();if(GAS.includes(k)){e.preventDefault();e.stopImmediatePropagation();RACE.gas=true}else if(BST.includes(k)){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)raceBoost()}},true);
   addEventListener('keyup',e=>{if(!RACE)return;if(GAS.includes(e.key.toLowerCase()))RACE.gas=false},true)}
+
+// ================= TROPHIES: every tournament win gives a cooler one =================
+const TROPHY=[{name:'Bronze Cup',c:'#cd7f32'},{name:'Silver Cup',c:'#c3ccd6'},{name:'Gold Cup',c:'#ffd23f'},{name:'Emerald Cup',c:'#2fbf71'},{name:'Ruby Cup',c:'#e63946'},
+ {name:'Sapphire Wing Cup',c:'#3a6df0'},{name:'Diamond Cup',c:'#bfeaff'},{name:'Rainbow Cup',c:'#ff7a9c'},{name:'Dragon Cup',c:'#8a5cf0'},{name:'Legend Crown Cup',c:'#ffb627'}];
+function drawCup(c,x,y,sc,i,now){i=Math.min(i,TROPHY.length-1);const T=TROPHY[i];c.save();c.translate(x,y);c.scale(sc,sc);c.lineJoin='round';
+  let fill=T.c;if(i===7){const g=c.createLinearGradient(-20,0,20,0);['#ff5d5d','#ffb627','#ffe14d','#5fd49c','#4fb0ff','#c86bff'].forEach((k,j)=>g.addColorStop(j/5,k));fill=g}
+  const dk=i===7?'#8a3a6a':shade(T.c,-0.35);
+  if(i>=6){const gl=c.createRadialGradient(0,-40,4,0,-40,46);gl.addColorStop(0,i>=9?'rgba(255,214,90,.75)':'rgba(255,255,255,.5)');gl.addColorStop(1,'rgba(255,255,255,0)');c.fillStyle=gl;c.beginPath();c.arc(0,-40,46,0,7);c.fill()}
+  if(i>=5){for(const sd of[-1,1]){c.save();c.scale(sd,1);const f=Math.sin(now/300)*3;c.beginPath();c.moveTo(16,-50);c.quadraticCurveTo(34,-70-f,44,-62-f);c.quadraticCurveTo(38,-58,42,-52-f);c.quadraticCurveTo(34,-50,37,-44-f);c.quadraticCurveTo(28,-44,18,-40);c.closePath();c.fillStyle=i===8?'#a77cff':'#fff';c.fill();c.strokeStyle='#1b2130';c.lineWidth=1.6;c.stroke();c.restore()}}
+  // base
+  c.beginPath();c.roundRect(-17,-10,34,10,2);ink(c,i>=9?'#5a3d22':'#3d4250',1.6);c.beginPath();c.roundRect(-12,-16,24,7,2);ink(c,dk,1.4);
+  c.beginPath();c.moveTo(-4,-16);c.lineTo(-3,-28);c.lineTo(3,-28);c.lineTo(4,-16);c.closePath();ink(c,fill,1.4);
+  // handles
+  c.strokeStyle='#1b2130';c.lineWidth=5;for(const sd of[-1,1]){c.beginPath();c.arc(sd*17,-48,7,sd>0?-Math.PI/2:Math.PI/2,sd>0?Math.PI/2:Math.PI*1.5);c.stroke()}
+  c.strokeStyle=i===7?'#ffe14d':T.c;c.lineWidth=3;for(const sd of[-1,1]){c.beginPath();c.arc(sd*17,-48,7,sd>0?-Math.PI/2:Math.PI/2,sd>0?Math.PI/2:Math.PI*1.5);c.stroke()}
+  // bowl
+  c.beginPath();c.moveTo(-19,-60);c.lineTo(19,-60);c.quadraticCurveTo(18,-32,0,-28);c.quadraticCurveTo(-18,-32,-19,-60);c.closePath();ink(c,fill,1.8);
+  c.beginPath();c.ellipse(0,-60,19,4,0,0,7);ink(c,dk,1.4);
+  c.fillStyle='rgba(255,255,255,.45)';c.beginPath();c.moveTo(-13,-56);c.quadraticCurveTo(-12,-40,-5,-33);c.quadraticCurveTo(-9,-42,-9,-56);c.fill();
+  // number star
+  c.fillStyle=i>=3?'#fff':'rgba(0,0,0,.25)';c.font='900 11px Nunito, sans-serif';c.textAlign='center';c.fillText(String(i+1),0,-40);
+  if(i>=3){const gem=['#2fbf71','#e63946','#3a6df0','#bfeaff','#fff','#ff5d5d','#4fb0ff'][i-3];c.fillStyle=gem;c.strokeStyle='#1b2130';c.lineWidth=1.2;c.beginPath();c.moveTo(0,-26);c.lineTo(4,-22);c.lineTo(0,-18);c.lineTo(-4,-22);c.closePath();c.fill();c.stroke()}
+  if(i>=4){for(const sd of[-1,1]){c.fillStyle='#fff';c.beginPath();c.arc(sd*10,-50,2,0,7);c.fill()}}
+  if(i>=9){c.beginPath();c.moveTo(-14,-64);c.lineTo(-14,-78);c.lineTo(-7,-70);c.lineTo(0,-82);c.lineTo(7,-70);c.lineTo(14,-78);c.lineTo(14,-64);c.closePath();ink(c,'#ffd23f',1.6);
+    for(const gx of[-7,0,7]){c.fillStyle='#e63946';c.beginPath();c.arc(gx,-67,1.8,0,7);c.fill()}}
+  if(i===8){c.fillStyle='#ff9f1c';const fl=Math.sin(now/90)*2;c.beginPath();c.moveTo(-8,-63);c.quadraticCurveTo(-4,-74-fl,0,-66);c.quadraticCurveTo(4,-78+fl,8,-63);c.fill()}
+  if(i>=6){for(let k=0;k<4;k++){const a=now/700+k*1.6,tw=Math.max(0,Math.sin(now/200+k*2));c.fillStyle='#fff';c.globalAlpha=tw;const sx=Math.cos(a)*30,sy=-44+Math.sin(a*1.3)*24;c.beginPath();c.moveTo(sx,sy-4);c.lineTo(sx+1.2,sy-1.2);c.lineTo(sx+4,sy);c.lineTo(sx+1.2,sy+1.2);c.lineTo(sx,sy+4);c.lineTo(sx-1.2,sy+1.2);c.lineTo(sx-4,sy);c.lineTo(sx-1.2,sy-1.2);c.fill()}c.globalAlpha=1}
+  c.restore()}
+function drawShelf(cv){if(!cv||cv.offsetParent===null)return;const n=S.trophies||0;if(!n)return;
+  (function loop(){if(cv.offsetParent===null)return;const {c,w,h}=fit(cv),now=performance.now();c.clearRect(0,0,w,h);
+    c.fillStyle='#8a5a2b';c.fillRect(0,h-14,w,8);c.fillStyle='#5a3d22';c.fillRect(0,h-6,w,6);
+    const show=Math.min(n,12),gap=w/(show+0.2),sc=Math.min(0.95,gap/50);
+    for(let k=0;k<show;k++){const idx=n-show+k;drawCup(c,gap*(k+0.6),h-14,sc,idx,now)}
+    if(n>12){c.font='900 12px Nunito, sans-serif';c.fillStyle='#ffe14d';c.textAlign='left';c.fillText('+'+(n-12)+' more',6,16)}
+    requestAnimationFrame(loop)})()}
+// people on the map notice your trophies
+let TTALK=null;
+function trophyTalk(c,now){const n=S.trophies||0;if(!n||RACE)return;
+  if(!TTALK||now-TTALK.t>9000){const near=[...TOWN.filter(p=>!p.race&&p.mode!=='bike'),...WILDS.filter(w=>!(w.chase>0))].filter(p=>Math.hypot(p.x-PL.x,p.y-PL.y)<130);
+    if(near.length&&Math.random()<0.02){const p=pick(near),best=TROPHY[Math.min(n,TROPHY.length)-1].name;
+      TTALK={p,t:now,txt:pick([`Wow! ${n} ${n>1?'trophies':'trophy'}!`,`Is that the ${best}?!`,'Can I have your autograph?','Champion! Champion!',`That ${best} is SO cool!`,'You won the tournament?! Legend!'])}}}
+  if(TTALK&&now-TTALK.t<2800){const p=TTALK.p,y=p.y-(p.foe?166*(0.33+0.08*p.foe.lvl)+34:82);c.font='800 12px Nunito, sans-serif';const tw=c.measureText(TTALK.txt).width+18;
+    c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=2;c.beginPath();c.roundRect(p.x-tw/2,y-24,tw,24,10);c.fill();c.stroke();
+    c.beginPath();c.moveTo(p.x-5,y-1);c.lineTo(p.x,y+7);c.lineTo(p.x+5,y-1);c.fill();c.fillStyle='#1b2130';c.textAlign='center';c.fillText(TTALK.txt,p.x,y-8)}}
 let curAct=null;
 function setAct(a){const k=a?a.txt+a.sub:'';if(k===(curAct?curAct.k:'')){if(a)curAct.fn=a.fn;return}
   curAct=a?{...a,k}:null;const b=$('#actBtn');b.hidden=!a;if(a&&mapHint){mapHint=false;$('#mapHint').hidden=true}if(a){b.innerHTML=`${a.txt}${a.sub?`<small>${a.sub}</small>`:''}`;b.disabled=!!a.locked;if(!a.locked)sfx('tick')}}
@@ -2469,7 +2518,8 @@ function drawMap(now){
     const f=Math.abs(Math.sin(now/70+b.a*9));c.fillStyle=b.c;c.beginPath();c.ellipse(b.x-3*f,b.y,4*f+0.5,3,0,0,7);c.ellipse(b.x+3*f,b.y,4*f+0.5,3,0,0,7);c.fill();c.fillStyle='#333';c.fillRect(b.x-0.7,b.y-3,1.4,6)}
   for(const wd of WILDS)if(vis(wd.x,wd.y,100)){const hh=166*(0.33+0.08*wd.foe.lvl);tag(c,wd.x,wd.y-hh-12,wd.name,TIERS[wd.tier].col);
     if(wd.alert>0.5){c.fillStyle='#ff5d5d';c.font='400 24px Bungee, Impact, sans-serif';c.textAlign='center';c.fillText('!',wd.x,wd.y-hh-30+Math.sin(now/90)*2)}}
-  tag(c,PL.x,PL.y-166*ps-12-(hasUp('bike')&&S.onBike!==false?5*ps/0.3:0),S.name+' · '+rankOf()[1],rankOf()[2]);
+  tag(c,PL.x,PL.y-166*ps-12-(hasUp('bike')&&S.onBike!==false?5*ps/0.3:0),S.name+' · '+rankOf()[1]+(S.trophies?' · 🏆'+S.trophies:''),rankOf()[2]);
+  trophyTalk(c,now);
   drawSky(c,now,vis);
   c.restore();
   if(RACE)drawRaceHud(c,w,h,now);
@@ -2617,6 +2667,7 @@ function renderMirror(){const L=playerLook(),g=growAll();
   $('#mirView').textContent=VIEWN[mirView()];
   document.querySelectorAll('#mirPoses button').forEach(b=>b.classList.toggle('on',b.dataset.pose===MIR.pose));
   const rows=[['Biceps',Math.round(24+L.arm*22)+' cm'],['Chest',Math.round(80+L.chest*45)+' cm'],['Thighs',Math.round(45+L.legs*25)+' cm'],['Height',Math.round(150+g*35)+' cm'],['Power',powerLv()],['Gear',Object.keys(S.equip).length+' items']];
+  $('#mirTrophyBox').hidden=!S.trophies;if(S.trophies)setTimeout(()=>drawShelf($('#mirTrophyCv')),0);
   $('#mirStats').innerHTML=rows.map(([k,v])=>`<div><small>${k}</small><b>${v}</b></div>`).join('')}
 function mirTurn(dir){MIR.target+=dir*90;sfx('tick');const v=mirView();$('#mirSay').textContent=pick(MIRSAY[v]);move();renderMirror()}
 $('#mirL').onclick=()=>mirTurn(-1);$('#mirR').onclick=()=>mirTurn(1);
@@ -2736,7 +2787,8 @@ function endFight(win){
     if(T){const me=S.name.replace(/[<>&]/g,'');
       if(win){T.wins[r][0]=me;if(r===0)T.wins[1][1]=T.opp[2];
         if(r<2){T.r++;extra=`<li style="color:var(--tape)">You made it to the ${TROUNDS[T.r]}!</li><li>Next: ${T.opp[T.r]}</li>`}
-        else{T.wins[2][0]=me;coins=tourPrize();S.trophies=(S.trophies||0)+1;extra=`<li style="color:var(--tape);font-size:18px">🏆 TOURNAMENT CHAMPION!</li><li>Trophies: ${S.trophies}</li>`;T.done=true}}
+        else{T.wins[2][0]=me;coins=tourPrize();S.trophies=(S.trophies||0)+1;const tk=TROPHY[Math.min(S.trophies,TROPHY.length)-1];extra=`<li style="color:var(--tape);font-size:18px">🏆 TOURNAMENT CHAMPION!</li><li style="list-style:none"><canvas class="winCup" style="display:block;width:120px;height:120px;margin:4px auto"></canvas></li><li>You won the <b style="color:${tk.c}">${tk.name}</b>!</li><li>Trophies: ${S.trophies}. The next tournament will be harder - and pay more!</li>`;T.done=true;
+          setTimeout(function cupLoop(){const cv=document.querySelector('#modalBox canvas.winCup');if(!cv)return;const {c,w,h}=fit(cv);c.clearRect(0,0,w,h);drawCup(c,w/2,h-8,1.25,S.trophies-1,performance.now());requestAnimationFrame(()=>cupLoop())},450)}}
       else{extra=`<li>You are out of the tournament in the ${TROUNDS[r]}.</li>`;TOUR=null}}}
   else{coins=win?F.foe.coins:-Math.min(S.coins,Math.max(5,Math.round(F.foe.coins*0.4)));WILDS[F.meta.wi]=makeWild()}
   const st=F.meta.story;if(st)extra+=`<li class="muted" style="font-weight:700">${fillN(win?st.win:st.lose,F.foe.name)}</li>`;
