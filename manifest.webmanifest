@@ -1,0 +1,18 @@
+{
+  "id": "./",
+  "name": "Finger Fighter",
+  "short_name": "Finger Fighter",
+  "description": "Train your fighter with real finger exercises, then battle street fighters and bosses.",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#1b2130",
+  "theme_color": "#1b2130",
+  "categories": ["games", "health", "fitness"],
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
