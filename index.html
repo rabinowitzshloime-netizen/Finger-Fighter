@@ -696,13 +696,21 @@ const INK='#141826';
 function capsule(c,pts,wd,col,out){c.lineCap='round';c.lineJoin='round';c.beginPath();c.moveTo(pts[0],pts[1]);for(let i=2;i<pts.length;i+=2)c.lineTo(pts[i],pts[i+1]);
   if(out){c.strokeStyle=INK;c.lineWidth=wd+4.4;c.stroke()}c.strokeStyle=col;c.lineWidth=wd;c.stroke()}
 function ink(c,fill,w=2.2){c.fillStyle=fill;c.fill();c.strokeStyle=INK;c.lineWidth=w;c.lineJoin='round';c.stroke()}
-function glove(c,x,y,ang,r,col,skin){
-  c.save();c.translate(x,y);c.rotate(ang);
-  if(!col){c.beginPath();c.ellipse(0,0,r*0.75,r*0.7,0,0,7);ink(c,skin);c.strokeStyle='rgba(0,0,0,.25)';c.lineWidth=1.2;for(let i=-1;i<=1;i++)line(c,r*0.35,i*r*0.3,r*0.6,i*r*0.3);c.restore();return}
+function glove(c,x,y,ang,r,col,skin,ty=1){
+  // ty: which side the thumb is on (1 = top of the fist in the side view)
+  c.save();c.translate(x,y);c.rotate(ang);c.scale(1,ty);
+  if(!col){// a real fist: fingers curled, knuckles in front, thumb wrapped across the fingers
+    c.beginPath();c.roundRect(-r*0.75,-r*0.62,r*1.45,r*1.24,r*0.5);ink(c,skin,1.8);
+    c.strokeStyle=shade(skin,-0.35);c.lineWidth=1.1;for(const k of[-0.28,0.02,0.32])line(c,r*0.18,k*r,r*0.62,k*r);
+    c.fillStyle=shade(skin,-0.12);c.beginPath();for(const k of[-0.42,-0.13,0.17,0.45]){c.moveTo(r*0.7,k*r);c.arc(r*0.62,k*r,r*0.1,0,7)}c.fill();
+    c.beginPath();c.ellipse(r*0.05,-r*0.5,r*0.5,r*0.24,-0.12,0,7);ink(c,shade(skin,0.04),1.4);
+    c.fillStyle='rgba(255,255,255,.55)';c.beginPath();c.ellipse(r*0.42,-r*0.54,r*0.11,r*0.08,0,0,7);c.fill();
+    c.restore();return}
   c.beginPath();c.roundRect(-r*1.25,-r*0.6,r*0.7,r*1.2,3);ink(c,'#f4efe4');
   c.beginPath();c.ellipse(0,0,r*1.05,r*0.95,0,0,7);ink(c,col);
-  c.beginPath();c.ellipse(-r*0.1,r*0.7,r*0.45,r*0.3,0.3,0,7);ink(c,col,1.8);
-  c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.ellipse(r*0.2,-r*0.45,r*0.45,r*0.2,-0.3,0,7);c.fill();
+  // the glove's thumb sits on top, pointing forward along the glove
+  c.beginPath();c.ellipse(-r*0.05,-r*0.82,r*0.55,r*0.3,-0.18,0,7);ink(c,col,1.8);
+  c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.ellipse(r*0.3,-r*0.25,r*0.42,r*0.18,-0.3,0,7);c.fill();
   c.restore()}
 function arm(c,sx,sy,fx,fy,at,skin,gl,bulge,straight,glCol){
   const ex=(sx+fx)/2-4, ey0=Math.max(sy,fy)+16, ey=ey0+((sy+fy)/2-ey0)*straight;
@@ -2392,7 +2400,7 @@ let WU=null;
 function warmUp(foe,meta,story){WU={n:0,last:null,t0:0,done:false,foe,meta,story};
   $('#modalBox').innerHTML=`<h2>🔥 Warm-up</h2><p class="muted">Tap LEFT and RIGHT <b>one after the other</b> as fast as you can for 8 seconds!${IS_PC?' (Computer: F and J)':''} Tapping the same side twice doesn't count.</p>
     <div style="display:flex;justify-content:space-around;align-items:center;margin:8px 0"><div><small class="muted">Time</small><div id="wuT" style="font-size:34px;font-weight:900">8.0</div></div><div><small class="muted">Taps</small><div id="wuN" style="font-size:34px;font-weight:900;color:var(--tape)">0</div></div></div>
-    <p id="wuGoal" class="muted" style="font-weight:800;margin:0 0 8px">15 = good · 28 = great · 40 = ON FIRE</p>
+    <p id="wuGoal" class="muted" style="font-weight:800;margin:0 0 8px">25 = good · 42 = great · 60 = ON FIRE</p>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="big wubtn" id="wuL" style="background:var(--spd);color:#04213a">LEFT</button><button class="big wubtn" id="wuR" style="background:var(--hit);color:#2c0303">RIGHT</button></div>`;
   $('#modal').hidden=false;
   const tap=side=>{if(!WU||WU.done)return;const b=$(side?'#wuR':'#wuL');b.classList.add('hit');setTimeout(()=>b.classList.remove('hit'),80);
@@ -2400,7 +2408,7 @@ function warmUp(foe,meta,story){WU={n:0,last:null,t0:0,done:false,foe,meta,story
     if(WU.last===side){sfx('bad');return}WU.last=side;WU.n++;$('#wuN').textContent=WU.n;sfx('tick');move()};
   $('#wuL').onpointerdown=e=>{e.preventDefault();tap(0)};$('#wuR').onpointerdown=e=>{e.preventDefault();tap(1)};WU.tap=tap}
 addEventListener('keydown',e=>{if(!WU||WU.done||e.repeat)return;const k=e.key.toLowerCase();if(k==='f'){e.preventDefault();WU.tap(0)}if(k==='j'){e.preventDefault();WU.tap(1)}});
-function wuEnd(){const W0=WU;W0.done=true;const n=W0.n,r=n>=40?{p:0.2,h:0.1,t:'ON FIRE! 🔥🔥🔥'}:n>=28?{p:0.12,h:0.06,t:'Great warm-up! 🔥🔥'}:n>=15?{p:0.06,h:0.03,t:'Good warm-up! 🔥'}:{p:0.03,h:0,t:'A little warm.'};sfx(n>=28?'level':'good');
+function wuEnd(){const W0=WU;W0.done=true;const n=W0.n,r=n>=60?{p:0.2,h:0.1,t:'ON FIRE! 🔥🔥🔥'}:n>=42?{p:0.12,h:0.06,t:'Great warm-up! 🔥🔥'}:n>=25?{p:0.06,h:0.03,t:'Good warm-up! 🔥'}:{p:0.03,h:0,t:'A little warm.'};sfx(n>=42?'level':'good');
   $('#modalBox').innerHTML=`<h2>${r.t}</h2><p><b>${n}</b> taps</p><p style="font-weight:900;color:#ff9f1c">+${Math.round(r.p*100)}% punch power${r.h?` · +${Math.round(r.h*100)}% health`:''} for this fight</p><button class="big go" id="wuGo">Let's fight!</button>`;
   $('#wuGo').onclick=()=>{WU=null;$('#modal').hidden=true;preFight(W0.foe,Object.assign({},W0.meta,{warm:{p:r.p,h:r.h}}),W0.story)}}
 // ================= SPARRING in the gym =================
@@ -2819,7 +2827,7 @@ function drawFront(c,x,gy,s,L,P){
     const bx=sx+(ex-sx)*0.5,by=sy+(ey-sy)*0.5,br=at*0.5+L.arm*9;c.fillStyle=AC;c.beginPath();c.ellipse(bx,by,br,br*0.85,Math.atan2(ey-sy,ex-sx),0,7);c.fill();
     c.fillStyle='rgba(255,255,255,.22)';c.beginPath();c.ellipse(bx-d*br*0.1,by-br*0.4,br*0.5,br*0.22,0,0,7);c.fill();
     if(back&&pose==='relax'){c.strokeStyle=shade(skin,-0.35);c.lineWidth=1.6;c.beginPath();c.arc(ex,ey,3,Math.PI*0.2,Math.PI*0.8);c.stroke()}
-    if(pose==='punch'){P.gl=P.gl||[];P.gl.push([fx,fy,d])}else glove(c,fx,fy,Math.atan2(fy-ey,fx-ex),6+at*0.33,L.gloves,skin)}};
+    if(pose==='punch'){P.gl=P.gl||[];P.gl.push([fx,fy,d])}else{const an=Math.atan2(fy-ey,fx-ex),sn=Math.sin(an);glove(c,fx,fy,an,6+at*0.33,L.gloves,skin,(Math.abs(sn)<0.15?1:Math.sign(sn))*(-d)*(back?-1:1))}}};
   if(back&&pose==='punch')drawArmsF();
   const g=c.createLinearGradient(-sw/2,0,sw/2,0);g.addColorStop(0,dark);g.addColorStop(0.5,light);g.addColorStop(1,dark);
   const tF=()=>{c.beginPath();c.moveTo(-sw/2,shY);c.quadraticCurveTo(0,shY-8,sw/2,shY);c.quadraticCurveTo(sw/2+5,shY+26,ww,-84+b);c.lineTo(-ww,-84+b);c.quadraticCurveTo(-sw/2-5,shY+26,-sw/2,shY);c.closePath()};tF();ink(c,g);if(L.shirt){tF();ink(c,L.shirt)}
@@ -2860,18 +2868,23 @@ function drawFront(c,x,gy,s,L,P){
   if(L.girl&&L.hairStyle!=='bald'){if(back){const sw2=Math.sin(performance.now()/300)*2;c.beginPath();c.moveTo(-5,hy-6);c.quadraticCurveTo(-7+sw2,hy+14,sw2,hy+26);c.quadraticCurveTo(7+sw2,hy+14,5,hy-6);c.closePath();ink(c,L.hair);c.beginPath();c.arc(0,hy-6,3.2,0,7);ink(c,'#ff7a9c',1.4)}
     else{for(const d of[-1,1]){c.beginPath();c.moveTo(d*13,hy-8);c.quadraticCurveTo(d*16,hy+2,d*13,hy+8);c.strokeStyle=L.hair;c.lineWidth=3;c.stroke()}
       c.strokeStyle=INK;c.lineWidth=1.3;for(const d of[-1,1]){line(c,d*7.8,hy-3.5,d*10.2,hy-5.6);line(c,d*6.5,hy-4.6,d*7.6,hy-7)}}}
-  if(pose==='punch'&&P.gl&&!back){const r0=6+at*0.33;P.gl.sort((a,b2)=>pk(a[2])-pk(b2[2]));for(const [fx,fy,d] of P.gl)frontGlove(c,fx,fy,r0*(1+pk(d)*0.75),L.gloves,skin)}
+  if(pose==='punch'&&P.gl&&!back){const r0=6+at*0.33;P.gl.sort((a,b2)=>pk(a[2])-pk(b2[2]));for(const [fx,fy,d] of P.gl)frontGlove(c,fx,fy,r0*(1+pk(d)*0.75),L.gloves,skin,d)}
   P.gl=null;
   if(L.headband){c.beginPath();c.roundRect(-14.5,hy-12,29,6,2);ink(c,L.headband,1.8);if(back){for(const d of[-1,1]){c.strokeStyle=INK;c.lineWidth=4.4;line(c,0,hy-9,d*6,hy+6);c.strokeStyle=L.headband;c.lineWidth=2.4;line(c,0,hy-9,d*6,hy+6)}}}
   if(L.face)drawGlasses(c,L.face,hy,back?'back':'front');if(L.hat)drawHat(c,L.hat,hy,back?'back':'front');
   if(ropeOn&&Math.sin(ra)<0)drawRope();
   if(P.sweat){c.fillStyle='#8fd3ff';const k=(performance.now()/600)%1;c.globalAlpha=1-k;c.beginPath();c.arc(12,hy-4+k*20,2.5,0,7);c.fill();c.globalAlpha=1}
   c.restore()}
-function frontGlove(c,x,y,r,col,skin){if(!col){c.beginPath();c.arc(x,y,r*0.75,0,7);ink(c,skin);c.strokeStyle='rgba(0,0,0,.25)';c.lineWidth=1.2;for(let i=-1;i<=1;i++)line(c,x+i*r*0.3,y-r*0.3,x+i*r*0.3,y+r*0.1);return}
+function frontGlove(c,x,y,r,col,skin,d=1){
+  if(!col){// fist coming straight at you: 4 knuckles on top, thumb across the front
+    c.beginPath();c.roundRect(x-r*0.78,y-r*0.7,r*1.56,r*1.4,r*0.5);ink(c,skin,1.8);
+    c.fillStyle=shade(skin,-0.12);for(let k=0;k<4;k++){c.beginPath();c.arc(x-r*0.5+k*r*0.33,y-r*0.42,r*0.17,0,7);c.fill()}
+    c.strokeStyle=shade(skin,-0.35);c.lineWidth=1.1;for(let k=1;k<4;k++)line(c,x-r*0.66+k*r*0.33,y-r*0.25,x-r*0.66+k*r*0.33,y+r*0.15);
+    c.beginPath();c.ellipse(x-d*r*0.12,y+r*0.38,r*0.55,r*0.22,-d*0.15,0,7);ink(c,shade(skin,0.04),1.4);return}
   c.beginPath();c.roundRect(x-r*0.6,y+r*0.55,r*1.2,r*0.7,3);ink(c,'#f4efe4');
   c.beginPath();c.arc(x,y,r,0,7);ink(c,col);
-  c.beginPath();c.ellipse(x-r*0.72,y+r*0.25,r*0.32,r*0.45,0.3,0,7);ink(c,col,1.8);
-  c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.ellipse(x+r*0.25,y-r*0.45,r*0.4,r*0.2,-0.4,0,7);c.fill()}
+  c.beginPath();c.ellipse(x-d*r*0.72,y+r*0.25,r*0.32,r*0.45,d*0.3,0,7);ink(c,col,1.8);
+  c.fillStyle='rgba(255,255,255,.35)';c.beginPath();c.ellipse(x+d*r*0.25,y-r*0.45,r*0.4,r*0.2,-d*0.4,0,7);c.fill()}
 function profHair(c,L,hy){if(L.hat){c.save();c.beginPath();c.rect(-40,hy-11,80,80);c.clip();profHair0(c,L,hy);c.restore()}else profHair0(c,L,hy)}
 function profHair0(c,L,hy){const h=L.hat&&L.hairStyle!=='bald'?'short':(L.hairStyle||'short'),col=L.hair;
   if(h==='bald'){c.fillStyle='rgba(255,255,255,.25)';c.beginPath();c.ellipse(-2,hy-11,5,2.5,-0.2,0,7);c.fill();return}
