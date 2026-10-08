@@ -294,6 +294,10 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
 .mis .bar{display:block;height:8px;border-radius:4px;background:rgba(255,255,255,.12);overflow:hidden;margin-top:4px}.mis .bar i{display:block;height:100%;background:var(--tape)}
 #toast{position:fixed;left:50%;top:84px;transform:translateX(-50%);z-index:60;background:#1b2130;border:3px solid #5fd49c;border-radius:14px;padding:10px 16px;font-weight:900;color:var(--chalk);box-shadow:0 8px 24px rgba(0,0,0,.45);max-width:90vw;text-align:center;animation:nagIn .35s ease-out}
 .wubtn{height:110px;font-size:26px}.wubtn.hit{transform:translateY(4px);filter:brightness(1.2)}
+#frBtn{position:relative}#frDot{position:absolute;top:-4px;right:-4px;width:16px;height:16px;border-radius:50%;background:#5fd49c;border:2px solid #1b2130}
+.code6{font-family:var(--display);font-size:44px;letter-spacing:.12em;color:var(--tape);background:var(--panel2);border-radius:14px;padding:10px 6px;margin:8px 0}
+.codein{width:100%;font-family:var(--display);font-size:36px;letter-spacing:.3em;text-align:center;padding:10px;border-radius:14px;border:2px solid var(--tape);background:var(--panel2);color:var(--chalk)}
+.emos{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:8px 0}.emos button{font-size:24px;padding:8px 0;border-radius:12px;border:0;background:var(--panel2)}
 </style>
 </head>
 <body>
@@ -322,6 +326,7 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
       <button class="tr" data-go="train"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg>TRAIN</button>
       <button data-go="shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>SHOP</button>
       <button data-go="skin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M8 4 3 7l2 4 3-1v10h8V10l3 1 2-4-5-3a4 4 0 0 1-8 0z"/></svg>SKIN</button>
+      <button id="frBtn" aria-label="Play with a friend"><span style="font-size:24px;line-height:1">👥</span>FRIENDS<i id="frDot" hidden></i></button>
       <button id="misBtn" aria-label="Missions"><span style="font-size:24px;line-height:1">📋</span>MISSIONS<i id="misN" hidden></i></button>
       <button data-go="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>SETTINGS</button>
       <button id="bikeBtn" hidden aria-label="Get on or off the bike"><span style="font-size:24px;line-height:1">🚲</span><b id="bikeTxt">GET OFF</b></button>
@@ -1385,6 +1390,7 @@ function drawWorkoutFighter(now,dt){
     hurt:P.trip,rope,jump,sweat:W.run&&(now-W.t0)>6000,flip:key==='curl'&&!!W.swapped});
   // curls: which arm is working, and the big "switch hands" moment half way
   {const g=gearLv(key);c.font='900 12px Nunito, sans-serif';c.textAlign='right';c.fillStyle=GTIER[g].c;c.fillText(GICON[key]+' '+GNAMES[key][g]+(g?' · ×'+GTIER[g].mult+' XP':''),w-10,h-10);c.textAlign='center'}
+  if(W.battle&&NET.wb&&NET.friend){const t=`👥 ${NET.friend.name}: ${NET.wb.them!=null?NET.wb.them:Math.floor(NET.wb.live)}`;c.font='900 13px Nunito, sans-serif';const tw=c.measureText(t).width+16;c.fillStyle='rgba(20,24,38,.85)';c.beginPath();c.roundRect(w-tw-8,36,tw,24,12);c.fill();c.fillStyle='#4fb0ff';c.textAlign='right';c.fillText(t,w-16,53);c.textAlign='center'}
   if(key==='curl'&&W.run){c.font='900 13px Nunito, sans-serif';c.textAlign='left';c.fillStyle='#ffb627';c.fillText((W.swapped?'💪 LEFT ARM':'💪 RIGHT ARM')+(W.swapped?'':' · swaps at half time'),12,22);c.textAlign='center';
     if(W.swapT&&now-W.swapT<2200){const k=(now-W.swapT)/2200;c.globalAlpha=k<0.8?1:1-(k-0.8)/0.2;const by=h-56;c.fillStyle='rgba(20,24,38,.88)';c.beginPath();c.roundRect(w/2-130,by,260,48,12);c.fill();c.strokeStyle='#ffb627';c.lineWidth=2;c.stroke();
       c.font='400 22px Bungee, Impact, sans-serif';c.fillStyle='#ffb627';c.fillText('OTHER ARM!',w/2,by+26);c.font='800 12px Nunito, sans-serif';c.fillStyle='#fff';c.fillText('Your fighter switches arms - keep going!',w/2,by+42);c.globalAlpha=1}}
@@ -1410,6 +1416,7 @@ function endWorkout(){
   const rankBefore=rankOf()[1],weak=hungry(),lookBefore=playerLook(),gBefore=growAll(),xpBoost=(hasUp('coach')?1+0.25*coachLv():1)*(puUse('xp2')?2:1)*gearMult(w.key),xp=Math.round(w.xp(sc)*(weak?0.5:1)*xpBoost),before=S[w.stat].lv,up=addXp(w.stat,xp),coins=stars*4+(newBest?(stars-prev)*10:0);
   const movesBefore=MOVES.filter(moveOpen).length;S.wdone[w.key]=(S.wdone[w.key]||0)+1;misEvent('work',1);if(stars===3)misEvent('stars',1,w.key);
   const newMv=MOVES.filter(moveOpen).length>movesBefore?MOVES.find(m=>m.from.includes(w.key)):null;
+  if(W.battle&&NET.wb){NET.wb.me=Math.round(sc*10)/10;netSend({t:'wdone',sc:NET.wb.me});wbResult()}
   S.lastTrain=Date.now();NAG.next=Date.now()+(S.remindMin||20)*60000;$('#trainNag').hidden=true;
   S.fat=Math.max(0,(S.fat||0)-0.04);drain(10,14);addSecs(w.dur);if(coins)addCoins(coins);save();setTimeout(()=>sfx(up?'level':stars?'coin':'good'),100);
   const nextGoal=w.stars.find(t=>sc<t);
@@ -2144,13 +2151,13 @@ function raceTick(dt){const R=RACE;if(!R)return;R.go=Math.max(0,R.go-dt);
     if(R.t<=0){R.ph='go';R.go=0.9;R.rnext=2+Math.random()*3;sfx('level')}}
   else{R.time+=dt;const top=bikeSpd()*0.9*(R.bT>0?1.45:1);
     // the rival uses boosts too!
-    if(R.rb>0){R.rb-=dt;if(R.rb<=0)R.rnext=4.5+Math.random()*3}else{R.rnext-=dt;if(R.rnext<=0)R.rb=1.3}
-    R.ru+=R.rsp*(R.rb>0?1.4:1)*dt;R.rv.walk+=dt*14;
+    if(!R.pvp){if(R.rb>0){R.rb-=dt;if(R.rb<=0)R.rnext=4.5+Math.random()*3}else{R.rnext-=dt;if(R.rnext<=0)R.rb=1.3}}
+    if(R.pvp)R.ru+=(R.rt-R.ru)*Math.min(1,dt*6);else R.ru+=R.rsp*(R.rb>0?1.4:1)*dt;R.rv.walk+=dt*14;
     if(R.bT>0){R.bT-=dt;if(R.bT<=0)$('#rBoost').classList.remove('on')}else R.boost=Math.min(1,R.boost+dt/5);
     if(R.gas||R.bT>0)R.v=Math.min(top,R.v+(R.bT>0?420:240)*dt);else R.v=Math.max(0,R.v-200*dt);if(R.v>top)R.v=Math.max(top,R.v-300*dt);
     R.pu+=R.v*dt;PL.walk=(PL.walk||0)+dt*R.v/22;PL.wheel=(PL.wheel||0)+R.v*dt/9}
   $('#rMeter u').style.width=Math.round(R.boost*100)+'%';$('#rBoost').classList.toggle('empty',R.boost<1&&R.bT<=0);$('#rGo').classList.toggle('on',!!R.gas);
-  if(R.ph==='go'){const me=R.pu/R.T.L,rv=R.ru/R.T.L;if(me>=R.laps)endRace(true);else if(rv>=R.laps)endRace(false)}}
+  if(R.ph==='go'){const me=R.pu/R.T.L,rv=R.ru/R.T.L;if(me>=R.laps){if(R.pvp)netSend({t:'rdone',time:R.time});endRace(true)}else if(!R.pvp&&rv>=R.laps)endRace(false)}}
 function drawTrackDecor(c,d,th,now){const {x,y}=d;
   if(th.decor==='tree')drawTree(c,{x,y,r:d.r});
   else if(th.decor==='palm'){c.strokeStyle='#8a5a2b';c.lineWidth=6;c.beginPath();c.moveTo(x,y);c.quadraticCurveTo(x+10,y-30,x+4,y-58);c.stroke();c.fillStyle='#2f9e4a';for(let k=0;k<6;k++){const a=k/6*Math.PI*2+Math.sin(now/900+d.v*9)*0.08;c.beginPath();c.ellipse(x+4+Math.cos(a)*16,y-58+Math.sin(a)*7,18,5,a,0,7);c.fill()}c.fillStyle='#7a4a22';c.beginPath();c.arc(x+2,y-55,3.5,0,7);c.arc(x+8,y-54,3.5,0,7);c.fill()}
@@ -2165,8 +2172,8 @@ function drawTrackDecor(c,d,th,now){const {x,y}=d;
 // ---- race map extras: real bikes for the other riders, curbs, flags, a grandstand and ground details ----
 const RCOLS=['#ff7a9c','#5fd49c','#ffd23f','#4fb0ff','#ff9f1c','#c86bff','#2a9d8f','#e63946','#ff5d3a','#3a6df0','#1b2130','#ffb627'];
 function drawRival(c,R,x,y,tx,ty,now){const keep={dir:PL.dir,face:PL.face,speed:PL.speed,vx:PL.vx,vy:PL.vy,walk:PL.walk,wheel:PL.wheel,moving:PL.moving};
-  const sp=R.ph==='go'?R.rsp*(R.rb>0?1.4:1):0;Object.assign(PL,{dir:tx>=0?1:-1,face:R.rface||'side',speed:sp,vx:tx*Math.max(sp,1),vy:ty*Math.max(sp,1),walk:R.ru/22,wheel:R.ru/9,moving:sp>3});
-  RIDER_LV=R.ri<4?0:R.ri<8?1:2;RIDER_LOOK=R.rv.look;RIDER_COL=RCOLS[R.ri%RCOLS.length];
+  const sp=R.ph==='go'?(R.pvp?250:R.rsp*(R.rb>0?1.4:1)):0;Object.assign(PL,{dir:tx>=0?1:-1,face:R.rface||'side',speed:sp,vx:tx*Math.max(sp,1),vy:ty*Math.max(sp,1),walk:R.ru/22,wheel:R.ru/9,moving:sp>3});
+  RIDER_LV=R.pvp?R.flv:R.ri<4?0:R.ri<8?1:2;RIDER_LOOK=R.rv.look;RIDER_COL=R.pvp?'#4fb0ff':RCOLS[R.ri%RCOLS.length];
   try{drawRider(c,x,y,0.4,now)}finally{R.rface=PL.face;RIDER_LV=null;RIDER_LOOK=null;RIDER_COL=null;Object.assign(PL,keep)}}
 function drawRaceFlag(c,f,now){const wv=Math.sin(now/220+f.v*9);c.fillStyle='rgba(0,0,0,.2)';c.beginPath();c.ellipse(f.x,f.y,6,2.5,0,0,7);c.fill();
   c.strokeStyle='#5b6470';c.lineWidth=3;line(c,f.x,f.y,f.x,f.y-58);c.fillStyle=f.c;c.strokeStyle='#1b2130';c.lineWidth=1.5;c.beginPath();c.moveTo(f.x,f.y-58);c.quadraticCurveTo(f.x+14,f.y-56+wv*4,f.x+28,f.y-50+wv*3);c.quadraticCurveTo(f.x+14,f.y-44+wv*3,f.x,f.y-40);c.closePath();c.fill();c.stroke()}
@@ -2223,6 +2230,7 @@ function endRace(win,why){const R=RACE;RACE=null;raceAway=false;$('#rBoost').cla
   {const z=ZONES[0];PL.x=z.x+z.w/2;PL.y=z.y+70;PL.tx=null;PL.face='side'}
   const back=()=>{$('#raceCtl').hidden=true;show('map');updBike()};
   if(win===null){modal(`<h2>Race stopped</h2><p>${why}</p>`,'OK',back);sfx('bad');return}
+  if(R.pvp){sfx(win?'level':'bad');modal(win?`<h2>🏁 You beat ${R.name}!</h2><p>You won the friendly race in ${R.time.toFixed(1)} seconds!</p>`:`<h2>😅 ${R.name} won the race!</h2><p>So close! Race again soon.</p>`,'Back to town',back);return}
   let best='';let unl='';if(win){S.coins+=R.prize;S.raceWins=(S.raceWins||0)+1;if(R.first&&R.ri>=(S.raceBeat||0)){S.raceBeat=R.ri+1;unl=S.raceBeat<RACERS.length?`<p style="color:var(--tape);font-weight:900">🔓 New rider unlocked: ${RACERS[S.raceBeat].name}!</p>`:'<p style="color:var(--tape);font-weight:900">🏆 You beat EVERY rider. Bike Track Champion!</p>'}if(!S.raceBest||R.time<S.raceBest){S.raceBest=R.time;best='<p class="menu-good">⏱ New best time!</p>'}updCoins();sfx('level')}else sfx('bad');save();
   modal(win?`<h2>🏁 You won the race!</h2><p>You beat <b>${R.name}</b> in ${R.time.toFixed(1)} seconds.</p><p style="font-size:22px;font-weight:900;margin:8px 0"><i class="coin"></i> +${R.prize} coins</p>${best}${unl}<p class="muted">Go back to the start line when you want to race again.</p>`
     :`<h2>😅 ${R.name} won!</h2><p>So close! Try again.</p><p class="muted">Tip: keep holding GO and use BOOST whenever it is full. A faster bike from the Bike Shop helps too!</p>`,'Back to town',back)}
@@ -2576,6 +2584,125 @@ function gymRingFront(c,w,h,gy){c.save();
   c.globalAlpha=0.9;[['#e63946',gy-122],['#fff',gy-88],['#3a6df0',gy-54]].forEach(([col,y])=>{c.strokeStyle='#1b2130';c.lineWidth=5;line(c,6,y,w-6,y+3);c.strokeStyle=col;c.lineWidth=3;line(c,6,y,w-6,y+3)});
   c.restore()}
 const LOCBG={park:parkBg,pitch:pitchBg,track:trackBg,skate:skateBg,street:streetBg,pond:pondBg,playground:playgroundBg};
+
+// ================= PLAY WITH A FRIEND: invite with a secret 6-digit code =================
+// Works peer-to-peer (PeerJS). The inviter's screen shows the code, the friend types it in, and the inviter must say YES.
+const NET={peer:null,conn:null,role:null,code:null,friend:null,last:0,lastSt:''},NETPFX='fingerfighter-v1-';
+const cleanName=t=>String(t||'Friend').replace(/[<>&"'`]/g,'').slice(0,16)||'Friend';
+function loadPeer(cb){if(window.Peer)return cb(true);const urls=['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js','https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'];let i=0;
+  const next=()=>{if(i>=urls.length)return cb(false);const sc=document.createElement('script');sc.src=urls[i++];sc.onload=()=>cb(!!window.Peer);sc.onerror=next;document.head.appendChild(sc)};next()}
+function netMe(){return{name:cleanName(S.name),look:playerLook(),rank:rankOf()[1],trophies:S.trophies||0,ps:0.3+0.16*growAll()}}
+function netReset(){try{NET.conn&&NET.conn.close()}catch(e){}try{NET.peer&&NET.peer.destroy()}catch(e){}NET.peer=NET.conn=NET.role=NET.code=NET.friend=null;$('#frDot').hidden=true}
+function netFail(msg){netReset();modal(`<h2>👥 Oops</h2><p>${msg}</p>`,'OK',null);sfx('bad')}
+function openFriends(){
+  if(NET.friend&&NET.conn){const f=NET.friend;
+    modal(`<h2>👥 Playing with ${f.name}</h2><p class="muted">${NET.role==='host'?'Your friend is in your town!':`You are in ${f.name}'s town!`} Find each other on the map (blue dot on the big map).</p>
+      <p style="font-weight:800;margin:6px 0 0">Send a reaction:</p><div class="emos">${['👋','😂','💪','🔥','😮','🏆'].map(e=>`<button data-emo="${e}">${e}</button>`).join('')}</div>
+      <p style="font-weight:800;margin:6px 0 4px">Challenge ${f.name}:</p><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px"><button class="big go" id="frFight">🥊<br>Fight</button><button class="big go" id="frRace">🚲<br>Race</button><button class="big go" id="frWork">💪<br>Workout</button></div>
+      <button class="big" id="frLeave" style="width:100%;margin-bottom:8px">Stop playing together</button>`,'Close',null);
+    $('#frFight').onclick=()=>{$('#modal').hidden=true;pvpChallenge('fight')};$('#frRace').onclick=()=>{$('#modal').hidden=true;pvpChallenge('race')};$('#frWork').onclick=()=>{$('#modal').hidden=true;pvpWorkPick()};
+    document.querySelectorAll('#modalBox [data-emo]').forEach(b=>b.onclick=()=>{netEmote(b.dataset.emo);$('#modal').hidden=true});
+    $('#frLeave').onclick=()=>{netSend({t:'bye'});setTimeout(netReset,150);$('#modal').hidden=true;showToast('You stopped playing together')};return}
+  modal(`<h2>👥 Play with a friend</h2><p class="muted">Invite a friend into your town, or join a friend's town with their secret code. You both need internet.</p>
+    <div style="display:grid;gap:10px;margin:8px 0"><button class="big go" id="frInv">📨 Invite a friend</button><button class="big" id="frJoin">🔑 I was invited</button></div>`,'Close',null);
+  $('#frInv').onclick=netInvite;$('#frJoin').onclick=netJoinAsk}
+function netInvite(){netReset();modal(`<h2>📨 Making your invite…</h2><p class="muted">One second!</p>`,'Cancel',netReset);
+  loadPeer(ok=>{if(!ok)return netFail("Couldn't connect. Check your internet and try again.");
+    const tryCode=(n)=>{const code=String(Math.floor(100000+Math.random()*900000));NET.role='host';NET.code=code;const peer=new Peer(NETPFX+code,{debug:0});NET.peer=peer;
+      peer.on('open',()=>{modal(`<h2>📨 Your invite code</h2><p class="muted">Tell your friend this code. Don't show anyone else!</p><div class="code6">${code.slice(0,3)} ${code.slice(3)}</div><p class="muted">Your friend presses <b>FRIENDS → I was invited</b> and types the code. Waiting for your friend…</p>`,'Cancel',netReset)});
+      peer.on('error',e=>{if(e&&e.type==='unavailable-id'&&n<5){try{peer.destroy()}catch(_){}tryCode(n+1)}else if(NET.peer===peer)netFail("The invite stopped working. Try again.")});
+      peer.on('disconnected',()=>{try{peer.reconnect()}catch(_){}});
+      peer.on('connection',conn=>{if(NET.conn){conn.on('open',()=>{conn.send({t:'no',why:'busy'});setTimeout(()=>conn.close(),300)});return}
+        conn.on('data',d=>{if(!d||typeof d!=='object')return;
+          if(d.t==='hello'&&!NET.conn){const nm=cleanName(d.name);sfx('great');
+            $('#modalBox').innerHTML=`<h2>👥 ${nm} wants to come to your town!</h2><canvas id="frPv" style="width:90px;height:110px;display:block;margin:0 auto"></canvas><p class="muted">${String(d.rank||'').replace(/[<>&]/g,'')} · Only say yes if you know them!</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="big" id="frNo">No</button><button class="big go" id="frYes">Yes, let them in</button></div>`;$('#modal').hidden=false;
+            try{const {c,w,h}=fit($('#frPv'));drawFighter(c,w/2,h-4,h/230,d.look,{flex:true})}catch(_){}
+            $('#frNo').onclick=()=>{conn.send({t:'no'});setTimeout(()=>conn.close(),300);$('#modal').hidden=true;openFriendsWaitAgain()};
+            $('#frYes').onclick=()=>{NET.conn=conn;netGotFriend(d);conn.send(Object.assign({t:'ok',x:Math.round(PL.x),y:Math.round(PL.y)},netMe()));$('#modal').hidden=true;showToast(`👥 ${NET.friend.name} is in your town!`)}}
+          else netData(d,conn)});
+        conn.on('close',()=>netLost(conn))})};tryCode(0)})}
+function openFriendsWaitAgain(){if(NET.peer&&NET.code)modal(`<h2>📨 Your invite code</h2><div class="code6">${NET.code.slice(0,3)} ${NET.code.slice(3)}</div><p class="muted">Still waiting for your friend…</p>`,'Cancel',netReset)}
+function netJoinAsk(){modal(`<h2>🔑 Join a friend</h2><p class="muted">Type the 6-digit code your friend sees on their screen.</p><input class="codein" id="frCode" inputmode="numeric" pattern="[0-9]*" maxlength="6" autocomplete="off" placeholder="______"><p id="frErr" style="color:var(--hit);font-weight:800;min-height:1.2em"></p><button class="big go" id="frGo" style="width:100%;margin-bottom:8px">Join</button>`,'Cancel',null);
+  const inp=$('#frCode');setTimeout(()=>inp.focus(),50);inp.oninput=()=>{inp.value=inp.value.replace(/\D/g,'').slice(0,6)};
+  const go=()=>{const code=inp.value;if(code.length!==6){$('#frErr').textContent='The code has 6 numbers';sfx('bad');return}netJoin(code)};$('#frGo').onclick=go;inp.onkeydown=e=>{if(e.key==='Enter'){e.preventDefault();e.stopPropagation();go()}}}
+function netJoin(code){netReset();modal(`<h2>🔑 Looking for your friend…</h2><p class="muted">Code ${code.slice(0,3)} ${code.slice(3)}</p>`,'Cancel',netReset);
+  loadPeer(ok=>{if(!ok)return netFail("Couldn't connect. Check your internet and try again.");
+    const peer=new Peer({debug:0});NET.peer=peer;NET.role='guest';let done=false;
+    const tm=setTimeout(()=>{if(!done&&NET.peer===peer)netFail('No game found with that code. Check the code with your friend!')},12000);
+    peer.on('error',e=>{if(NET.peer!==peer)return;clearTimeout(tm);netFail(e&&e.type==='peer-unavailable'?'No game found with that code. Check the code with your friend!':"Couldn't connect. Try again.")});
+    peer.on('open',()=>{const conn=peer.connect(NETPFX+code,{reliable:true});
+      conn.on('open',()=>{done=true;clearTimeout(tm);conn.send(Object.assign({t:'hello'},netMe()));modal(`<h2>⏳ Waiting…</h2><p class="muted">Your friend has to say YES to let you in.</p>`,'Cancel',()=>{try{conn.send({t:'bye'})}catch(_){}setTimeout(netReset,150)})});
+      conn.on('data',d=>{if(!d||typeof d!=='object')return;
+        if(d.t==='ok'){NET.conn=conn;netGotFriend(d);$('#modal').hidden=true;if(screen!=='map')show('map');PL.x=clamp((+d.x||750)+70,30,WORLD.w-30);PL.y=clamp(+d.y||1440,40,WORLD.h-10);PL.tx=null;sfx('level');showToast(`👥 You are in ${NET.friend.name}'s town!`)}
+        else if(d.t==='no'){netFail(d.why==='busy'?'Your friend is already playing with someone else.':'Your friend said no this time.')}
+        else netData(d,conn)});
+      conn.on('close',()=>netLost(conn))})})}
+
+// ================= FRIENDLY FIGHTS between two friends =================
+function pvpMe(){const m=me();return{hp:Math.round(m.hp*10)/10,lvl:growAll(),look:playerLook(),name:cleanName(S.name),blv:hasUp('bike')?(S.bikeLv||0):0}}
+const CHAL={fight:{ic:'🥊',what:'a friendly fight',rule:'No coins lost, no hospital. The winner gets XP!'},race:{ic:'🚲',what:'a bike race',rule:'2 laps on a random track. First to the finish wins!'},work:{ic:'💪',what:'a workout battle',rule:'You both do the same workout. Highest score wins!'}};
+function pvpChallenge(kind='fight',extra={}){const f=NET.friend;if(!f||!NET.conn)return;if(f.scr!=='map'){showToast(`${f.name} is busy ${SCRNAME[f.scr]||''}. Try again soon!`);return}
+  if(kind==='race'&&!hasUp('bike')){modal('<h2>🚲 You need a bike</h2><p>Buy a bike at the Bike Shop or Gear Shop first!</p>','OK',null);return}
+  if(kind==='race')extra=Object.assign({track:Math.floor(Math.random()*RACERS.length)},extra);
+  NET.waitFight=kind;NET.chalExtra=extra;netSend(Object.assign({t:'chal',kind},extra,pvpMe()));modal(`<h2>${CHAL[kind].ic} Challenge sent!</h2><p class="muted">Waiting for ${f.name} to say yes…</p>`,'Cancel',()=>{NET.waitFight=false})}
+function pvpWorkPick(){const f=NET.friend;if(!f)return;modal(`<h2>💪 Workout battle</h2><p class="muted">Pick a workout. You and ${f.name} both do it at the same time - highest score wins!</p><div style="display:grid;gap:8px;margin-bottom:8px">${WORK.map(w=>`<button class="big" data-wb="${w.key}" style="text-align:left">${GICON[w.key]} ${w.name}</button>`).join('')}</div>`,'Cancel',null);
+  document.querySelectorAll('#modalBox [data-wb]').forEach(b=>b.onclick=()=>{$('#modal').hidden=true;pvpChallenge('work',{w:b.dataset.wb})})}
+function pvpBegin(kind,d,extra){if(kind==='race')pvpRaceStart(d,extra);else if(kind==='work')pvpWorkStart(d,extra);else pvpStart(d)}
+// ---- race your friend ----
+function pvpRaceStart(d,extra){const ri=clamp(Math.floor(+extra.track||0),0,RACERS.length-1),T=trackOf(ri),f=NET.friend;
+  RACE={ph:'count',t:3,T,laps:2,pvp:true,name:f.name,ri:4,first:false,prize:0,time:0,go:0,pu:0,ru:0,rt:0,v:0,rv:{mode:'bike',look:d.look&&typeof d.look==='object'?d.look:f.look,walk:0,x:0,y:0,dir:1},rsp:0,rb:0,rnext:1e9,gas:false,boost:1,bT:0,home:{x:PL.x,y:PL.y},flv:clamp(+d.blv||0,0,2)};
+  if(S.onBike===false){S.onBike=true;updBike()}PL.face='side';PL.dir=1;$('#raceCtl').hidden=false;$('#rBoost').classList.remove('on');show('race');sfx('tick')}
+// ---- workout battle ----
+function pvpWorkStart(d,extra){const w=WORK.find(x=>x.key===extra.w)||WORK[0];NET.wb={key:w.key,me:null,them:null,live:0};startWorkout2(w);W.battle=true;showToast(`💪 Workout battle vs ${NET.friend.name}! Press Start!`)}
+function wbResult(){const B=NET.wb;if(!B||B.me==null||B.them==null||B.told)return;B.told=true;const f=NET.friend,nm=f?f.name:'Your friend';
+  const t=B.me>B.them?`🏆 You beat ${nm} ${B.me} to ${B.them}!`:B.me<B.them?`${nm} won ${B.them} to ${B.me}. Train and try again!`:`It's a tie! ${B.me} to ${B.them}`;sfx(B.me>=B.them?'level':'bad');showToast(t,6000);NET.wb=null}
+function pvpStart(d){const f=NET.friend;if(!f)return;const h0=S.health??1;
+  const foe={name:f.name,look:d.look&&typeof d.look==='object'?d.look:f.look,lvl:clamp(+d.lvl||0.3,0,1.5),hp:clamp(+d.hp||40,10,5000),dmg:0,every:1e9,warn:420,guard:0,coins:0,tier:'Friend'};
+  S.health=1;startFight(foe,{type:'pvp',h0});F.pvp=true;F.foe.hp=foe.hp;F.fhp=foe.hp;F.next=1e15;F.php=F.m.hp;hpBars();
+  F.txt.push({s:'FRIENDLY FIGHT!',side:1,t:performance.now(),c:'#4fb0ff'});sfx('great')}
+function netGotFriend(d){NET.friend={name:cleanName(d.name),look:d.look&&typeof d.look==='object'?d.look:townLook(),rank:String(d.rank||'').replace(/[<>&]/g,''),trophies:+d.trophies||0,ps:clamp(+d.ps||0.35,0.25,0.6),x:null,y:null,tx:null,ty:null,dir:1,walk:0,mv:false,bike:false,scr:'map',emo:null};$('#frDot').hidden=false}
+function netData(d,conn){const f=NET.friend;if(!f||conn!==NET.conn)return;
+  if(d.t==='chal'){const kind=CHAL[d.kind]?d.kind:'fight';if(screen!=='map'||!$('#modal').hidden||F||RACE){netSend({t:'chalno',why:'busy'});return}
+    if(kind==='race'&&!hasUp('bike')){netSend({t:'chalno',why:'nobike'});showToast(`${f.name} wanted to race, but you need a bike first!`);return}sfx('great');
+    const ex=kind==='work'?{w:String(d.w||'')}:kind==='race'?{track:+d.track||0}:{};const wn=kind==='work'?(WORK.find(x=>x.key===ex.w)||{}).name:'';
+    $('#modalBox').innerHTML=`<h2>${CHAL[kind].ic} ${f.name} wants ${CHAL[kind].what}!</h2><p class="muted">${wn?'Workout: <b>'+wn+'</b>. ':''}${CHAL[kind].rule}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="big" id="pvNo">Not now</button><button class="big go" id="pvYes">Let's fight!</button></div>`;$('#modal').hidden=false;
+    $('#pvNo').onclick=()=>{$('#modal').hidden=true;netSend({t:'chalno'})};$('#pvYes').onclick=()=>{$('#modal').hidden=true;const me=pvpMe();netSend(Object.assign({t:'chalok',kind},me));pvpBegin(kind,d,ex)};return}
+  if(d.t==='chalok'){if(NET.waitFight){const kind=NET.waitFight;NET.waitFight=false;$('#modal').hidden=true;pvpBegin(kind,d,NET.chalExtra||{})}return}
+  if(d.t==='rpos'){if(RACE&&RACE.pvp){RACE.rt=clamp(+d.u||0,0,1e6);RACE.rb=d.b?1:0}return}
+  if(d.t==='rdone'){if(RACE&&RACE.pvp&&RACE.ph==='go')endRace(false);return}
+  if(d.t==='wlive'){if(NET.wb)NET.wb.live=+d.sc||0;return}
+  if(d.t==='wdone'){if(NET.wb){NET.wb.them=Math.round((+d.sc||0)*10)/10;wbResult()}return}
+  if(d.t==='chalno'){if(NET.waitFight){NET.waitFight=false;modal(`<h2>🥊 Not now</h2><p>${d.why==='busy'?f.name+' is busy right now.':(d.why==='nobike'?f.name+' needs a bike to race.':f.name+' said not now.')}</p>`,'OK',null)}return}
+  if(F&&F.pvp&&!F.over){const now=performance.now();
+    if(d.t==='wind'){F.wind=now+420;return}
+    if(d.t==='hit'){const dd=clamp(+d.d||0,0,999);F.wind=0;hitPlayer(now,dd);return}
+    if(d.t==='hp'){F.fhp=clamp(+d.hp||0,0,F.foe.hp);hpBars();return}
+    if(d.t==='ko'){F.fhp=0;hpBars();endFight(true);return}
+    if(d.t==='blk'){F.foeBlk=!!d.v;return}}
+  if(d.t==='st'){const x=+d.x,y=+d.y;if(isFinite(x)&&isFinite(y)){f.tx=clamp(x,0,WORLD.w);f.ty=clamp(y,0,WORLD.h);if(f.x==null){f.x=f.tx;f.y=f.ty}}f.dir=d.dir<0?-1:1;f.mv=!!d.mv;f.bike=!!d.bike;f.face=['side','up','down'].includes(d.face)?d.face:'side';f.scr=String(d.scr||'map').slice(0,12);if(d.look&&typeof d.look==='object')f.look=d.look}
+  else if(d.t==='emo'&&['👋','😂','💪','🔥','😮','🏆'].includes(d.e)){f.emo={e:d.e,t:performance.now()};sfx('tick')}
+  else if(d.t==='bye'){netLost(conn)}}
+function netLost(conn){if(conn&&conn!==NET.conn)return;if(F&&F.pvp&&!F.over){F.over=true;F=null;setBlock(false);modal('<h2>👋 Your friend left</h2><p>The friendly fight stopped.</p>','Back to town',()=>show('map'))}NET.waitFight=false;if(RACE&&RACE.pvp)endRace(null,'Your friend left the race.');NET.wb=null;const nm=NET.friend&&NET.friend.name;netReset();if(nm)showToast(`👋 ${nm} left`)}
+function netSend(o){try{if(NET.conn&&NET.conn.open)NET.conn.send(o)}catch(e){}}
+function netEmote(e){NET.myEmo={e,t:performance.now()};netSend({t:'emo',e});sfx('tick')}
+setInterval(()=>{if(!NET.conn||!NET.friend)return;if(RACE&&RACE.pvp)netSend({t:'rpos',u:Math.round(RACE.pu),b:RACE.bT>0});if(W&&W.battle&&W.run)netSend({t:'wlive',sc:Math.round(W.score*10)/10});const onB=hasUp('bike')&&S.onBike!==false,st={t:'st',x:Math.round(PL.x),y:Math.round(PL.y),dir:PL.dir||1,mv:!!PL.moving,bike:onB,face:PL.face||'side',scr:screen};
+  const k=JSON.stringify(st),now=performance.now();if(k!==NET.lastSt||now-NET.last>1000){if(now-NET.last>3000)st.look=playerLook();NET.lastSt=k;NET.last=now;netSend(st)}},100);
+addEventListener('pagehide',()=>netSend({t:'bye'}));
+const SCRNAME={train:'in the gym',workout:'training',fight:'in a fight',shop:'in the shop',cafe:'at the café',hospital:'at the hospital',stadium:'at the stadium',race:'in a bike race',arcade:'at the arcade',bikes:'in the bike shop',mirror:'in the mirror room'};
+function netDrawEnts(ents,c,now,vis,ps){const f=NET.friend;if(!f||f.x==null)return;
+  const dt=Math.min(0.05,(now-(f.lt||now))/1000);f.lt=now;f.x+=(f.tx-f.x)*Math.min(1,dt*8);f.y+=(f.ty-f.y)*Math.min(1,dt*8);f.walk+=f.mv?dt*(f.bike?12:11):0;f.wheel=(f.wheel||0)+(f.mv?dt*30:0);
+  if(!vis(f.x,f.y,100))return;const away=f.scr!=='map';
+  ents.push([f.y,()=>{if(away)c.globalAlpha=0.45;
+    if(f.bike){const keep={dir:PL.dir,face:PL.face,speed:PL.speed,vx:PL.vx,vy:PL.vy,walk:PL.walk,wheel:PL.wheel,moving:PL.moving};
+      Object.assign(PL,{dir:f.dir,face:f.face||'side',speed:f.mv?200:0,vx:0,vy:0,walk:f.walk,wheel:f.wheel,moving:f.mv});RIDER_LV=0;RIDER_LOOK=f.look;RIDER_COL='#3a6df0';
+      try{drawRider(c,f.x,f.y,f.ps,now)}finally{RIDER_LV=null;RIDER_LOOK=null;RIDER_COL=null;Object.assign(PL,keep)}}
+    else drawMapFighter(c,f.x,f.y,f.look,f.dir,f.mv?f.walk:0,now,false,f.ps,{relax:true,swing:f.mv?Math.sin(f.walk):Math.sin(now/900)*0.12});
+    c.globalAlpha=1}])}
+function netDrawTags(c,now,ps){const f=NET.friend;
+  const bubble=(x,y,e)=>{const k=(now-e.t)/2600;if(k>1)return;c.globalAlpha=k>0.8?(1-k)*5:1;c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=2;c.beginPath();c.arc(x,y-Math.min(1,k*6)*8,17,0,7);c.fill();c.stroke();c.font='20px sans-serif';c.textAlign='center';c.fillText(e.e,x,y+7-Math.min(1,k*6)*8);c.globalAlpha=1};
+  if(NET.myEmo)bubble(PL.x,PL.y-166*ps-40,NET.myEmo);
+  if(!f||f.x==null)return;const hh=166*f.ps;tag(c,f.x,f.y-hh-12,'👥 '+f.name+(f.scr!=='map'?' · '+(SCRNAME[f.scr]||'busy'):''),'#4fb0ff');if(f.emo)bubble(f.x,f.y-hh-40,f.emo)}
+$('#frBtn').onclick=()=>{sfx('tick');openFriends()};
 let curAct=null;
 function setAct(a){const k=a?a.txt+a.sub:'';if(k===(curAct?curAct.k:'')){if(a)curAct.fn=a.fn;return}
   curAct=a?{...a,k}:null;const b=$('#actBtn');b.hidden=!a;if(a&&mapHint){mapHint=false;$('#mapHint').hidden=true}if(a){b.innerHTML=`${a.txt}${a.sub?`<small>${a.sub}</small>`:''}`;b.disabled=!!a.locked;if(!a.locked)sfx('tick')}}
@@ -2619,7 +2746,8 @@ function tickMap(now,dt){
     const dx=w.tx-w.x,dy=w.ty-w.y,dd=Math.hypot(dx,dy);
     if(dd>4){const nx=w.x+dx/dd*sp*dt,ny=w.y+dy/dd*sp*dt;if(!blocked(nx,ny)){w.x=nx;w.y=ny}else newTarget(300);w.walk+=dt*(sp/7);if(Math.abs(dx)>2)w.dir=dx>0?1:-1;w.moving=true}else w.moving=false}
   let act=null;const near=(d,a)=>{if(!act||d<act.d)act=Object.assign({d},a)};
-  if(!RACE){raceAct(near);
+  if(!RACE){if(NET.friend&&NET.friend.x!=null&&NET.friend.scr==='map'){const d=Math.hypot(PL.x-NET.friend.x,PL.y-NET.friend.y);if(d<90)near(d,{txt:`🥊 Fight ${NET.friend.name}!`,sub:'Friendly fight · no coins lost',fn:()=>pvpChallenge('fight')})}
+  raceAct(near);
   WILDS.forEach((w,wi)=>{const d=Math.hypot(PL.x-w.x,PL.y-w.y);if(d<75)near(d,{txt:`Fight ${w.name}!`,sub:`${TIERS[w.tier].name}${w.quirk?' · '+QUIRKS[w.quirk]:''} · win ${wildFoe(w).coins} coins`,fn:()=>preFight(wildFoe(w),{type:'wild',wi,loc:locOf(w.x,w.y)},w.story)})});
   BUILD.forEach(b=>{if(!b.go)return;const d=Math.hypot(PL.x-(b.x+b.w/2),PL.y-(b.y+b.h+(b.kind==='stadium'?40:14)));if(d<(b.kind==='stadium'?80:70))near(d,{txt:`Enter ${b.name}`,sub:{train:'Train your fingers',shop:'Buy cool gear',stadium:'Pick a boss to fight',mirror:'Check yourself out',cafe:'Eat and drink',hospital:'Heal your fighter',bikes:'Faster bikes and paint',arcade:'Play games, win prizes'}[b.go],fn:()=>show(b.go)})});
   }
@@ -2739,6 +2867,7 @@ function drawMini(now){const cv=$('#miniCv');if(!cv)return;const {c,w,h}=fit(cv)
   c.strokeStyle='rgba(255,255,255,.8)';c.lineWidth=1;const ms=mapSize();c.strokeRect(cam.x*k,cam.y*k,ms.w*k,ms.h*k);
   for(const wd of WILDS){c.fillStyle=TIERS[wd.tier].col;c.beginPath();c.arc(wd.x*k,wd.y*k,1.8,0,7);c.fill()}
   if(S.marker){c.fillStyle='#ff3d81';c.strokeStyle='#fff';c.lineWidth=1.2;c.beginPath();c.arc(S.marker.x*k,S.marker.y*k,3.2,0,7);c.fill();c.stroke()}
+  if(NET.friend&&NET.friend.x!=null){c.fillStyle='#fff';c.beginPath();c.arc(NET.friend.x*k,NET.friend.y*k,4.2,0,7);c.fill();c.fillStyle='#4fb0ff';c.beginPath();c.arc(NET.friend.x*k,NET.friend.y*k,3,0,7);c.fill()}
   const pulse=2.8+Math.sin(now/200)*0.8;c.fillStyle='#fff';c.beginPath();c.arc(PL.x*k,PL.y*k,pulse+1.2,0,7);c.fill();c.fillStyle='#5fd49c';c.beginPath();c.arc(PL.x*k,PL.y*k,pulse,0,7);c.fill()}
 // ---------- home page ----------
 const HOME={open:false};
@@ -2808,6 +2937,7 @@ function drawBigMap(now){const cv=$('#bigCv'),{c,w,h}=fit(cv);const sz=Math.min(
   c.clearRect(0,0,w,h);c.drawImage(BM.cache.img,0,0,w,h);c.save();c.translate(ox,oy);
   for(const wd of WILDS){c.fillStyle=TIERS[wd.tier].col;c.strokeStyle='#1b2130';c.lineWidth=1.5;c.beginPath();c.arc(wd.x*k,wd.y*k,4,0,7);c.fill();c.stroke()}
   if(S.marker)drawPin(c,S.marker.x*k,S.marker.y*k,1,now);
+  if(NET.friend&&NET.friend.x!=null){const fx=NET.friend.x*k,fy=NET.friend.y*k;c.fillStyle='#4fb0ff';c.strokeStyle='#fff';c.lineWidth=2.5;c.beginPath();c.arc(fx,fy,6,0,7);c.fill();c.stroke();c.font='900 11px Nunito, sans-serif';c.textAlign='center';c.fillStyle='#fff';c.fillText(NET.friend.name,fx,fy-10)}
   const px=PL.x*k,py=PL.y*k,pulse=7+Math.sin(now/200)*2;c.fillStyle='rgba(95,212,156,.35)';c.beginPath();c.arc(px,py,pulse+6,0,7);c.fill();
   c.fillStyle='#5fd49c';c.strokeStyle='#fff';c.lineWidth=2.5;c.beginPath();c.arc(px,py,6.5,0,7);c.fill();c.stroke();
   c.font='900 12px Nunito, sans-serif';const tw=c.measureText('YOU').width+10;c.fillStyle='#fff';c.beginPath();c.roundRect(px-tw/2,py+11,tw,16,6);c.fill();c.fillStyle='#1b2130';c.textAlign='center';c.fillText('YOU',px,py+23);
@@ -2884,7 +3014,9 @@ function drawMap(now){
     const ex=sb?{punch:Math.max(0,Math.sin(ph))**3,backPunch:Math.max(0,-Math.sin(ph))**3}:alert?null:{relax:true,swing:wd.moving?Math.sin(wd.walk):Math.sin(now/900+wd.x)*0.12};
     ents.push([wd.y,()=>drawMapFighter(c,wd.x,wd.y,wd.foe.look,wd.dir,wd.moving?wd.walk:0,now,false,0.33+0.08*wd.foe.lvl,ex)])}
   {const near=WILDS.some(wd=>Math.hypot(wd.x-PL.x,wd.y-PL.y)<170||wd.chase>0);if(hasUp('bike')&&S.onBike!==false)ents.push([PL.y,()=>drawRider(c,PL.x,PL.y,ps,now)]);else ents.push([PL.y,()=>drawMapFighter(c,PL.x,PL.y,playerLook(),PL.dir,PL.moving?PL.walk:0,now,false,ps,near?null:{relax:true,swing:PL.moving?Math.sin(PL.walk):Math.sin(now/900)*0.12})])}
+  netDrawEnts(ents,c,now,vis,ps);
   ents.sort((a,b)=>a[0]-b[0]).forEach(e=>e[1]());
+  netDrawTags(c,now,ps);
 
   for(const b of BUTTERFLIES){b.a+=0.02;b.x=(b.x+Math.cos(b.a)*0.9+WORLD.w)%WORLD.w;b.y=(b.y+Math.sin(b.a*1.3)*0.7+WORLD.h)%WORLD.h;if(!vis(b.x,b.y,20))continue;
     const f=Math.abs(Math.sin(now/70+b.a*9));c.fillStyle=b.c;c.beginPath();c.ellipse(b.x-3*f,b.y,4*f+0.5,3,0,0,7);c.ellipse(b.x+3*f,b.y,4*f+0.5,3,0,0,7);c.fill();c.fillStyle='#333';c.fillRect(b.x-0.7,b.y-3,1.4,6)}
@@ -3109,7 +3241,8 @@ function startFight(foe,meta){
 }
 function hpBars(){$('#pHp').style.width=Math.max(0,F.php/F.m.hp*100)+'%';$('#fHp').style.width=Math.max(0,F.fhp/F.foe.hp*100)+'%';
   $('#supFill').style.width=F.sup+'%';$('#supBar').classList.toggle('full',F.sup>=100);$('#comboTxt').textContent=F.combo+' combo'}
-function dealDamage(d,label,col){F.fhp-=d;F.hF=1;F.txt.push({s:label,side:1,t:performance.now(),c:col});hpBars();if(F.fhp<=0)endFight(true)}
+function dealDamage(d,label,col){if(F.pvp){F.txt.push({s:label,side:1,t:performance.now(),c:col});netSend({t:'wind'});const dd=Math.round(d*10)/10;setTimeout(()=>{if(F&&F.pvp&&!F.over){netSend({t:'hit',d:dd});F.hF=1}},280);return}
+  F.fhp-=d;F.hF=1;F.txt.push({s:label,side:1,t:performance.now(),c:col});hpBars();if(F.fhp<=0)endFight(true)}
 function punch(){if(!F||F.over||F.block||F.superMode)return;move();let d=F.m.dmg;const now0=performance.now();
   // punches use energy: mashing makes you tired and your punches go weak
   if(F.en==null)F.en=100;const tired=F.en<9;F.en=Math.max(0,F.en-9);
@@ -3123,7 +3256,7 @@ function punch(){if(!F||F.over||F.block||F.superMode)return;move();let d=F.m.dmg
 function cvSize(){const r=$('#fightCv').getBoundingClientRect();return{w:r.width,h:r.height}}
 const pb=$('#punchBtn'),bb=$('#blockBtn'),fc=$('#fightCv');
 pb.addEventListener('pointerdown',e=>{e.preventDefault();punch()});
-const setBlock=v=>{if(F)F.block=v;bb.classList.toggle('on',v)};
+const setBlock=v=>{if(F){if(F.pvp&&!!F.block!==!!v)netSend({t:'blk',v:!!v});F.block=v}bb.classList.toggle('on',v)};
 bb.addEventListener('pointerdown',e=>{e.preventDefault();try{bb.setPointerCapture(e.pointerId)}catch(_){}setBlock(true);move()});
 ['pointerup','pointercancel','lostpointercapture'].forEach(ev=>bb.addEventListener(ev,()=>setBlock(false)));
 // super: pinch apart on the ring
@@ -3141,6 +3274,7 @@ function tickFight(now,dt){if(F&&!F.over){if(F.en==null)F.en=100;F.en=Math.min(1
   if(F){F.cheer=Math.max(0,(F.cheer||0)-dt*(F.over&&F.ko&&F.ko.who==='f'?0.05:0.6))}
   if(F&&F.over){F.shake=Math.max(0,F.shake-dt*2);F.pP=Math.max(0,F.pP-dt*7);F.fP=Math.max(0,F.fP-dt*5)}
   if(!F||F.over)return;
+  if(F.pvp){if(F.wind&&now>F.wind)F.wind=0;F.pP=Math.max(0,F.pP-dt*7);F.fP=Math.max(0,F.fP-dt*5);F.hP=Math.max(0,F.hP-dt*5);F.hF=Math.max(0,F.hF-dt*6);F.up=Math.max(0,F.up-dt*1.5);F.shake=Math.max(0,F.shake-dt*2);F.dodgeX=Math.max(0,(F.dodgeX||0)-dt*2.5);tickMoves(now);return}
   const fo=F.foe,rage=fo.rage&&F.fhp<fo.hp*0.35;
   if(!F.wind&&!(F.guard>now)&&fo.guard&&Math.random()<fo.guard*dt*1.4&&now<F.next-900){F.guard=now+900+Math.random()*700}
   if(F.second&&now>=F.second){F.second=0;hitPlayer(now,fo.dmg*0.6)}
@@ -3153,7 +3287,7 @@ function hitPlayer(now,dd){if(F.over)return;if(F.dodgeT&&now<F.dodgeT){F.dodgeT=
     F.php-=d;F.fP=1;F.hP=blocked?0.3:1;F.txt.push({s:blocked?'Blocked! -'+d:'-'+d,side:0,t:now,c:blocked?'#4fb0ff':'#ff5d5d'});
     if(blocked){sfx('block');burst(F.hitPX||100,F.hitY||120,'#4fb0ff',5);F.counterT=now+800;F.txt.push({s:'Punch now!',side:1,t:now,c:'#5fd49c'})}else{sfx('hurt');F.combo=0;F.shake=0.5;burst(F.hitPX||100,F.hitY||120,'#ff5d5d',10)}
     if(F.php<=0&&F.secondWind){F.secondWind=false;F.php=F.m.hp*0.5;F.txt.push({s:'SECOND WIND!',side:0,t:now,c:'#5fd49c'});sfx('level')}
-    hpBars();if(F.php<=0)endFight(false)}}
+    hpBars();if(F.pvp){netSend({t:'hp',hp:Math.max(0,F.php)});if(F.php<=0){netSend({t:'ko'});endFight(false)}return}if(F.php<=0)endFight(false)}}
 function endFight(win){
   F.over=true;F.superMode=false;{let t;do{t=pick(KOTYPES)}while(t===lastKo);lastKo=t;F.ko={who:win?'f':'p',type:t,t0:performance.now(),landed:false};F.up=0;if(win)F.cheer=1}setBlock(false);const secs=Math.round((performance.now()-F.t0)/1000);addSecs(secs);
   let coins,extra='';
@@ -3167,19 +3301,20 @@ function endFight(win){
         else{T.wins[2][0]=me;coins=tourPrize();S.trophies=(S.trophies||0)+1;const tk=TROPHY[Math.min(S.trophies,TROPHY.length)-1];extra=`<li style="color:var(--tape);font-size:18px">🏆 TOURNAMENT CHAMPION!</li><li style="list-style:none"><canvas class="winCup" style="display:block;width:120px;height:120px;margin:4px auto"></canvas></li><li>You won the <b style="color:${tk.c}">${tk.name}</b>!</li><li>Trophies: ${S.trophies}. The next tournament will be harder - and pay more!</li>`;T.done=true;
           setTimeout(function cupLoop(){const cv=document.querySelector('#modalBox canvas.winCup');if(!cv)return;const {c,w,h}=fit(cv);c.clearRect(0,0,w,h);drawCup(c,w/2,h-8,1.25,S.trophies-1,performance.now());requestAnimationFrame(()=>cupLoop())},450)}}
       else{extra=`<li>You are out of the tournament in the ${TROUNDS[r]}.</li>`;TOUR=null}}}
+  else if(F.meta.type==='pvp'){coins=0;const x=win?12:5;let ups=0;for(const st of['str','spd','sta'])ups+=addXp(st,x);extra=`<li style="color:var(--tape)">+${x} XP for all your stats</li>${ups?'<li style="color:var(--tape)">⬆️ Level up!</li>':''}<li class="muted">Friendly fight: no coins lost, no hospital.</li>`}
   else if(F.meta.type==='spar'){coins=0;const boost=hasUp('coach')?1+0.25*coachLv():1,x=Math.round((win?14:5)*boost);let ups=0;for(const st of['str','spd','sta'])ups+=addXp(st,x);
     extra=`<li style="color:var(--tape)">+${x} XP for Strength, Speed AND Stamina!</li>${ups?'<li style="color:var(--tape)">⬆️ Level up!</li>':''}<li class="muted">It was just practice: no coins lost, no hospital.</li>`;if(win)misEvent('spar',1)}
   else{coins=win?F.foe.coins:-Math.min(S.coins,Math.max(5,Math.round(F.foe.coins*0.4)));WILDS[F.meta.wi]=makeWild();if(win){misEvent('street',1);if(TIERS.findIndex(t=>t.name===F.foe.tier)>=2)misEvent('hard',1)}}
   const st=F.meta.story;if(st)extra+=`<li class="muted" style="font-weight:700">${fillN(win?st.win:st.lose,F.foe.name)}</li>`;
   if((F.meta.type==='boss'||F.meta.type==='tour')&&win)extra+=`<li class="muted" style="font-weight:700">The stadium goes wild!</li>`;
-  S.health=F.meta.type==='spar'?F.meta.h0:win?Math.max(0.1,Math.min(1,F.php/F.m.hp)):0.05;if(win&&S.health<0.35)extra+='<li style="color:var(--hit)">You are hurt! Visit the Hospital to heal.</li>';
+  S.health=F.meta.type==='spar'||F.meta.type==='pvp'?F.meta.h0:win?Math.max(0.1,Math.min(1,F.php/F.m.hp)):0.05;if(win&&S.health<0.35)extra+='<li style="color:var(--hit)">You are hurt! Visit the Hospital to heal.</li>';
   if(win&&coins>0&&F.lucky&&puUse('lucky')){coins*=2;extra+='<li style="color:var(--tape)">Lucky Coin: double coins!</li>'}
   if(win&&coins>0&&hasUp('magnet')){coins=Math.round(coins*1.25);extra+='<li style="color:var(--tape)">Coin Magnet: +25%</li>'}
   S.fat=Math.max(0,(S.fat||0)-0.03);drain(8,10);addCoins(coins);save();setTimeout(()=>sfx(win?'win':'lose'),300);
-  setTimeout(()=>modal(win||F.meta.type==='spar'?`<h2>${win?'You win!':'Good practice!'}</h2><ul>${win?`<li>${S.name} beat ${F.foe.name}</li>`:''}${coins?`<li style="color:var(--tape)">+${coins} coins</li>`:''}${extra}</ul>`
+  setTimeout(()=>modal(win||F.meta.type==='spar'||F.meta.type==='pvp'?`<h2>${win?'You win!':F.meta.type==='pvp'?'You lost this one!':'Good practice!'}</h2><ul>${win?`<li>${S.name} beat ${F.foe.name}</li>`:''}${coins?`<li style="color:var(--tape)">+${coins} coins</li>`:''}${extra}</ul>`
     :`<h2>Knocked out!</h2><ul><li>${F.foe.name} was too strong this time</li><li style="color:var(--hit)">${coins<0?coins+' coins lost':'No coins lost'}</li>${extra}</ul><p class="muted">An ambulance is taking you to the Hospital. The doctor will fix you up for free!</p>`,
-    F.meta.type==='spar'?'Back to gym':win?(F.meta.type==='boss'?'Back to stadium':F.meta.type==='tour'?(TOUR&&!TOUR.done?'See the bracket':'Back to stadium'):'Back to map'):'Go to Hospital (free)',()=>{const t=F.meta.type;F=null;
-      if(t==='spar'){show('train');return}
+    F.meta.type==='spar'?'Back to gym':F.meta.type==='pvp'?'Back to town':win?(F.meta.type==='boss'?'Back to stadium':F.meta.type==='tour'?(TOUR&&!TOUR.done?'See the bracket':'Back to stadium'):'Back to map'):'Go to Hospital (free)',()=>{const t=F.meta.type;F=null;
+      if(t==='spar'){show('train');return}if(t==='pvp'){show('map');return}
       if(win&&t==='tour'){if(TOUR&&TOUR.done)TOUR=null;show('stadium');if(TOUR)setTimeout(showBracket,50);return}
       if(win){show(t==='boss'?'stadium':'map');return}
       const hb=BUILD.find(b=>b.go==='hospital');PL.x=hb.x+hb.w/2;PL.y=hb.y+hb.h+18;PL.tx=null;S.px=PL.x;S.py=PL.y;save();
@@ -3236,7 +3371,7 @@ function drawFight(dt){
     c.strokeStyle=`rgba(255,255,255,${0.6*o})`;c.lineWidth=3;for(let k=0;k<3;k++){const yy=gy-(150-k*30)*s*pg;line(c,PX+12*s-o*30*s,yy,PX+40*s-o*30*s,yy)}}
   else drawFighter(c,PX,gy,s*pg,PL0,pP);
   c.save();if(F.up>0.4){c.translate(0,-(F.up-0.4)*60)}
-  const fP={flip:true,block:F.guard>now&&!F.over,punch:F.fP,windup:!!F.wind&&!F.over,hurt:F.hF,bob:-bob,happy:F.over&&F.php<=0,flex:!!(F.ko&&F.ko.who==='p'&&F.ko.landed)};
+  const fP={flip:true,block:(F.guard>now||!!F.foeBlk)&&!F.over,punch:F.fP,windup:!!F.wind&&!F.over,hurt:F.hF,bob:-bob,happy:F.over&&F.php<=0,flex:!!(F.ko&&F.ko.who==='p'&&F.ko.landed)};
   if(F.ko&&F.ko.who==='f')drawKO(c,FX,gy,s*fg,F.fl,fP,1,w);else drawFighter(c,FX,gy,s*fg,F.fl,fP);c.restore();
   if(F.meta.type==='spar')gymRingFront(c,w,h,gy);
   if(F.wind){c.fillStyle='#ff5d5d';c.font='400 34px Bungee, Impact, sans-serif';c.textAlign='center';const pulse=1+0.15*Math.sin(now/60);
