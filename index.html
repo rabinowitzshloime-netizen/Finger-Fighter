@@ -157,8 +157,8 @@ button:focus-visible,input:focus-visible{outline:3px solid var(--tape);outline-o
 .timer div{height:100%;background:var(--tape);width:100%}
 .score{font-family:var(--display);font-size:20px;font-variant-numeric:tabular-nums;text-align:right;line-height:1.1}
 .score small{display:block;font-family:var(--body);font-size:12px;font-weight:900;color:var(--tape)}
-#wCv{height:170px}
-#wArea{position:relative;height:min(44vh,360px);background:var(--panel);border-radius:18px;border:1px solid var(--line);overflow:hidden;touch-action:none}
+#wCv{height:min(34vh,300px)}
+#wArea{position:relative;height:max(220px,min(34vh,300px));background:var(--panel);border-radius:18px;border:1px solid var(--line);overflow:hidden;touch-action:none}
 #wArea canvas{position:absolute;inset:0;height:100%}
 .startbtn{position:absolute;inset:0;margin:auto;width:70%;height:90px}
 .float{position:absolute;font-family:var(--display);color:var(--tape);pointer-events:none;animation:up .7s forwards;font-size:20px;translate:-50% 0;white-space:nowrap}
@@ -1362,7 +1362,7 @@ function drawWorkoutFighter(now,dt){
     W.splash=(W.splash||[]).filter(sp=>now-sp.t<500);for(const sp of W.splash){const k=(now-sp.t)/500;c.fillStyle=`rgba(255,255,255,${1-k})`;for(let i=0;i<6;i++){c.beginPath();c.arc(px+130*s+Math.cos(i)*k*26,py-k*18-Math.abs(Math.sin(i*2))*k*14,3,0,7);c.fill()}}
     c.fillStyle='#1b2130';c.font='400 14px Bungee, Impact, sans-serif';c.textAlign='right';c.fillText('LAP '+lap,w-10,h*0.2);
     if(W.run&&W.combo>=5){c.fillStyle='#ffb627';c.textAlign='left';c.fillText(W.combo+' COMBO',10,h*0.2)}
-    if(hasUp('coach')){drawCoach(c,w,h,now,{cs:h/430,cx:w*0.62,cy:h*0.27,small:true});drawCoachBubble(c,w,h,now)}
+    if(hasUp('coach')){drawCoach(c,w,h,now,{cs:h*0.24/200,cx:w*0.62,cy:h*0.27,small:true});drawCoachBubble(c,w,h,now)}
     return}
   if(key==='stretch'){const tgt=P.flex?0.45+0.09*W.lvl:0;P.sp=(P.sp||0)+(tgt-(P.sp||0))*Math.min(1,dt*8)}
   let rope=null,jump=0;if(key==='beat'){P.ropeT=Math.min(1,(P.ropeT??1)+dt/0.38);rope=P.ropeT*Math.PI*2;jump=Math.sin(P.ropeT*Math.PI)*16}
