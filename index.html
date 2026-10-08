@@ -1335,6 +1335,19 @@ function drawCoachBubble(c,w,h,now){if(!W||!hasUp('coach'))return;
     c.fillStyle='#ffb627';c.beginPath();c.roundRect(bx,by,tw,26,10);c.fill();c.beginPath();if(W.w.key==='swim'){c.moveTo(bx+10,by+26);c.lineTo(bx-4,by+40);c.lineTo(bx+24,by+26)}else{c.moveTo(bx,by+4);c.lineTo(bx-12,by-4);c.lineTo(bx,by+18)}c.fill();
     c.fillStyle='#1b2130';c.textAlign='left';c.save();c.beginPath();c.rect(bx,by,tw,26);c.clip();c.fillText(t,bx+9,by+17);c.restore()}}
 function say(t){if(W)W.say={t,at:performance.now()}}
+// the inside of the Finger Gym - same look as the sparring ring room
+function gymTrainBg(c,w,h,gy,now,key){
+  c.fillStyle='#7a3b2e';c.fillRect(0,0,w,h);c.strokeStyle='rgba(0,0,0,.25)';c.lineWidth=1.5;
+  for(let y=0;y<gy-24;y+=14){line(c,0,y,w,y);for(let x=((y/14)%2)*18;x<w;x+=36)line(c,x,y,x,y+14)}
+  c.fillStyle='#1b2130';c.beginPath();c.roundRect(w/2-62,8,124,24,6);c.fill();c.fillStyle='#ffb627';c.font='400 14px Bungee, Impact, sans-serif';c.textAlign='center';c.fillText('FINGER GYM',w/2,25);
+  for(const lx of[w*0.22,w*0.78]){const g=c.createRadialGradient(lx,30,4,lx,30,90);g.addColorStop(0,'rgba(255,240,180,.35)');g.addColorStop(1,'rgba(255,240,180,0)');c.fillStyle=g;c.beginPath();c.arc(lx,30,90,0,7);c.fill();c.fillStyle='#ffe68a';c.fillRect(lx-12,6,24,4)}
+  // a weight rack on the left and a hanging punching bag on the right
+  const rx=w*0.06,ry=gy-26;c.fillStyle='#3a4560';c.fillRect(rx,ry-46,6,46);c.fillRect(rx+58,ry-46,6,46);c.fillRect(rx,ry-30,64,4);c.fillRect(rx,ry-12,64,4);
+  [['#e63946',8],['#3a6df0',22],['#ffd23f',36],['#5fd49c',50]].forEach(([col,ox],k)=>{for(const yy of[ry-34,ry-16]){c.fillStyle='#1b2130';c.fillRect(rx+ox-1,yy-2,10,4);c.fillStyle=col;c.fillRect(rx+ox-2,yy-5,3,10);c.fillRect(rx+ox+7,yy-5,3,10)}});
+  if(key!=='bag'){const bx=w*0.93,sw=Math.sin(now/700)*2;c.strokeStyle='#9aa3b8';c.lineWidth=2;line(c,bx,0,bx+sw,gy-110);c.beginPath();c.roundRect(bx+sw-11,gy-110,22,50,9);ink(c,'#c0463f',2)}
+  // rubber gym floor
+  c.fillStyle='#2b3a6a';c.fillRect(0,gy-24,w,h);c.fillStyle='#3a4f8f';c.fillRect(0,gy-24,w,5);
+  c.strokeStyle='rgba(255,255,255,.07)';c.lineWidth=1;for(let x=0;x<w;x+=46)line(c,x,gy-19,x-14,h)}
 function drawWorkoutFighter(now,dt){
   const {c,w,h}=fit($('#wCv'));c.clearRect(0,0,w,h);if(!W)return;const P=W.pose,key=W.w.key;
   ['punch','backPunch','kickF','kickB','trip'].forEach(k=>P[k]=Math.max(0,(P[k]||0)-dt*(k.startsWith('kick')?4:7)));P.happy=Math.max(0,(P.happy||0)-dt);
@@ -1357,6 +1370,7 @@ function drawWorkoutFighter(now,dt){
   const L=playerLook(),pump=Math.min(0.18,W.score*(key==='stretch'?0.01:0.004));
   if(W.w.stat==='str')L.arm=Math.min(1.2,L.arm+pump);if(W.w.stat==='spd')L.legs=Math.min(1.2,L.legs+pump);if(W.w.stat==='sta')L.chest=Math.min(1.2,L.chest+pump);
   const g=0.8+0.4*growAll(),s=(h/212)*g,x=w/2-(key==='bag'?22:0),gy=h-10;
+  gymTrainBg(c,w,h,gy,now,key);
   if(hasUp('coach'))drawCoach(c,w,h,now,{cs:Math.min(h/178,Math.max(h/200,s))});
   // speed bag rig behind the fist
   if(key==='bag'){P.bagA=(P.bagA||0)+(P.bagV||0)*dt;P.bagV=((P.bagV||0)-(P.bagA||0)*60*dt)*(1-dt*4);
