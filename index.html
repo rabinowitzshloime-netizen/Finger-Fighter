@@ -2595,7 +2595,8 @@ const NET={peer:null,conn:null,role:null,code:null,friend:null,last:0,lastSt:''}
 const cleanName=t=>String(t||'Friend').replace(/[<>&"'`]/g,'').slice(0,16)||'Friend';
 function loadPeer(cb){if(window.Peer)return cb(true);const urls=['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js','https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'];let i=0;
   const next=()=>{if(i>=urls.length)return cb(false);const sc=document.createElement('script');sc.src=urls[i++];sc.onload=()=>cb(!!window.Peer);sc.onerror=next;document.head.appendChild(sc)};next()}
-function netMe(){return{name:cleanName(S.name),look:playerLook(),rank:rankOf()[1],trophies:S.trophies||0,ps:0.3+0.16*growAll()}}
+const GAME_VER=7;
+function netMe(){return{v:GAME_VER,name:cleanName(S.name),look:playerLook(),rank:rankOf()[1],trophies:S.trophies||0,ps:0.3+0.16*growAll()}}
 function netReset(){try{NET.conn&&NET.conn.close()}catch(e){}try{NET.peer&&NET.peer.destroy()}catch(e){}NET.peer=NET.conn=NET.role=NET.code=NET.friend=null;$('#frDot').hidden=true}
 function netFail(msg){netReset();modal(`<h2>👥 Oops</h2><p>${msg}</p>`,'OK',null);sfx('bad')}
 function openFriends(){
@@ -2622,7 +2623,7 @@ function netInvite(){netReset();modal(`<h2>📨 Making your invite…</h2><p cla
             $('#modalBox').innerHTML=`<h2>👥 ${nm} wants to come to your town!</h2><canvas id="frPv" style="width:90px;height:110px;display:block;margin:0 auto"></canvas><p class="muted">${String(d.rank||'').replace(/[<>&]/g,'')} · Only say yes if you know them!</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="big" id="frNo">No</button><button class="big go" id="frYes">Yes, let them in</button></div>`;$('#modal').hidden=false;
             try{const {c,w,h}=fit($('#frPv'));drawFighter(c,w/2,h-4,h/230,d.look,{flex:true})}catch(_){}
             $('#frNo').onclick=()=>{conn.send({t:'no'});setTimeout(()=>conn.close(),300);$('#modal').hidden=true;openFriendsWaitAgain()};
-            $('#frYes').onclick=()=>{NET.conn=conn;netGotFriend(d);conn.send(Object.assign({t:'ok',x:Math.round(PL.x),y:Math.round(PL.y)},netMe()));$('#modal').hidden=true;showToast(`👥 ${NET.friend.name} is in your town!`)}}
+            $('#frYes').onclick=()=>{NET.conn=conn;netGotFriend(d);conn.send(JSON.parse(JSON.stringify(Object.assign({t:'ok',x:Math.round(PL.x),y:Math.round(PL.y)},netMe()))));$('#modal').hidden=true;showToast(`👥 ${NET.friend.name} is in your town!`)}}
           else netData(d,conn)});
         conn.on('close',()=>netLost(conn))})};tryCode(0)})}
 function openFriendsWaitAgain(){if(NET.peer&&NET.code)modal(`<h2>📨 Your invite code</h2><div class="code6">${NET.code.slice(0,3)} ${NET.code.slice(3)}</div><p class="muted">Still waiting for your friend…</p>`,'Cancel',netReset)}
@@ -2635,7 +2636,7 @@ function netJoin(code){netReset();modal(`<h2>🔑 Looking for your friend…</h2
     const tm=setTimeout(()=>{if(!done&&NET.peer===peer)netFail('No game found with that code. Check the code with your friend!')},12000);
     peer.on('error',e=>{if(NET.peer!==peer)return;clearTimeout(tm);netFail(e&&e.type==='peer-unavailable'?'No game found with that code. Check the code with your friend!':"Couldn't connect. Try again.")});
     peer.on('open',()=>{const conn=peer.connect(NETPFX+code,{reliable:true});
-      conn.on('open',()=>{done=true;clearTimeout(tm);conn.send(Object.assign({t:'hello'},netMe()));modal(`<h2>⏳ Waiting…</h2><p class="muted">Your friend has to say YES to let you in.</p>`,'Cancel',()=>{try{conn.send({t:'bye'})}catch(_){}setTimeout(netReset,150)})});
+      conn.on('open',()=>{done=true;clearTimeout(tm);conn.send(JSON.parse(JSON.stringify(Object.assign({t:'hello'},netMe()))));modal(`<h2>⏳ Waiting…</h2><p class="muted">Your friend has to say YES to let you in.</p>`,'Cancel',()=>{try{conn.send({t:'bye'})}catch(_){}setTimeout(netReset,150)})});
       conn.on('data',d=>{if(!d||typeof d!=='object')return;
         if(d.t==='ok'){NET.conn=conn;netGotFriend(d);$('#modal').hidden=true;if(screen!=='map')show('map');PL.x=clamp((+d.x||750)+70,30,WORLD.w-30);PL.y=clamp(+d.y||1440,40,WORLD.h-10);PL.tx=null;sfx('level');showToast(`👥 You are in ${NET.friend.name}'s town!`)}
         else if(d.t==='no'){netFail(d.why==='busy'?'Your friend is already playing with someone else.':'Your friend said no this time.')}
@@ -2664,7 +2665,7 @@ function pvpStart(d){const f=NET.friend;if(!f)return;const h0=S.health??1;
   const foe={name:f.name,look:d.look&&typeof d.look==='object'?d.look:f.look,lvl:clamp(+d.lvl||0.3,0,1.5),hp:clamp(+d.hp||40,10,5000),dmg:0,every:1e9,warn:420,guard:0,coins:0,tier:'Friend'};
   S.health=1;startFight(foe,{type:'pvp',h0});F.pvp=true;F.foe.hp=foe.hp;F.fhp=foe.hp;F.next=1e15;F.php=F.m.hp;hpBars();
   F.txt.push({s:'FRIENDLY FIGHT!',side:1,t:performance.now(),c:'#4fb0ff'});sfx('great')}
-function netGotFriend(d){NET.friend={name:cleanName(d.name),look:d.look&&typeof d.look==='object'?d.look:townLook(),rank:String(d.rank||'').replace(/[<>&]/g,''),trophies:+d.trophies||0,ps:clamp(+d.ps||0.35,0.25,0.6),x:null,y:null,tx:null,ty:null,dir:1,walk:0,mv:false,bike:false,scr:'map',emo:null};$('#frDot').hidden=false}
+function netGotFriend(d){if((+d.v||0)!==GAME_VER)setTimeout(()=>showToast((+d.v||0)<GAME_VER?`⚠️ Your friend has an OLD version of the game. Ask them to refresh (Ctrl+Shift+R) or reopen it, then join again.`:`⚠️ Your game is an OLD version. Refresh (Ctrl+Shift+R) or reopen it, then join again.`,9000),1500);NET.friend={name:cleanName(d.name),look:d.look&&typeof d.look==='object'?d.look:townLook(),rank:String(d.rank||'').replace(/[<>&]/g,''),trophies:+d.trophies||0,ps:clamp(+d.ps||0.35,0.25,0.6),x:null,y:null,tx:null,ty:null,dir:1,walk:0,mv:false,bike:false,scr:'map',emo:null};$('#frDot').hidden=false}
 function netData(d,conn){const f=NET.friend;if(!f||conn!==NET.conn)return;
   if(d.t==='chal'){const kind=CHAL[d.kind]?d.kind:'fight';if(screen!=='map'||!$('#modal').hidden||F||RACE){netSend({t:'chalno',why:'busy'});return}
     if(kind==='race'&&!hasUp('bike')){netSend({t:'chalno',why:'nobike'});showToast(`${f.name} wanted to race, but you need a bike first!`);return}sfx('great');
@@ -2688,7 +2689,7 @@ function netData(d,conn){const f=NET.friend;if(!f||conn!==NET.conn)return;
   else if(d.t==='emo'&&['👋','😂','💪','🔥','😮','🏆'].includes(d.e)){f.emo={e:d.e,t:performance.now()};sfx('tick')}
   else if(d.t==='bye'){netLost(conn)}}
 function netLost(conn){if(conn&&conn!==NET.conn)return;if(F&&F.pvp&&!F.over){F.over=true;F=null;setBlock(false);modal('<h2>👋 Your friend left</h2><p>The friendly fight stopped.</p>','Back to town',()=>show('map'))}NET.waitFight=false;if(RACE&&RACE.pvp)endRace(null,'Your friend left the race.');NET.wb=null;const nm=NET.friend&&NET.friend.name;netReset();if(nm)showToast(`👋 ${nm} left`)}
-function netSend(o){try{if(NET.conn&&NET.conn.open)NET.conn.send(o)}catch(e){}}
+function netSend(o){try{if(NET.conn&&NET.conn.open)NET.conn.send(JSON.parse(JSON.stringify(o)))}catch(e){}}
 function netEmote(e){NET.myEmo={e,t:performance.now()};netSend({t:'emo',e});sfx('tick')}
 setInterval(()=>{if(!NET.conn||!NET.friend)return;if(RACE&&RACE.pvp)netSend({t:'rpos',u:Math.round(RACE.pu),b:RACE.bT>0});if(W&&W.battle&&W.run)netSend({t:'wlive',sc:Math.round(W.score*10)/10});const onB=hasUp('bike')&&S.onBike!==false,st={t:'st',x:Math.round(PL.x),y:Math.round(PL.y),dir:PL.dir||1,mv:!!PL.moving,bike:onB,face:PL.face||'side',scr:screen};
   const k=JSON.stringify(st),now=performance.now();if(k!==NET.lastSt||now-NET.last>1000){NET.lastSt=k;NET.last=now;netSend(st)}
