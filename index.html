@@ -2593,9 +2593,36 @@ const LOCBG={park:parkBg,pitch:pitchBg,track:trackBg,skate:skateBg,street:street
 // Works peer-to-peer (PeerJS). The inviter's screen shows the code, the friend types it in, and the inviter must say YES.
 const NET={peer:null,conn:null,role:null,code:null,friend:null,last:0,lastSt:''},NETPFX='fingerfighter-v1-';
 const cleanName=t=>String(t||'Friend').replace(/[<>&"'`]/g,'').slice(0,16)||'Friend';
-function loadPeer(cb){if(window.Peer)return cb(true);const urls=['https://cdnjs.cloudflare.com/ajax/libs/peerjs/1.5.4/peerjs.min.js','https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js','https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js'];let i=0;
-  const next=()=>{if(i>=urls.length)return cb(false);const sc=document.createElement('script');sc.src=urls[i++];sc.onload=()=>cb(!!window.Peer);sc.onerror=next;document.head.appendChild(sc)};next()}
-const GAME_VER=7;
+// Friends connect through a free public message server (MQTT over a secure websocket).
+// This works on any wifi or phone network. Each player has an "inbox"; the inviter's inbox name comes from the 6-digit code.
+const MQ_BROKERS=['wss://broker.hivemq.com:8884/mqtt','wss://broker.emqx.io:8084/mqtt','wss://test.mosquitto.org:8081'],MQ_TOP='fingerfighter/v1/box/';
+class FEm{constructor(){this.h={}}on(e,f){(this.h[e]=this.h[e]||[]).push(f)}emit(e,...a){(this.h[e]||[]).slice().forEach(f=>{try{f(...a)}catch(err){console.error(err)}})}}
+class FConn extends FEm{constructor(p,other){super();this.p=p;this.peer=other;this.open=false;this.seen=Date.now()}
+  send(d){this.p._pub(this.peer,{k:'data',d})}close(){if(this.p.dead)return;this.p._pub(this.peer,{k:'close'});this._closed()}
+  _closed(){if(!this.open&&this.gone)return;this.open=false;this.gone=true;delete this.p.conns[this.peer];this.emit('close')}}
+class FPeer extends FEm{constructor(id){super();this.id=typeof id==='string'?id:'g'+Math.random().toString(36).slice(2,12);this.conns={};this.bi=0;this._start();
+    this.pinger=setInterval(()=>{const now=Date.now();for(const c of Object.values(this.conns)){if(c.open){this._pub(c.peer,{k:'ping'});if(now-c.seen>15000)c._closed()}}},3000)}
+  _start(){const url=MQ_BROKERS[this.bi];let ok=false;
+    try{this.cl=mqtt.connect(url,{clientId:'ff_'+Math.random().toString(36).slice(2,12),clean:true,connectTimeout:7000,reconnectPeriod:2500,keepalive:30})}catch(e){return this._next()}
+    this.cl.on('connect',()=>{if(ok)return;ok=true;this.cl.subscribe(MQ_TOP+this.id,{qos:0},err=>{if(err)this.emit('error',{type:'network'});else this.emit('open',this.id)})});
+    this.cl.on('message',(t,buf)=>{let m;try{m=JSON.parse(buf.toString())}catch(e){return}if(!m||typeof m.from!=='string')return;this._got(m)});
+    this.cl.on('error',()=>{if(!ok)this._next()});
+    setTimeout(()=>{if(!ok&&!this.dead)this._next()},8000)}
+  _next(){if(this.dead||this.switching)return;this.switching=true;try{this.cl&&this.cl.end(true)}catch(e){}this.bi++;
+    if(this.bi>=MQ_BROKERS.length){this.emit('error',{type:'network'});return}setTimeout(()=>{this.switching=false;this._start()},200)}
+  _pub(to,m){if(this.dead||!this.cl)return;try{this.cl.publish(MQ_TOP+to,JSON.stringify(Object.assign({from:this.id},m)),{qos:0})}catch(e){}}
+  _got(m){const c=this.conns[m.from];if(c)c.seen=Date.now();
+    if(m.k==='connect'){if(c)return;const nc=new FConn(this,m.from);this.conns[m.from]=nc;this._pub(m.from,{k:'accepted'});nc.open=true;this.emit('connection',nc);setTimeout(()=>nc.emit('open'),30)}
+    else if(m.k==='accepted'){if(c&&!c.open){c.open=true;clearTimeout(c.tm);c.emit('open')}}
+    else if(m.k==='data'){if(c&&c.open)c.emit('data',m.d)}
+    else if(m.k==='close'){if(c)c._closed()}}
+  connect(id){const c=new FConn(this,id);this.conns[id]=c;let tries=0;const ask=()=>{if(c.open||this.dead)return;if(tries++>=6){delete this.conns[id];this.emit('error',{type:'peer-unavailable'});return}this._pub(id,{k:'connect'});c.tm=setTimeout(ask,1500)};ask();return c}
+  destroy(){if(this.dead)return;for(const c of Object.values(this.conns)){try{this._pub(c.peer,{k:'close'})}catch(e){}}this.dead=true;clearInterval(this.pinger);setTimeout(()=>{try{this.cl&&this.cl.end(true)}catch(e){}},200)}
+  reconnect(){}}
+function loadPeer(cb){if(window.Peer)return cb(true);if(window.mqtt){window.Peer=FPeer;return cb(true)}
+  const urls=['https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js','https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js','https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.10.1/mqtt.min.js'];let i=0;
+  const next=()=>{if(i>=urls.length)return cb(false);const sc=document.createElement('script');sc.src=urls[i++];sc.onload=()=>{if(window.mqtt){window.Peer=FPeer;cb(true)}else next()};sc.onerror=next;document.head.appendChild(sc)};next()}
+const GAME_VER=8;
 function netMe(){return{v:GAME_VER,name:cleanName(S.name),look:playerLook(),rank:rankOf()[1],trophies:S.trophies||0,ps:0.3+0.16*growAll()}}
 function netReset(){try{NET.conn&&NET.conn.close()}catch(e){}try{NET.peer&&NET.peer.destroy()}catch(e){}NET.peer=NET.conn=NET.role=NET.code=NET.friend=null;$('#frDot').hidden=true}
 function netFail(msg){netReset();modal(`<h2>👥 Oops</h2><p>${msg}</p>`,'OK',null);sfx('bad')}
@@ -2608,7 +2635,7 @@ function openFriends(){
     $('#frFight').onclick=()=>{$('#modal').hidden=true;pvpChallenge('fight')};$('#frRace').onclick=()=>{$('#modal').hidden=true;pvpChallenge('race')};$('#frWork').onclick=()=>{$('#modal').hidden=true;pvpWorkPick()};
     document.querySelectorAll('#modalBox [data-emo]').forEach(b=>b.onclick=()=>{netEmote(b.dataset.emo);$('#modal').hidden=true});
     $('#frLeave').onclick=()=>{netSend({t:'bye'});setTimeout(netReset,150);$('#modal').hidden=true;showToast('You stopped playing together')};return}
-  modal(`<h2>👥 Play with a friend</h2><p class="muted">Invite a friend into your town, or join a friend's town with their secret code. You both need internet.</p>
+  modal(`<h2>👥 Play with a friend</h2><p class="muted">Invite a friend into your town, or join a friend's town with their secret code. You both need internet. Works on different wifi or phone data too!</p>
     <div style="display:grid;gap:10px;margin:8px 0"><button class="big go" id="frInv">📨 Invite a friend</button><button class="big" id="frJoin">🔑 I was invited</button></div>`,'Close',null);
   $('#frInv').onclick=netInvite;$('#frJoin').onclick=netJoinAsk}
 function netInvite(){netReset();modal(`<h2>📨 Making your invite…</h2><p class="muted">One second!</p>`,'Cancel',netReset);
@@ -2633,7 +2660,7 @@ function netJoinAsk(){modal(`<h2>🔑 Join a friend</h2><p class="muted">Type th
 function netJoin(code){netReset();modal(`<h2>🔑 Looking for your friend…</h2><p class="muted">Code ${code.slice(0,3)} ${code.slice(3)}</p>`,'Cancel',netReset);
   loadPeer(ok=>{if(!ok)return netFail("Couldn't connect. Check your internet and try again.");
     const peer=new Peer({debug:0});NET.peer=peer;NET.role='guest';let done=false;
-    const tm=setTimeout(()=>{if(!done&&NET.peer===peer)netFail('No game found with that code. Check the code with your friend!')},12000);
+    const tm=setTimeout(()=>{if(!done&&NET.peer===peer)netFail('No game found with that code. Check the code with your friend! (Your friend must keep the invite screen open.)')},16000);
     peer.on('error',e=>{if(NET.peer!==peer)return;clearTimeout(tm);netFail(e&&e.type==='peer-unavailable'?'No game found with that code. Check the code with your friend!':"Couldn't connect. Try again.")});
     peer.on('open',()=>{const conn=peer.connect(NETPFX+code,{reliable:true});
       conn.on('open',()=>{done=true;clearTimeout(tm);conn.send(JSON.parse(JSON.stringify(Object.assign({t:'hello'},netMe()))));modal(`<h2>⏳ Waiting…</h2><p class="muted">Your friend has to say YES to let you in.</p>`,'Cancel',()=>{try{conn.send({t:'bye'})}catch(_){}setTimeout(netReset,150)})});
