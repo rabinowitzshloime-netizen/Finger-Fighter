@@ -330,6 +330,7 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
       <button class="tr" data-go="train"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M6 7v10M3 9v6M18 7v10M21 9v6M6 12h12"/></svg>TRAIN</button>
       <button data-go="shop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M5 8h14l-1 12H6z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>SHOP</button>
       <button data-go="skin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round"><path d="M8 4 3 7l2 4 3-1v10h8V10l3 1 2-4-5-3a4 4 0 0 1-8 0z"/></svg>SKIN</button>
+      <button id="reactBtn" aria-label="Send a reaction" hidden><span style="font-size:24px;line-height:1">😀</span>REACT</button>
       <button id="frBtn" aria-label="Play with a friend"><span style="font-size:24px;line-height:1">👥</span>FRIENDS<i id="frDot" hidden></i></button>
       <button id="misBtn" aria-label="Missions"><span style="font-size:24px;line-height:1">📋</span>MISSIONS<i id="misN" hidden></i></button>
       <button data-go="settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="3.4"/><path d="M12 2.5v3M12 18.5v3M2.5 12h3M18.5 12h3M5.3 5.3l2.1 2.1M16.6 16.6l2.1 2.1M5.3 18.7l2.1-2.1M16.6 7.4l2.1-2.1"/></svg>SETTINGS</button>
@@ -465,6 +466,13 @@ body:not(.pc) .kk,body:not(.pc) .pckeys{display:none}
     <button class="big go" id="healBtn">Get healed</button>
   </section>
 
+  <section id="cafe2" hidden>
+    <button class="back" id="c2Back">&larr; Leave the café</button>
+    <h2>Café with <span id="c2Name">your friend</span></h2>
+    <div class="stage" style="background:none"><canvas id="c2Cv" style="height:330px" aria-label="You and your friend in the café"></canvas></div>
+    <p id="c2Txt" class="muted" style="text-align:center;font-weight:800;margin:4px 0"></p>
+    <div id="c2Menu"></div>
+  </section>
   <section id="cafe" hidden>
     <button class="back" data-go="map">&larr; Back to map</button>
     <h2>Café</h2>
@@ -2280,16 +2288,19 @@ function renderArcade(){ARC=null;$('#arcPick').hidden=false;$('#arcPlay').hidden
     h+=`<div class="card"><span class="ic boostic">${g.ic}</span><span><h3>${g.name}</h3><p>${g.txt}</p><p style="color:var(--tape);font-weight:800;font-size:13px">${g.prize}</p>${best?`<p style="color:var(--muted);font-weight:800;font-size:12px">Your best: ${best}</p>`:''}</span><button class="pill" data-arc="${g.id}" ${S.coins<g.cost?'disabled':''}><i class="coin"></i>${g.cost}</button></div>`}
   $('#arcList').innerHTML=h}
 $('#arcList').addEventListener('click',e=>{const b=e.target.closest('[data-arc]');if(!b||b.disabled)return;const g=ARCG.find(x=>x.id===b.dataset.arc);if(S.coins<g.cost)return;
-  S.coins-=g.cost;updCoins();save();sfx('coin');const now=performance.now();
-  ARC={g:g.id,t0:now,last:now,score:0,done:false};
+  S.coins-=g.cost;updCoins();save();sfx('coin');arcBegin(g,false)});
+function arcBegin(g,battle){const now=performance.now();
+  ARC={g:g.id,t0:now,last:now,score:0,done:false,battle};
   if(g.id==='mole')Object.assign(ARC,{moles:[],next:now+500,hits:[]});
   if(g.id==='stack')Object.assign(ARC,{rows:[],cur:{x:0,w:3,dir:1}});
   if(g.id==='claw'){const t=['c10','c25','c50','med','gem'].sort(()=>Math.random()-0.5);Object.assign(ARC,{ph:'move',cx:0.5,dir:1,cy:0,prizes:t.map((k,i)=>({k,x:0.13+i*0.185,got:false})),grab:null})}
   $('#arcPick').hidden=true;$('#arcPlay').hidden=false;$('#arcCv').style.height=g.id==='stack'?'min(600px,72vh)':'440px';
   $('#arcInfo').textContent={mole:IS_PC?'Press Q W E / A S D / Z X C (or click) to hit the moles!':'Tap the moles!',stack:IS_PC?'Press SPACE (or click) to stop the blocks':'Tap to stop the blocks',claw:IS_PC?'Press SPACE (or click) to drop the claw':'Tap to drop the claw'}[g.id];
-  window.scrollTo(0,0);requestAnimationFrame(arcLoop)});
+  if(battle&&NET.friend)$('#arcInfo').textContent='👥 Duel vs '+NET.friend.name+' · '+$('#arcInfo').textContent;
+  window.scrollTo(0,0);requestAnimationFrame(arcLoop)}
 const CLAWP={c10:{ic:'💰',txt:'10 coins',coins:10,tol:0.03},c25:{ic:'🧸',txt:'25 coins',coins:25,tol:0.024},c50:{ic:'🎁',txt:'50 coins',coins:50,tol:0.019},med:{ic:'🩹',txt:'a First Aid kit',coins:0,tol:0.022},gem:{ic:'💎',txt:'the JACKPOT! 250 coins',coins:250,tol:0.01}};
 function arcFinish(){const A=ARC;if(!A||A.done)return;A.done=true;let coins=0,msg='',best=A.score;
+  if(A.battle){const sc=A.g==='stack'?A.rows.length:A.score;if(NET.ab){NET.ab.me=sc;netSend({t:'adone',sc});setTimeout(abResult,600)}sfx('good');setTimeout(()=>modal(`<h2>🕹️ Duel finished!</h2><p>Your score: <b>${sc}</b></p><p class="muted">${NET.ab&&NET.ab.them!=null?'':'Waiting for your friend to finish…'}</p>`,'Back to town',()=>{renderArcade();show('map')}),400);return}
   if(A.g==='mole'){coins=A.score>=28?70:A.score>=18?35:A.score>=10?15:A.score<6?-10:0;msg=`You hit <b>${A.score}</b> points.`}
   if(A.g==='stack'){const r=A.rows.length;coins=r>=10?150:r>=8?60:r>=5?25:r<3?-10:0;best=r;msg=r>=10?'You reached the TOP!':`You stacked <b>${r}</b> ${r===1?'row':'rows'}.`}
   if(A.g==='claw'){const P=A.grab&&CLAWP[A.grab.k];best=null;if(P){coins=P.coins;if(A.grab.k==='med'){S.pu.medkit=puHave('medkit')+1;updMed&&updMed()}msg=`You grabbed ${P.ic} <b>${P.txt}</b>!`}else msg=A.slipped?'Oh no! The prize slipped out of the claw!':'The claw missed. So close!'}
@@ -2364,6 +2375,7 @@ function arcLoop(now){const A=ARC;if(!A||screen!=='arcade')return;const dt=Math.
     const open=A.ph==='drop'?1:A.grab?0.2:0.6;c.lineWidth=4;c.lineCap='round';for(const sd of[-1,1]){c.beginPath();c.moveTo(clawX+sd*10,tipY+4);c.quadraticCurveTo(clawX+sd*(18+open*8),tipY+22,clawX+sd*(6+open*6),tipY+38);c.stroke()}
     if(A.grab){c.font='40px sans-serif';c.fillText(CLAWP[A.grab.k].ic,clawX,tipY+54)}
     if(A.ph==='move'){c.fillStyle='rgba(255,255,255,.18)';c.fillRect(clawX-1,tipY+40,2,floor-tipY-50)}}
+  if(A.battle&&NET.ab&&NET.friend){const t=`👥 ${NET.friend.name}: ${NET.ab.them!=null?NET.ab.them:NET.ab.live}`;c.font='900 13px Nunito, sans-serif';const tw=c.measureText(t).width+16;c.fillStyle='rgba(20,24,38,.85)';c.beginPath();c.roundRect(w-tw-10,A.g==='mole'?54:10,tw,24,12);c.fill();c.fillStyle='#4fb0ff';c.textAlign='right';c.fillText(t,w-18,(A.g==='mole'?54:10)+17);c.textAlign='center'}
   requestAnimationFrame(arcLoop)}
 {const g=$('#rGo'),on=v=>e=>{e.preventDefault();if(RACE)RACE.gas=v};g.addEventListener('pointerdown',on(true));['pointerup','pointerleave','pointercancel'].forEach(t=>g.addEventListener(t,on(false)));
   $('#rBoost').addEventListener('pointerdown',e=>{e.preventDefault();raceBoost()});
@@ -2591,6 +2603,7 @@ const LOCBG={park:parkBg,pitch:pitchBg,track:trackBg,skate:skateBg,street:street
 
 // ================= PLAY WITH A FRIEND: invite with a secret 6-digit code =================
 // Works peer-to-peer (PeerJS). The inviter's screen shows the code, the friend types it in, and the inviter must say YES.
+const EMOS=['👋','😂','💪','🔥','😮','🏆','😎','🥊','❤️','👍','👎','😢','😡','🤣','🙌','⚡','🚲','💯','😴','🤔','🎉','👀','🥇','💥'],PHRASES=['Hi!','Good game!','Follow me!','Wait for me!','Come here!',"Let's fight!",'Race me!',"Let's train!",'Nice one!','Oops!','Thank you!','Bye!'];
 const NET={peer:null,conn:null,role:null,code:null,friend:null,last:0,lastSt:''},NETPFX='fingerfighter-v1-';
 const cleanName=t=>String(t||'Friend').replace(/[<>&"'`]/g,'').slice(0,16)||'Friend';
 // Friends connect through a free public message server (MQTT over a secure websocket).
@@ -2622,16 +2635,19 @@ class FPeer extends FEm{constructor(id){super();this.id=typeof id==='string'?id:
 function loadPeer(cb){if(window.Peer)return cb(true);if(window.mqtt){window.Peer=FPeer;return cb(true)}
   const urls=['https://cdn.jsdelivr.net/npm/mqtt@5.10.1/dist/mqtt.min.js','https://unpkg.com/mqtt@5.10.1/dist/mqtt.min.js','https://cdnjs.cloudflare.com/ajax/libs/mqtt/5.10.1/mqtt.min.js'];let i=0;
   const next=()=>{if(i>=urls.length)return cb(false);const sc=document.createElement('script');sc.src=urls[i++];sc.onload=()=>{if(window.mqtt){window.Peer=FPeer;cb(true)}else next()};sc.onerror=next;document.head.appendChild(sc)};next()}
-const GAME_VER=8;
+const GAME_VER=10;
 function netMe(){return{v:GAME_VER,name:cleanName(S.name),look:playerLook(),rank:rankOf()[1],trophies:S.trophies||0,ps:0.3+0.16*growAll()}}
 function netReset(){try{NET.conn&&NET.conn.close()}catch(e){}try{NET.peer&&NET.peer.destroy()}catch(e){}NET.peer=NET.conn=NET.role=NET.code=NET.friend=null;$('#frDot').hidden=true}
 function netFail(msg){netReset();modal(`<h2>👥 Oops</h2><p>${msg}</p>`,'OK',null);sfx('bad')}
 function openFriends(){
   if(NET.friend&&NET.conn){const f=NET.friend;
     modal(`<h2>👥 Playing with ${f.name}</h2><p class="muted">${NET.role==='host'?'Your friend is in your town!':`You are in ${f.name}'s town!`} Find each other on the map (blue dot on the big map).</p>
-      <p style="font-weight:800;margin:6px 0 0">Send a reaction:</p><div class="emos">${['👋','😂','💪','🔥','😮','🏆'].map(e=>`<button data-emo="${e}">${e}</button>`).join('')}</div>
-      <p style="font-weight:800;margin:6px 0 4px">Challenge ${f.name}:</p><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px"><button class="big go" id="frFight">🥊<br>Fight</button><button class="big go" id="frRace">🚲<br>Race</button><button class="big go" id="frWork">💪<br>Workout</button></div>
+      <button class="big" id="frReact" style="width:100%;margin:4px 0 8px;background:#2a2340;color:#fff">😀 Send a reaction</button>
+      <p style="font-weight:800;margin:6px 0 4px">Challenge ${f.name}:</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px"><button class="big go" id="frFight">🥊 Fight</button><button class="big go" id="frRace">🚲 Race</button><button class="big go" id="frWork">💪 Workout</button><button class="big go" id="frArc">🕹️ Arcade duel</button></div>
+      <p style="font-weight:800;margin:6px 0 4px">Do together:</p><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:8px"><button class="big" id="frHi5" style="font-size:14px">✋<br>High five</button><button class="big" id="frGift" style="font-size:14px">🎁<br>Give coins</button><button class="big" id="frGo" style="font-size:14px">📍<br>Go to ${f.name}</button></div>
+      <button class="big go" id="frCafe" style="width:100%;margin-bottom:8px">🍔 Go to the café together</button>
       <button class="big" id="frLeave" style="width:100%;margin-bottom:8px">Stop playing together</button>`,'Close',null);
+    $('#frCafe').onclick=()=>{$('#modal').hidden=true;pvpChallenge('cafe')};$('#frReact').onclick=openReactions;$('#frArc').onclick=pvpArcPick;$('#frHi5').onclick=()=>{$('#modal').hidden=true;netHi5()};$('#frGift').onclick=netGiftPick;$('#frGo').onclick=()=>{$('#modal').hidden=true;netGoTo()};
     $('#frFight').onclick=()=>{$('#modal').hidden=true;pvpChallenge('fight')};$('#frRace').onclick=()=>{$('#modal').hidden=true;pvpChallenge('race')};$('#frWork').onclick=()=>{$('#modal').hidden=true;pvpWorkPick()};
     document.querySelectorAll('#modalBox [data-emo]').forEach(b=>b.onclick=()=>{netEmote(b.dataset.emo);$('#modal').hidden=true});
     $('#frLeave').onclick=()=>{netSend({t:'bye'});setTimeout(netReset,150);$('#modal').hidden=true;showToast('You stopped playing together')};return}
@@ -2672,14 +2688,14 @@ function netJoin(code){netReset();modal(`<h2>🔑 Looking for your friend…</h2
 
 // ================= FRIENDLY FIGHTS between two friends =================
 function pvpMe(){const m=me();return{hp:Math.round(m.hp*10)/10,lvl:growAll(),look:playerLook(),name:cleanName(S.name),blv:hasUp('bike')?(S.bikeLv||0):0}}
-const CHAL={fight:{ic:'🥊',what:'a friendly fight',rule:'No coins lost, no hospital. The winner gets XP!'},race:{ic:'🚲',what:'a bike race',rule:'2 laps on a random track. First to the finish wins!'},work:{ic:'💪',what:'a workout battle',rule:'You both do the same workout. Highest score wins!'}};
+const CHAL={cafe:{ic:'🍔',what:'to go to the café together',rule:'Buy food, carry your tray to the table and eat together!'},arc:{ic:'🕹️',what:'an arcade duel',rule:'You both play the same arcade game for free. Highest score wins!'},fight:{ic:'🥊',what:'a friendly fight',rule:'No coins lost, no hospital. The winner gets XP!'},race:{ic:'🚲',what:'a bike race',rule:'2 laps on a random track. First to the finish wins!'},work:{ic:'💪',what:'a workout battle',rule:'You both do the same workout. Highest score wins!'}};
 function pvpChallenge(kind='fight',extra={}){const f=NET.friend;if(!f||!NET.conn)return;if(f.scr!=='map'){showToast(`${f.name} is busy ${SCRNAME[f.scr]||''}. Try again soon!`);return}
   if(kind==='race'&&!hasUp('bike')){modal('<h2>🚲 You need a bike</h2><p>Buy a bike at the Bike Shop or Gear Shop first!</p>','OK',null);return}
   if(kind==='race')extra=Object.assign({track:Math.floor(Math.random()*RACERS.length)},extra);
   NET.waitFight=kind;NET.chalExtra=extra;netSend(Object.assign({t:'chal',kind},extra,pvpMe()));modal(`<h2>${CHAL[kind].ic} Challenge sent!</h2><p class="muted">Waiting for ${f.name} to say yes…</p>`,'Cancel',()=>{NET.waitFight=false})}
 function pvpWorkPick(){const f=NET.friend;if(!f)return;modal(`<h2>💪 Workout battle</h2><p class="muted">Pick a workout. You and ${f.name} both do it at the same time - highest score wins!</p><div style="display:grid;gap:8px;margin-bottom:8px">${WORK.map(w=>`<button class="big" data-wb="${w.key}" style="text-align:left">${GICON[w.key]} ${w.name}</button>`).join('')}</div>`,'Cancel',null);
   document.querySelectorAll('#modalBox [data-wb]').forEach(b=>b.onclick=()=>{$('#modal').hidden=true;pvpChallenge('work',{w:b.dataset.wb})})}
-function pvpBegin(kind,d,extra){if(kind==='race')pvpRaceStart(d,extra);else if(kind==='work')pvpWorkStart(d,extra);else pvpStart(d)}
+function pvpBegin(kind,d,extra){if(kind==='cafe'){cafe2Start();return}if(kind==='arc'){const g=ARCG.find(x=>x.id===extra.g)||ARCG[0];NET.ab={g:g.id,me:null,them:null,live:0};show('arcade');arcBegin(g,true);return}if(kind==='race')pvpRaceStart(d,extra);else if(kind==='work')pvpWorkStart(d,extra);else pvpStart(d)}
 // ---- race your friend ----
 function pvpRaceStart(d,extra){const ri=clamp(Math.floor(+extra.track||0),0,RACERS.length-1),T=trackOf(ri),f=NET.friend;
   RACE={ph:'count',t:3,T,laps:2,pvp:true,name:f.name,ri:4,first:false,prize:0,time:0,go:0,pu:0,ru:0,rt:0,v:0,rv:{mode:'bike',look:d.look&&typeof d.look==='object'?d.look:f.look,walk:0,x:0,y:0,dir:1},rsp:0,rb:0,rnext:1e9,gas:false,boost:1,bT:0,home:{x:PL.x,y:PL.y},flv:clamp(+d.blv||0,0,2)};
@@ -2692,17 +2708,39 @@ function pvpStart(d){const f=NET.friend;if(!f)return;const h0=S.health??1;
   const foe={name:f.name,look:d.look&&typeof d.look==='object'?d.look:f.look,lvl:clamp(+d.lvl||0.3,0,1.5),hp:clamp(+d.hp||40,10,5000),dmg:0,every:1e9,warn:420,guard:0,coins:0,tier:'Friend'};
   S.health=1;startFight(foe,{type:'pvp',h0});F.pvp=true;F.foe.hp=foe.hp;F.fhp=foe.hp;F.next=1e15;F.php=F.m.hp;hpBars();
   F.txt.push({s:'FRIENDLY FIGHT!',side:1,t:performance.now(),c:'#4fb0ff'});sfx('great')}
+
+// ---- more things to do with a friend ----
+function openReactions(){if(!NET.friend)return;modal(`<h2>😀 Reactions</h2><div class="emos">${EMOS.map(e=>`<button data-emo="${e}">${e}</button>`).join('')}</div><p style="font-weight:800;margin:8px 0 4px">Quick messages:</p><div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:8px">${PHRASES.map(t=>`<button class="pill ghost" data-emo="${t}" style="font-size:13px;padding:8px 4px">${t}</button>`).join('')}</div>`,'Close',null);
+  document.querySelectorAll('#modalBox [data-emo]').forEach(b=>b.onclick=()=>{netEmote(b.dataset.emo);$('#modal').hidden=true})}
+function pvpArcPick(){const f=NET.friend;if(!f)return;modal(`<h2>🕹️ Arcade duel</h2><p class="muted">You both play the same game at the same time - free! Highest score wins.</p><div style="display:grid;gap:8px;margin-bottom:8px">${ARCG.filter(g=>g.id!=='claw').map(g=>`<button class="big" data-ag="${g.id}" style="text-align:left">${g.ic} ${g.name}</button>`).join('')}</div>`,'Cancel',null);
+  document.querySelectorAll('#modalBox [data-ag]').forEach(b=>b.onclick=()=>{$('#modal').hidden=true;pvpChallenge('arc',{g:b.dataset.ag})})}
+function abResult(){const B=NET.ab;if(!B||B.me==null||B.them==null||B.told)return;B.told=true;const nm=NET.friend?NET.friend.name:'Your friend';
+  const t=B.me>B.them?`🏆 You won the arcade duel ${B.me} to ${B.them}!`:B.me<B.them?`${nm} won the arcade duel ${B.them} to ${B.me}!`:`Arcade duel tie! ${B.me} to ${B.me}`;sfx(B.me>=B.them?'level':'bad');showToast(t,6000);NET.ab=null}
+function netHi5(){const f=NET.friend;if(!f)return;if(f.x==null||f.scr!=='map'||Math.hypot(PL.x-f.x,PL.y-f.y)>160){showToast(`✋ Walk right next to ${f.name} first!`);return}
+  NET.hi5Me=performance.now();NET.myEmo={e:'✋',t:performance.now()};netSend({t:'hi5'});
+  if(NET.hi5Them&&performance.now()-NET.hi5Them<6000){netSend({t:'hi5ok'});hi5Done()}else showToast(`✋ Waiting for ${f.name} to high five back…`,4000)}
+function hi5Done(){if(NET.hi5Done&&performance.now()-NET.hi5Done<3000)return;NET.hi5Done=performance.now();NET.hi5Me=NET.hi5Them=0;sfx('level');NET.myEmo={e:'🙌',t:performance.now()};if(NET.friend)NET.friend.emo={e:'🙌',t:performance.now()};
+  let bonus='';if(Date.now()-(S.hi5T||0)>60000){S.hi5T=Date.now();addCoins(5);save();bonus=' +5 coins'}showToast(`✋ HIGH FIVE!${bonus}`,3500)}
+function netGiftPick(){const f=NET.friend;if(!f)return;modal(`<h2>🎁 Give coins to ${f.name}</h2><p class="muted">You have ${S.coins} coins.</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">${[10,25,50,100].map(n=>`<button class="big go" data-gift="${n}" ${S.coins<n?'disabled style="opacity:.5"':''}><i class="coin"></i> ${n}</button>`).join('')}</div>`,'Cancel',null);
+  document.querySelectorAll('#modalBox [data-gift]').forEach(b=>b.onclick=()=>{const n=+b.dataset.gift;if(S.coins<n||!NET.conn)return;S.coins-=n;updCoins();save();netSend({t:'gift',n});sfx('coin');$('#modal').hidden=true;showToast(`🎁 You gave ${f.name} ${n} coins!`)})}
+function netGoTo(){const f=NET.friend;if(!f||f.x==null)return;if(screen!=='map')show('map');PL.x=clamp(f.x+60,30,WORLD.w-30);PL.y=clamp(f.y,40,WORLD.h-10);PL.tx=null;PL.vx=PL.vy=0;sfx('great');showToast(`📍 You're next to ${f.name}!`)}
 function netGotFriend(d){if((+d.v||0)!==GAME_VER)setTimeout(()=>showToast((+d.v||0)<GAME_VER?`⚠️ Your friend has an OLD version of the game. Ask them to refresh (Ctrl+Shift+R) or reopen it, then join again.`:`⚠️ Your game is an OLD version. Refresh (Ctrl+Shift+R) or reopen it, then join again.`,9000),1500);NET.friend={name:cleanName(d.name),look:d.look&&typeof d.look==='object'?d.look:townLook(),rank:String(d.rank||'').replace(/[<>&]/g,''),trophies:+d.trophies||0,ps:clamp(+d.ps||0.35,0.25,0.6),x:null,y:null,tx:null,ty:null,dir:1,walk:0,mv:false,bike:false,scr:'map',emo:null};$('#frDot').hidden=false}
 function netData(d,conn){const f=NET.friend;if(!f||conn!==NET.conn)return;
   if(d.t==='chal'){const kind=CHAL[d.kind]?d.kind:'fight';if(screen!=='map'||!$('#modal').hidden||F||RACE){netSend({t:'chalno',why:'busy'});return}
     if(kind==='race'&&!hasUp('bike')){netSend({t:'chalno',why:'nobike'});showToast(`${f.name} wanted to race, but you need a bike first!`);return}sfx('great');
-    const ex=kind==='work'?{w:String(d.w||'')}:kind==='race'?{track:+d.track||0}:{};const wn=kind==='work'?(WORK.find(x=>x.key===ex.w)||{}).name:'';
-    $('#modalBox').innerHTML=`<h2>${CHAL[kind].ic} ${f.name} wants ${CHAL[kind].what}!</h2><p class="muted">${wn?'Workout: <b>'+wn+'</b>. ':''}${CHAL[kind].rule}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="big" id="pvNo">Not now</button><button class="big go" id="pvYes">Let's fight!</button></div>`;$('#modal').hidden=false;
+    const ex=kind==='work'?{w:String(d.w||'')}:kind==='race'?{track:+d.track||0}:kind==='arc'?{g:d.g==='stack'?'stack':'mole'}:{};const wn=kind==='work'?(WORK.find(x=>x.key===ex.w)||{}).name:kind==='arc'?(ARCG.find(x=>x.id===ex.g)||{}).name:'';
+    $('#modalBox').innerHTML=`<h2>${CHAL[kind].ic} ${f.name} wants ${CHAL[kind].what}!</h2><p class="muted">${wn?(kind==='arc'?'Game':'Workout')+': <b>'+wn+'</b>. ':''}${CHAL[kind].rule}</p><div style="display:grid;grid-template-columns:1fr 1fr;gap:10px"><button class="big" id="pvNo">Not now</button><button class="big go" id="pvYes">Let's fight!</button></div>`;$('#modal').hidden=false;
     $('#pvNo').onclick=()=>{$('#modal').hidden=true;netSend({t:'chalno'})};$('#pvYes').onclick=()=>{$('#modal').hidden=true;const me=pvpMe();netSend(Object.assign({t:'chalok',kind},me));pvpBegin(kind,d,ex)};return}
   if(d.t==='chalok'){if(NET.waitFight){const kind=NET.waitFight;NET.waitFight=false;$('#modal').hidden=true;pvpBegin(kind,d,NET.chalExtra||{})}return}
   if(d.t==='rpos'){if(RACE&&RACE.pvp){RACE.rt=clamp(+d.u||0,0,1e6);RACE.rb=d.b?1:0}return}
   if(d.t==='rdone'){if(RACE&&RACE.pvp&&RACE.ph==='go')endRace(false);return}
   if(d.t==='wlive'){if(NET.wb)NET.wb.live=+d.sc||0;return}
+  if(d.t==='cf'){if(C2&&d.st&&typeof d.st==='object'){const st=d.st;C2.them={ph:String(st.ph||'menu').slice(0,10),x:clamp(+st.x||0.9,-0.2,1.2),items:Array.isArray(st.items)?st.items.filter(i=>MENU.some(m=>m.id===i)).slice(0,6):[],ek:clamp(+st.ek||0,0,1),eid:MENU.some(m=>m.id===st.eid)?st.eid:null,dir:st.dir<0?-1:1,walk:+st.walk||0,seat:C2.me.seat?0:1}}return}
+  if(d.t==='alive'){if(NET.ab)NET.ab.live=+d.sc||0;return}
+  if(d.t==='adone'){if(NET.ab){NET.ab.them=+d.sc||0;abResult()}return}
+  if(d.t==='hi5'){NET.hi5Them=performance.now();if(NET.hi5Me&&performance.now()-NET.hi5Me<6000){netSend({t:'hi5ok'});hi5Done()}else{sfx('great');f.emo={e:'✋',t:performance.now()};showToast(`✋ ${f.name} wants a HIGH FIVE! Open 👥 FRIENDS and press High five`,5000)}return}
+  if(d.t==='hi5ok'){hi5Done();return}
+  if(d.t==='gift'){const n=clamp(Math.floor(+d.n||0),0,100);if(n>0){addCoins(n);save();sfx('coin');showToast(`🎁 ${f.name} gave you ${n} coins!`,5000)}return}
   if(d.t==='wdone'){if(NET.wb){NET.wb.them=Math.round((+d.sc||0)*10)/10;wbResult()}return}
   if(d.t==='chalno'){if(NET.waitFight){NET.waitFight=false;modal(`<h2>🥊 Not now</h2><p>${d.why==='busy'?f.name+' is busy right now.':(d.why==='nobike'?f.name+' needs a bike to race.':f.name+' said not now.')}</p>`,'OK',null)}return}
   if(F&&F.pvp&&!F.over){const now=performance.now();
@@ -2713,12 +2751,12 @@ function netData(d,conn){const f=NET.friend;if(!f||conn!==NET.conn)return;
     if(d.t==='blk'){F.foeBlk=!!d.v;return}}
   if(d.t==='st'){const x=+d.x,y=+d.y;if(isFinite(x)&&isFinite(y)){f.tx=clamp(x,0,WORLD.w);f.ty=clamp(y,0,WORLD.h);if(f.x==null){f.x=f.tx;f.y=f.ty}}f.dir=d.dir<0?-1:1;f.mv=!!d.mv;f.bike=!!d.bike;f.face=['side','up','down'].includes(d.face)?d.face:'side';f.scr=String(d.scr||'map').slice(0,12);if(d.look&&typeof d.look==='object')f.look=d.look}
   else if(d.t==='me'){if(d.look&&typeof d.look==='object')f.look=d.look;f.blv=clamp(Math.floor(+d.blv||0),0,2);f.bcol=/^#[0-9a-fA-F]{3,8}$/.test(d.bcol||'')?d.bcol:'#3a6df0';if(d.name)f.name=cleanName(d.name);f.rank=String(d.rank||'').replace(/[<>&]/g,'').slice(0,30);f.trophies=clamp(+d.trophies||0,0,9999);if(+d.ps)f.ps=clamp(+d.ps,0.25,0.6)}
-  else if(d.t==='emo'&&['👋','😂','💪','🔥','😮','🏆'].includes(d.e)){f.emo={e:d.e,t:performance.now()};sfx('tick')}
+  else if(d.t==='emo'&&(EMOS.includes(d.e)||PHRASES.includes(d.e))){f.emo={e:d.e,t:performance.now()};sfx('tick')}
   else if(d.t==='bye'){netLost(conn)}}
-function netLost(conn){if(conn&&conn!==NET.conn)return;if(F&&F.pvp&&!F.over){F.over=true;F=null;setBlock(false);modal('<h2>👋 Your friend left</h2><p>The friendly fight stopped.</p>','Back to town',()=>show('map'))}NET.waitFight=false;if(RACE&&RACE.pvp)endRace(null,'Your friend left the race.');NET.wb=null;const nm=NET.friend&&NET.friend.name;netReset();if(nm)showToast(`👋 ${nm} left`)}
+function netLost(conn){if(conn&&conn!==NET.conn)return;if(screen==='cafe2'){C2=null;setTimeout(()=>{show('map');showToast('👋 Your friend left the café')},50)}if(F&&F.pvp&&!F.over){F.over=true;F=null;setBlock(false);modal('<h2>👋 Your friend left</h2><p>The friendly fight stopped.</p>','Back to town',()=>show('map'))}NET.waitFight=false;if(RACE&&RACE.pvp)endRace(null,'Your friend left the race.');NET.wb=null;const nm=NET.friend&&NET.friend.name;netReset();if(nm)showToast(`👋 ${nm} left`)}
 function netSend(o){try{if(NET.conn&&NET.conn.open)NET.conn.send(JSON.parse(JSON.stringify(o)))}catch(e){}}
 function netEmote(e){NET.myEmo={e,t:performance.now()};netSend({t:'emo',e});sfx('tick')}
-setInterval(()=>{if(!NET.conn||!NET.friend)return;if(RACE&&RACE.pvp)netSend({t:'rpos',u:Math.round(RACE.pu),b:RACE.bT>0});if(W&&W.battle&&W.run)netSend({t:'wlive',sc:Math.round(W.score*10)/10});const onB=hasUp('bike')&&S.onBike!==false,st={t:'st',x:Math.round(PL.x),y:Math.round(PL.y),dir:PL.dir||1,mv:!!PL.moving,bike:onB,face:PL.face||'side',scr:screen};
+setInterval(()=>{if(!NET.conn||!NET.friend)return;if(RACE&&RACE.pvp)netSend({t:'rpos',u:Math.round(RACE.pu),b:RACE.bT>0});if(W&&W.battle&&W.run)netSend({t:'wlive',sc:Math.round(W.score*10)/10});if(C2&&screen==='cafe2'){const m=C2.me;netSend({t:'cf',st:{ph:m.ph,x:Math.round(m.x*1000)/1000,items:m.items,ek:Math.round(m.ek*100)/100,eid:m.eid,dir:m.dir,walk:Math.round(m.walk*10)/10}})}if(ARC&&ARC.battle&&!ARC.done)netSend({t:'alive',sc:ARC.g==='stack'?ARC.rows.length:ARC.score});const onB=hasUp('bike')&&S.onBike!==false,st={t:'st',x:Math.round(PL.x),y:Math.round(PL.y),dir:PL.dir||1,mv:!!PL.moving,bike:onB,face:PL.face||'side',scr:screen};
   const k=JSON.stringify(st),now=performance.now();if(k!==NET.lastSt||now-NET.last>1000){NET.lastSt=k;NET.last=now;netSend(st)}
   const meInfo={t:'me',look:playerLook(),blv:hasUp('bike')?(S.bikeLv||0):0,bcol:bikeCol(),name:cleanName(S.name),rank:rankOf()[1],trophies:S.trophies||0,ps:Math.round((0.3+0.16*growAll())*1000)/1000},mk=JSON.stringify(meInfo);
   if(mk!==NET.lastMe||now-(NET.lastMeT||0)>5000){NET.lastMe=mk;NET.lastMeT=now;netSend(meInfo)}},100);
@@ -2734,10 +2772,79 @@ function netDrawEnts(ents,c,now,vis,ps){const f=NET.friend;if(!f||f.x==null)retu
     else drawMapFighter(c,f.x,f.y,f.look,f.dir,f.mv?f.walk:0,now,false,f.ps,{relax:true,swing:f.mv?Math.sin(f.walk):Math.sin(now/900)*0.12});
     c.globalAlpha=1}])}
 function netDrawTags(c,now,ps){const f=NET.friend;
-  const bubble=(x,y,e)=>{const k=(now-e.t)/2600;if(k>1)return;c.globalAlpha=k>0.8?(1-k)*5:1;c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=2;c.beginPath();c.arc(x,y-Math.min(1,k*6)*8,17,0,7);c.fill();c.stroke();c.font='20px sans-serif';c.textAlign='center';c.fillText(e.e,x,y+7-Math.min(1,k*6)*8);c.globalAlpha=1};
+  const bubble=(x,y,e)=>{const k=(now-e.t)/2600;if(k>1)return;if(PHRASES.includes(e.e)){c.globalAlpha=k>0.8?(1-k)*5:1;c.font='900 14px Nunito, sans-serif';const tw=c.measureText(e.e).width+20,yy=y-Math.min(1,k*6)*8;c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=2;c.beginPath();c.roundRect(x-tw/2,yy-15,tw,28,14);c.fill();c.stroke();c.beginPath();c.moveTo(x-6,yy+13);c.lineTo(x,yy+21);c.lineTo(x+6,yy+13);c.fill();c.fillStyle='#1b2130';c.textAlign='center';c.fillText(e.e,x,yy+5);c.globalAlpha=1;return}c.globalAlpha=k>0.8?(1-k)*5:1;c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=2;c.beginPath();c.arc(x,y-Math.min(1,k*6)*8,17,0,7);c.fill();c.stroke();c.font='20px sans-serif';c.textAlign='center';c.fillText(e.e,x,y+7-Math.min(1,k*6)*8);c.globalAlpha=1};
   if(NET.myEmo)bubble(PL.x,PL.y-166*ps-40,NET.myEmo);
   if(!f||f.x==null)return;const hh=166*f.ps;tag(c,f.x,f.y-hh-12-(f.bike?5*f.ps/0.3:0),'👥 '+f.name+(f.rank?' · '+f.rank:'')+(f.trophies?' · 🏆'+f.trophies:'')+(f.scr!=='map'?' · '+(SCRNAME[f.scr]||'busy'):''),'#4fb0ff');if(f.emo)bubble(f.x,f.y-hh-40,f.emo)}
-$('#frBtn').onclick=()=>{sfx('tick');openFriends()};
+$('#frBtn').onclick=()=>{sfx('tick');openFriends()};$('#reactBtn').onclick=()=>{sfx('tick');openReactions()};setInterval(()=>{const b=$('#reactBtn');if(b)b.hidden=!(NET.friend&&NET.conn)},500);
+
+// ================= CAFÉ TOGETHER: buy a tray, carry it to the table, eat together =================
+let C2=null;const C2DOOR=0.93,C2TILL=0.4,C2SEAT=[0.6,0.8];
+function cafe2Start(){const f=NET.friend;if(!f)return;const host=NET.role==='host';
+  C2={me:{ph:'menu',x:C2DOOR,cart:[],items:[],ek:0,eid:null,dir:-1,walk:0,seat:host?0:1,t:0},them:{ph:'menu',x:C2DOOR+0.04,items:[],ek:0,eid:null,dir:-1,walk:0,seat:host?1:0},say:'',sayT:0};
+  show('cafe2');$('#c2Name').textContent=f.name;c2Say('Welcome! Pick your food, then pay to get your tray.');renderCafe2()}
+function c2Say(t){if(C2){C2.say=t;C2.sayT=performance.now()}}
+function renderCafe2(){if(!C2)return;const m=C2.me,el=$('#c2Menu');
+  if(m.ph!=='menu'){$('#c2Txt').textContent={walk:'Walking to the counter…',tray:'Sam is getting your tray ready…',carry:'Carry your tray to the table!',sit:'Eating… yum!',done:'All done! Chat with your friend or leave.'}[m.ph]||'';el.innerHTML=m.ph==='done'?'<button class="big go" id="c2More" style="width:100%">🍔 Buy more food</button>':'';if($('#c2More'))$('#c2More').onclick=()=>{m.ph='menu';m.cart=[];renderCafe2()};return}
+  const tot=m.cart.reduce((a,id)=>{const q=MENU.find(x=>x.id===id);a.p+=q.price;a.f+=q.food;a.d+=q.drink;return a},{p:0,f:0,d:0});
+  $('#c2Txt').innerHTML=`Your tray: ${m.cart.length?m.cart.map(id=>MENU.find(x=>x.id===id).name).join(', '):'empty'}`;
+  el.innerHTML=`<div class="tray"><div class="row"><span class="tot">${tot.f?'+'+tot.f+' food ':''}${tot.d?'+'+tot.d+' drink':''}</span>${m.cart.length?`<span style="display:flex;gap:6px"><button class="pill" id="c2Clr" style="background:var(--panel);color:var(--chalk)">Clear</button><button class="pill" id="c2Pay" ${S.coins<tot.p?'disabled':''}>Pay <i class="coin"></i>${tot.p}</button></span>`:''}</div></div>
+    <div class="list">${MENU.map(q=>`<div class="card"><canvas class="fi" data-f="${q.id}" width="52" height="52"></canvas><span><h3>${q.name}</h3><p>${[q.food?`+${q.food} food`:'',q.drink?`+${q.drink} drink`:''].filter(Boolean).join(' · ')}</p></span><button class="pill" data-c2="${q.id}" ${m.cart.length>=6||S.coins<tot.p+q.price?'disabled':''}>+ <i class="coin"></i>${q.price}</button></div>`).join('')}</div>`;
+  el.querySelectorAll('.fi').forEach(cv=>{const {c,w,h}=fit(cv);drawFood(c,cv.dataset.f,w/2,h/2,17)});
+  el.querySelectorAll('[data-c2]').forEach(b=>b.onclick=()=>{if(m.cart.length<6){m.cart.push(b.dataset.c2);sfx('tick');renderCafe2()}});
+  if($('#c2Clr'))$('#c2Clr').onclick=()=>{m.cart=[];sfx('tick');renderCafe2()};
+  if($('#c2Pay'))$('#c2Pay').onclick=()=>{if(S.coins<tot.p||!m.cart.length)return;S.coins-=tot.p;updCoins();save();sfx('coin');m.items=m.cart.slice();m.cart=[];m.ph='walk';c2Say(pick(['Coming right up!','Great choice!','Your tray is on the way!']));renderCafe2()}}
+$('#c2Back').onclick=()=>{sfx('tick');C2=null;netSend({t:'cf',st:{ph:'gone',x:1.3,items:[]}});show('map');const cb=BUILD.find(b=>b.go==='cafe');if(cb){PL.x=cb.x+cb.w/2;PL.y=cb.y+cb.h+30;PL.tx=null}};
+function c2Tick(P,dt,mine){const sp=0.28;
+  const goTo=(tx,next)=>{const d=tx-P.x;if(Math.abs(d)<0.006){P.x=tx;P.ph=next;P.t=0;if(mine)renderCafe2();return}P.dir=d>0?1:-1;P.x+=Math.sign(d)*Math.min(Math.abs(d),sp*dt);P.walk+=dt*11};
+  P.t=(P.t||0)+dt;
+  if(P.ph==='walk')goTo(C2TILL,'tray');
+  else if(P.ph==='tray'){P.dir=-1;if(P.t>1.3){P.ph='carry';P.t=0;if(mine){c2Say('Here is your tray! Enjoy!');sfx('good');renderCafe2()}}}
+  else if(P.ph==='carry')goTo(C2SEAT[P.seat],'sit');
+  else if(P.ph==='sit'&&mine){if(!P.eid&&P.items.length){P.eid=P.items[0];P.ek=0}
+    if(P.eid){P.ek+=dt/2.6;const q=MENU.find(x=>x.id===P.eid);if(!P.bit&&P.ek>0.45){P.bit=true;sfx(q.drink>q.food?'gulp':'crunch')}
+      if(P.ek>=1){const over=Math.max(0,S.food+q.food-100)+Math.max(0,S.drink+q.drink-100);S.food=Math.min(100,S.food+q.food);S.drink=Math.min(100,S.drink+q.drink);if(over>=Math.max(10,(q.food+q.drink)*0.6))S.fat=Math.min(1,(S.fat||0)+0.08);save();updMeters();
+        P.items.shift();P.eid=null;P.ek=0;P.bit=false;if(!P.items.length){P.ph='done';sfx('level');renderCafe2()}}}}}
+function drawC2Person(c,P,L,name,col,w,h,now,isMe){if(P.ph==='gone')return;const gy=h*0.86,s=h/300,x=P.x*w;
+  if(P.ph==='sit'||P.ph==='done'){const sx=C2SEAT[P.seat??0]*w,sy=gy-8*s;
+    c.beginPath();c.roundRect(sx-22*s,sy-112*s,44*s,74*s,6*s);ink(c,'#8a5a2b',2);
+    const raise=P.eid?Math.max(0,Math.sin(Math.min(1,P.ek/0.9)*Math.PI)):0;drawFront(c,sx,sy,s*0.95,L,{pose:'eat',raise,bob:0,sit:true});
+    if(P.eid&&raise>0.15){const q=MENU.find(m=>m.id===P.eid);drawFood(c,P.eid,sx+10*s,sy-(96+40*raise)*s,9*s+2,1-P.ek,q.drink>q.food?-0.4*raise:0)}
+    tag(c,sx,sy-200*s,name,col);return}
+  const carrying=P.ph==='carry';const k=P.ph==='walk'||P.ph==='carry'?Math.sin(P.walk):0;
+  drawFighter(c,x,gy,s,L,{flip:P.dir<0,relax:!carrying,swing:k,kickF:Math.max(0,k)*0.35,kickB:Math.max(0,-k)*0.35,bob:Math.abs(k)*-2,noShadow:false,hands:carrying?[[24,-100,44,-96],[22,-102,42,-98]]:undefined});
+  if(carrying){const tx=x+P.dir*46*s,ty=gy-94*s;c.fillStyle='#8a5a2b';c.strokeStyle='#1b2130';c.lineWidth=1.5;c.beginPath();c.roundRect(tx-22*s,ty,44*s,6*s,2);c.fill();c.stroke();P.items.slice(0,4).forEach((id,i)=>drawFood(c,id,tx-15*s+i*10*s,ty-6*s,7*s+1))}
+  tag(c,x,gy-180*s,name,col)}
+function drawCafe2(now,dt){if(!C2)return;const {c,w,h}=fit($('#c2Cv'));c2Tick(C2.me,dt,true);c2Tick(C2.them,dt,false);
+  const gy=h*0.86,s=h/300;
+  // room
+  const g=c.createLinearGradient(0,0,0,gy);g.addColorStop(0,'#e8d3ad');g.addColorStop(1,'#f6e7cc');c.fillStyle=g;c.fillRect(0,0,w,h);
+  c.fillStyle='#c79a63';c.fillRect(0,gy-110*s,w,110*s);c.fillStyle='#8a5a2b';c.fillRect(0,gy-112*s,w,4);
+  c.fillStyle='#cdb58a';c.fillRect(0,gy-4,w,h);c.fillStyle='rgba(0,0,0,.06)';for(let x=0;x<w;x+=28)c.fillRect(x,gy-4,14,h);
+  for(const lx of[0.2,0.5,0.8]){const X=w*lx;c.strokeStyle='#333';c.lineWidth=1.5;line(c,X,0,X,18);c.beginPath();c.moveTo(X-11,26);c.lineTo(X+11,26);c.lineTo(X+5,18);c.lineTo(X-5,18);c.closePath();ink(c,'#2f6b4f',1.5);const gl=c.createRadialGradient(X,28,2,X,28,w*0.18);gl.addColorStop(0,'rgba(255,225,150,.5)');gl.addColorStop(1,'rgba(255,225,150,0)');c.fillStyle=gl;c.beginPath();c.arc(X,28,w*0.18,0,7);c.fill()}
+  // menu board, door, window
+  c.beginPath();c.roundRect(w*0.04,h*0.08,w*0.3,h*0.22,6);ink(c,'#23272f',3);c.fillStyle='#ffe14d';c.font='400 '+Math.round(h*0.05)+'px Bungee, Impact, sans-serif';c.textAlign='center';c.fillText('MENU',w*0.19,h*0.15);
+  c.font='800 '+Math.max(8,Math.round(h*0.03))+'px Nunito, sans-serif';c.fillStyle='#f4efe4';['Banana · Apple','Salad · Wrap · Pasta','Water · Milk · Juice','Power Smoothie'].forEach((t,i)=>c.fillText(t,w*0.19,h*(0.19+i*0.035)));
+  c.beginPath();c.rect(w*0.9,gy-150*s,w*0.09,150*s);ink(c,'#8a5a2b',2);c.fillStyle='#bfe6ff';c.fillRect(w*0.915,gy-135*s,w*0.06,50*s);
+  c.beginPath();c.roundRect(w*0.5,h*0.1,w*0.32,h*0.18,6);ink(c,'#bfe6ff',3);c.fillStyle='#8fd46f';c.fillRect(w*0.5+3,h*0.22,w*0.32-6,h*0.06-3);
+  // Sam behind the counter
+  const csx=w*0.22,handing=C2.me.ph==='tray'||C2.them.ph==='tray';drawFront(c,csx,gy-30*s,s*0.95,CASHIER,{pose:'give',reach:handing?1:0,bob:Math.sin(now/600)*0.8});
+  c.beginPath();c.rect(0,gy-80*s,w*0.34,80*s);ink(c,'#7a4a24',2.5);c.beginPath();c.rect(-2,gy-86*s,w*0.35,8*s);ink(c,'#f5f2ec',2);
+  c.fillStyle='#8338ec';c.font='400 '+Math.round(14*s+6)+'px Bungee, Impact, sans-serif';c.fillText('CAFE',w*0.17,gy-40*s);
+  if(handing){c.fillStyle='#8a5a2b';c.fillRect(w*0.3,gy-94*s,40*s,6*s)}
+  // table + both people (far chair first)
+  const tX=(C2SEAT[0]+C2SEAT[1])/2*w;
+  const f=NET.friend,meL=playerLook(),thL=f?f.look:townLook(),meN=S.name+' (you)',thN=f?f.name:'Friend';
+  C2.them.seat=C2.me.seat?0:1;
+  const people=[[C2.them,thL,thN,'#4fb0ff',false],[C2.me,meL,meN,'#5fd49c',true]];
+  for(const [P,L,N,col,me] of people)if(P.ph==='sit'||P.ph==='done')drawC2Person(c,P,L,N,col,w,h,now,me);
+  c.fillStyle='rgba(0,0,0,.18)';c.beginPath();c.ellipse(tX,gy+2,w*0.22,8,0,0,7);c.fill();
+  c.fillStyle='#6b4226';c.fillRect(tX-4,gy-70*s,8,70*s);c.beginPath();c.ellipse(tX,gy-72*s,w*0.2,14*s,0,0,7);ink(c,'#f4efe4',2);
+  for(const [P] of people)if((P.ph==='sit'||P.ph==='done')){const sx=C2SEAT[P.seat??0]*w;c.fillStyle='#8a5a2b';c.beginPath();c.ellipse(sx,gy-76*s,22*s,5*s,0,0,7);c.fill();P.items.filter((id,i)=>!(i===0&&P.eid)).slice(0,4).forEach((id,i)=>drawFood(c,id,sx-14*s+i*10*s,gy-82*s,7*s+1))}
+  for(const [P,L,N,col,me] of people)if(!(P.ph==='sit'||P.ph==='done'))drawC2Person(c,P,L,N,col,w,h,now,me);
+  if(C2.say&&now-C2.sayT<2600){c.font='800 12px Nunito, sans-serif';const tw=c.measureText(C2.say).width+16,bx=Math.max(4,csx-tw/2),by=gy-210*s;c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=1.5;c.beginPath();c.roundRect(bx,by,tw,22,9);c.fill();c.stroke();c.fillStyle='#1b2130';c.textAlign='center';c.fillText(C2.say,bx+tw/2,by+15)}
+  // reactions show here too
+  const bub=(x,y,e)=>{if(!e||now-e.t>2600)return;c.font=PHRASES.includes(e.e)?'900 13px Nunito, sans-serif':'22px sans-serif';const tw=c.measureText(e.e).width+16;c.fillStyle='#fff';c.strokeStyle='#1b2130';c.lineWidth=1.5;c.beginPath();c.roundRect(x-tw/2,y-16,tw,28,12);c.fill();c.stroke();c.fillStyle='#1b2130';c.textAlign='center';c.fillText(e.e,x,y+5)};
+  const px=P=>(P.ph==='sit'||P.ph==='done')?C2SEAT[P.seat??0]*w:P.x*w;bub(px(C2.me),gy-225*s,NET.myEmo);if(f)bub(px(C2.them),gy-225*s,f.emo)}
 let curAct=null;
 function setAct(a){const k=a?a.txt+a.sub:'';if(k===(curAct?curAct.k:'')){if(a)curAct.fn=a.fn;return}
   curAct=a?{...a,k}:null;const b=$('#actBtn');b.hidden=!a;if(a&&mapHint){mapHint=false;$('#mapHint').hidden=true}if(a){b.innerHTML=`${a.txt}${a.sub?`<small>${a.sub}</small>`:''}`;b.disabled=!!a.locked;if(!a.locked)sfx('tick')}}
@@ -3442,6 +3549,7 @@ function loop(now){const dt=Math.min(0.05,(now-last)/1000);last=now;
   if(screen==='skin')drawHero(now);
   if(screen==='mirror')drawMirror(now,dt);
   if(screen==='cafe')drawCafe(now,dt);
+  if(screen==='cafe2')drawCafe2(now,dt);
   if(screen==='hospital')drawHospital(now,dt);
   if(screen==='map'){tickMap(now,dt);drawMap(now)}
   if(screen==='race')drawRaceScreen(now,dt);
